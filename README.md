@@ -1,71 +1,70 @@
-# Source SDK 2013
+# Hidden: Source on Source SDK 2013
 
-Source code for Source SDK 2013.
+A reimplementation of [Hidden: Source](http://www.hidden-source.com) (Calibre Studios, Beta 4b, 2006) on
+the current Source SDK 2013 Multiplayer, reusing the original mod's content.
 
-Contains the game code for Half-Life 2, HL2: DM and TF2.
+The original game code was lost; a Calibre developer suggested rebuilding the game on the modern SDK
+with the old assets. This repository is a fork of
+[ValveSoftware/source-sdk-2013](https://github.com/ValveSoftware/source-sdk-2013) with a `HIDDEN` game
+target built on the HL2MP code base. Valve's original README is in [README.sdk.md](README.sdk.md).
 
-**Now including Team Fortress 2! ✨**
+## Status
 
-## Build instructions
+Phase 1, skeleton. The mod builds, the dedicated server boots, and the Beta 4b maps load. There is no
+Hidden gameplay yet: the game plays as HL2MP, and the Hidden map entities (`info_hidden_spawn`,
+`info_marine_spawn`, `info_spectator`, `location_brush`, `extraction_point`, …) are still unknown to
+the server.
 
-Clone the repository using the following command:
+## Layout
 
-`git clone https://github.com/ValveSoftware/source-sdk-2013`
+| Path | What |
+|---|---|
+| `src/game/client/client_hidden.vpc`, `src/game/server/server_hidden.vpc` | Client and server projects (HL2MP plus `HIDDEN` define) |
+| `src/game/{client,server,shared}/hidden/` | Hidden game code (to come) |
+| `game/mod_hidden/` | The mod folder the game runs from |
+| `game/mod_hidden/legacy/` | Beta 4b content, imported locally and **not in git** |
+| `tools/` | Build and asset scripts |
 
-### Windows
+## Getting the content
 
-Requirements:
- - Source SDK 2013 Multiplayer installed via Steam
- - Visual Studio 2022 with the following workload and components:
-   - Desktop development with C++:
-     - MSVC v143 - VS 2022 C++ x64/x86 build tools (Latest)
-     - Windows 11 SDK (10.0.22621.0) or Windows 10 SDK (10.0.19041.1)
- - Python 3.13 or later
+The original assets aren't in this repository. Import them from a Beta 4b copy:
 
-Inside the cloned directory, navigate to `src`, run:
-```bat
-createallprojects.bat
-```
-This will generate the Visual Studio project `everything.sln` which will be used to build your mod.
-
-Then, on the menu bar, go to `Build > Build Solution`, and wait for everything to build.
-
-You can then select the `Client (Mod Name)` project you wish to run, right click and select `Set as Startup Project` and hit the big green `> Local Windows Debugger` button on the tool bar in order to launch your mod.
-
-The default launch options should be already filled in for the `Release` configuration.
-
-### Linux
-
-Requirements:
- - Source SDK 2013 Multiplayer installed via Steam
- - podman
-
-Inside the cloned directory, navigate to `src`, run:
-```bash
-./buildallprojects
+```powershell
+py tools/import_legacy.py <source> [<source> ...] --clean
 ```
 
-This will build all the projects related to the SDK and your mods automatically against the Steam Runtime.
+`<source>` can be an installed mod folder (`...\steamapps\sourcemods\hidden`), the
+`ianua-base-hsb4b.tar.gz` archive, or a zip of maps such as `ghs-patch-assets-v2.zip` (fixed
+`hdn_decay`/`hdn_origin`) or `ghs-mappack-v1.zip`. Only content folders are copied (`materials`,
+`models`, `sound`, `maps`, `scripts`, `resource`, `media`); the 2006 binaries never are.
 
-You can then, in the root of the cloned directory, you can navigate to `game` and run your mod by launching the build launcher for your mod project, eg:
-```bash
-./mod_tf
+## Building (Windows)
+
+Requirements: Source SDK 2013 Multiplayer installed through Steam, Visual Studio 2022 (or its Build
+Tools) with MSVC v143 and a Windows 10/11 SDK, and Python 3.13+.
+
+```powershell
+tools\build.ps1            # Release; add -Regen after changing .vpc files, -Configuration Debug for debug
 ```
 
-*Mods that are distributed on Steam MUST be built against the Steam Runtime, which the above steps will automatically do for you.*
+This writes `client.dll` and `server.dll` to `game/mod_hidden/bin/x64` and the launcher to
+`game/mod_hidden_win64.exe`.
 
-## Distributing your Mod
+## Running
 
-There is guidance on distributing your mod both on and off Steam available at the following link:
+- **Client:** run `game\mod_hidden_win64.exe` (Steam must be running).
+- **Dedicated server (Windows):** use the 64-bit `srcds_win64.exe` from the Source SDK Base 2013
+  Multiplayer install. The `srcds.exe` in the dedicated-server app (244310) is 32-bit and can't load
+  64-bit game DLLs.
 
-https://partner.steamgames.com/doc/sdk/uploading/distributing_source_engine
+  ```powershell
+  & "<SDK Base 2013 MP>\srcds_win64.exe" -console -game "<repo>\game\mod_hidden" +maxplayers 12 +map hdn_docks
+  ```
 
-## Additional Resources
-
-- [Valve Developer Wiki](https://developer.valvesoftware.com/wiki/Source_SDK_2013)
+- **Dedicated server (Linux):** to come. Build with `src/buildallprojects` against the Steam Runtime and
+  run on SteamCMD app 244310.
 
 ## License
 
-The SDK is licensed to users on a non-commercial basis under the [SOURCE 1 SDK LICENSE](LICENSE), which is contained in the [LICENSE](LICENSE) file in the root of the repository.
-
-For more information, see [Distributing your Mod](#markdown-header-distributing-your-mod).
+The code is under Valve's [SOURCE 1 SDK LICENSE](LICENSE). Hidden: Source content belongs to Calibre
+Studios and is not distributed here.

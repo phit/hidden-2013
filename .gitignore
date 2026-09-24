@@ -502,3 +502,10 @@ FodyWeavers.xsd
 
 # JetBrains Rider
 *.sln.iml
+# Hidden: Source
+game/mod_hidden/legacy/
+game/mod_hidden/custom/
+game/mod_hidden/download/
+game/mod_hidden/cfg/config.cfg
+
+game/mod_hidden/downloadlists/

@@ -1,0 +1,65 @@
+"GameInfo"
+{
+	game		"Hidden: Source"
+	title		"< HIDDEN SOURCE >"
+	title2		""
+	type		multiplayer_only
+	nomodels	1
+	nohimodel	1
+	nocrosshair	1
+	hidden_maps
+	{
+		"mtr_tutorial"		1
+		"htr_tutorial"		1
+		"dev_physworld"		1
+	}
+	"developer"		"Calibre Studios"
+	"developer_url"	"http://www.hidden-source.com"
+	"icon"			"materials/console/iris"
+
+	FileSystem
+	{
+		SteamAppId				243750
+
+		// To debug how the engine has parsed this file, type "path" at the console.
+		SearchPaths
+		{
+			// User customizations: VPKs and subfolders, mounted alphabetically at boot.
+			game+mod			mod_hidden/custom/*
+
+			// New mod files. Anything here overrides the legacy Beta 4b content below.
+			mod+mod_write		|gameinfo_path|.
+			game+game_write		|gameinfo_path|.
+			default_write_path	|gameinfo_path|.
+			gamebin				|gameinfo_path|bin
+
+			// Hidden: Source Beta 4b content, imported by tools/import_legacy.py.
+			// Not in git. Deliberately no gamebin here, so the 2006 DLLs can never load.
+			game+mod			|gameinfo_path|legacy
+
+			// Beta 4b ran on SDK Base 2006, which mounted HL2 and HL2DM content.
+			game+mod			|all_source_engine_paths|hl2mp/hl2mp_english.vpk
+			game+mod			|all_source_engine_paths|hl2mp/hl2mp_pak.vpk
+
+			game				|all_source_engine_paths|hl2_complete/hl2_complete_textures.vpk
+			game				|all_source_engine_paths|hl2_complete/hl2_complete_sound_vo_english.vpk
+			game				|all_source_engine_paths|hl2_complete/hl2_complete_sound_misc.vpk
+			game				|all_source_engine_paths|hl2_complete/hl2_complete_misc.vpk
+
+			game				|all_source_engine_paths|hl2/hl2_textures.vpk
+			game				|all_source_engine_paths|hl2/hl2_sound_vo_english.vpk
+			game				|all_source_engine_paths|hl2/hl2_sound_misc.vpk
+			game				|all_source_engine_paths|hl2/hl2_misc.vpk
+
+			platform			|all_source_engine_paths|platform/platform_misc.vpk
+
+			game				|all_source_engine_paths|hl2mp
+			game				|all_source_engine_paths|hl2_complete
+			game				|all_source_engine_paths|hl2
+			platform			|all_source_engine_paths|platform
+
+			// Files downloaded from servers, searched last.
+			game+download		mod_hidden/download
+		}
+	}
+}
