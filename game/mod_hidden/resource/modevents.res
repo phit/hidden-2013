@@ -48,4 +48,42 @@
 		"player"	"byte"		// entindex of the player
 		"achievement"	"short"		// achievement ID
 	}
+
+	// Hidden: Source (docs/spec/game-rules.md, client.md)
+	"game_round_restart"			// players were reset for a new round
+	{
+	}
+
+	"game_round_start"			// the round is live
+	{
+	}
+
+	"game_round_end"
+	{
+	}
+
+	"material_check"			// clients compare the cloak material with the server's
+	{
+		"vmt_CRC"	"long"
+		"bump_CRC"	"long"
+	}
+
+	"player_location"			// a player entered a location_brush
+	{
+		"userid"	"short"
+		"location"	"string"
+	}
+
+	"iris_radio"				// a marine used the radio
+	{
+		"userid"	"short"
+		"message"	"short"
+	}
+
+	"alarm_trigger"				// a sonic alarm went off
+	{
+		"posx"		"float"
+		"posy"		"float"
+		"posz"		"float"
+	}
 }
