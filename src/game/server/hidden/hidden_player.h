@@ -35,6 +35,7 @@ public:
 	virtual void ChangeTeam( int iTeam ) OVERRIDE;
 	virtual bool ClientCommand( const CCommand &args );
 	virtual void PlayerDeathThink( void );
+	virtual void Event_Killed( const CTakeDamageInfo &info );
 	virtual void PostThink( void );
 	virtual void ImpulseCommands( void );
 

@@ -43,6 +43,8 @@ public:
 	bool NightVisionEnabled( void ) const { return m_bNightVision; }
 	const char *GetCurrentLocation( void ) const { return m_szCurrentLocation; }
 
+	virtual ShadowType_t ShadowCastType( void );
+
 	// Third-person animation (Beta 4b's SDK template anim state)
 	virtual void UpdateClientSideAnimation( void );
 	virtual const QAngle &GetRenderAngles( void );

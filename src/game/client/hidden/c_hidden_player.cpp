@@ -107,6 +107,15 @@ void C_Hidden_Player::UpdateClientSideAnimation( void )
 	BaseClass::UpdateClientSideAnimation();
 }
 
+// The Hidden casts no shadow.
+ShadowType_t C_Hidden_Player::ShadowCastType( void )
+{
+	if ( GetTeamNumber() == TEAM_HIDDEN )
+		return SHADOWS_NONE;
+
+	return BaseClass::ShadowCastType();
+}
+
 const QAngle &C_Hidden_Player::GetRenderAngles( void )
 {
 	if ( IsRagdoll() )

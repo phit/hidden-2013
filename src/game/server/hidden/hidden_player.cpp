@@ -346,6 +346,30 @@ void CHidden_Player::ChangeTeam( int iTeam )
 		BecomeObserver();
 }
 
+void CHidden_Player::Event_Killed( const CTakeDamageInfo &info )
+{
+	// The Hidden dies as the visible hidden.mdl instead of the cloaked mn_fixture1. As in Beta 4b the
+	// player takes the model too, so the client poses the ragdoll from the same skeleton (hidden.mdl
+	// has 21 bones, mn_fixture1 42).
+	const bool bHidden = ( GetTeamNumber() == TEAM_HIDDEN );
+	if ( bHidden )
+	{
+		SetModel( HIDDEN_MODEL_HIDDEN_RAGDOLL );
+		m_nSkin = 0;
+		m_nBody = 0;
+	}
+
+	BaseClass::Event_Killed( info );
+
+	// The corpse keeps the marine's skin and body groups; the Hidden's shows skin 2, body 1.
+	CBaseAnimating *pRagdoll = m_hRagdoll ? m_hRagdoll->GetBaseAnimating() : NULL;
+	if ( pRagdoll )
+	{
+		pRagdoll->m_nSkin = bHidden ? 2 : m_nSkin.Get();
+		pRagdoll->m_nBody = bHidden ? 1 : m_nBody.Get();
+	}
+}
+
 void CHidden_Player::PlayerDeathThink( void )
 {
 	BaseClass::PlayerDeathThink();
