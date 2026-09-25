@@ -87,14 +87,14 @@ void CHidden_Player::Spawn( void )
 	const bool bMarine = ( iTeam == TEAM_IRIS && HasValidCharacter() && m_iPlayerClass != HIDDEN_CLASS_NONE );
 	const bool bPlaying = m_bReadyToPlay && ( bMarine || iTeam == TEAM_HIDDEN );
 
-	if ( bPlaying )
-	{
-		// The model decides the hull, so set it before the base spawn.
-		if ( iTeam == TEAM_HIDDEN )
-			SetModel( HIDDEN_MODEL_HIDDEN );
-		else
-			SetModel( m_iPlayerClass == HIDDEN_CLASS_SUPPORT ? HIDDEN_MODEL_MARINE_SUPPORT : HIDDEN_MODEL_MARINE );
-	}
+	// The model decides the hull, so set it before the base spawn. Players who sit out still need a
+	// valid model: the client's player code expects one.
+	if ( bPlaying && iTeam == TEAM_HIDDEN )
+		SetModel( HIDDEN_MODEL_HIDDEN );
+	else if ( bPlaying && m_iPlayerClass == HIDDEN_CLASS_SUPPORT )
+		SetModel( HIDDEN_MODEL_MARINE_SUPPORT );
+	else
+		SetModel( HIDDEN_MODEL_MARINE );
 
 	BaseClass::Spawn();
 

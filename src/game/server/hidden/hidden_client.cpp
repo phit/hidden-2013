@@ -140,6 +140,12 @@ CBaseEntity* FindEntity( edict_t *pEdict, char *classname)
 void ClientGamePrecache( void )
 {
 	CBaseEntity::PrecacheModel("models/player.mdl");
+
+	// The Hidden player models; players are created after the precache phase.
+	CBaseEntity::PrecacheModel( "models/player/iris.mdl" );
+	CBaseEntity::PrecacheModel( "models/player/iris_supply.mdl" );
+	CBaseEntity::PrecacheModel( "models/manor/mn_fixture1.mdl" );
+	CBaseEntity::PrecacheModel( "models/player/hidden.mdl" );
 	CBaseEntity::PrecacheModel( "models/gibs/agibs.mdl" );
 	CBaseEntity::PrecacheModel ("models/weapons/v_hands.mdl");
 
