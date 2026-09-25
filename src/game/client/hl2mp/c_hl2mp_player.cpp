@@ -590,7 +590,9 @@ void C_HL2MP_Player::AddEntity( void )
 
 	SetLocalAngles( vTempAngles );
 		
+#ifndef HIDDEN	// CHidden_Player runs the SDK template anim state instead
 	m_PlayerAnimState.Update();
+#endif
 
 	// Zero out model pitch, blending takes care of all of it.
 	SetLocalAnglesDim( X_INDEX, 0 );

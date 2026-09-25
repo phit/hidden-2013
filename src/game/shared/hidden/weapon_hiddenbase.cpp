@@ -350,6 +350,9 @@ void CWeaponHiddenBase::FireHiddenBullets( const QAngle &angShoot, float flSprea
 	WeaponSound( SINGLE );
 
 #ifndef CLIENT_DLL
+	// FX_FireBullets played the third-person fire animation.
+	pPlayer->DoAnimationEvent( HIDDEN_ANIMEVENT_FIRE_GUN_PRIMARY );
+
 	lagcompensation->StartLagCompensation( pPlayer, pPlayer->GetCurrentCommand() );
 	pPlayer->NoteWeaponFired();
 #endif

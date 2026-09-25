@@ -6,11 +6,44 @@
 
 #include "cbase.h"
 #include "c_hidden_player.h"
+#include "c_basetempentity.h"
+#include "weapon_hiddenbase.h"
+
+// hidden_player_shared.h maps CHidden_Player to this class, but the network class name below must
+// stay the server's.
+#undef CHidden_Player
 
 // memdbgon must be the last include file in a .cpp file!!!
 #include "tier0/memdbgon.h"
 
 LINK_ENTITY_TO_CLASS( player, C_Hidden_Player );
+
+//-----------------------------------------------------------------------------
+// Player animation events from the server.
+//-----------------------------------------------------------------------------
+class C_TEHiddenPlayerAnimEvent : public C_BaseTempEntity
+{
+public:
+	DECLARE_CLASS( C_TEHiddenPlayerAnimEvent, C_BaseTempEntity );
+	DECLARE_CLIENTCLASS();
+
+	virtual void PostDataUpdate( DataUpdateType_t updateType )
+	{
+		C_Hidden_Player *pPlayer = ToHiddenPlayer( m_hPlayer.Get() );
+		if ( pPlayer && !pPlayer->IsDormant() )
+			pPlayer->DoAnimationEvent( (HiddenPlayerAnimEvent_t)m_iEvent );
+	}
+
+	CHandle<C_BasePlayer> m_hPlayer;
+	int m_iEvent;
+};
+
+IMPLEMENT_CLIENTCLASS_EVENT( C_TEHiddenPlayerAnimEvent, DT_TEHiddenPlayerAnimEvent, CTEHiddenPlayerAnimEvent );
+
+BEGIN_RECV_TABLE_NOBASE( C_TEHiddenPlayerAnimEvent, DT_TEHiddenPlayerAnimEvent )
+	RecvPropEHandle( RECVINFO( m_hPlayer ) ),
+	RecvPropInt( RECVINFO( m_iEvent ) ),
+END_RECV_TABLE()
 
 IMPLEMENT_CLIENTCLASS_DT( C_Hidden_Player, DT_Hidden_Player, CHidden_Player )
 	RecvPropInt( RECVINFO( m_iPlayerClass ) ),
@@ -27,6 +60,7 @@ IMPLEMENT_CLIENTCLASS_DT( C_Hidden_Player, DT_Hidden_Player, CHidden_Player )
 	RecvPropFloat( RECVINFO( m_flBlur ) ),
 	RecvPropBool( RECVINFO( m_bLAM ) ),
 	RecvPropBool( RECVINFO( m_bNightVision ) ),
+	RecvPropInt( RECVINFO( m_iThrowGrenadeCounter ) ),
 END_RECV_TABLE()
 
 // Weapons change these in predicted code.
@@ -51,6 +85,44 @@ C_Hidden_Player::C_Hidden_Player()
 	m_flBlur = 0.0f;
 	m_bLAM = false;
 	m_bNightVision = false;
+	m_iThrowGrenadeCounter = 0;
+
+	m_pHiddenAnimState = CreateHiddenPlayerAnimState( this, this );
+}
+
+C_Hidden_Player::~C_Hidden_Player()
+{
+	m_pHiddenAnimState->Release();
+}
+
+void C_Hidden_Player::UpdateClientSideAnimation( void )
+{
+	// Our own yaw is the view's; everyone else's comes from the server.
+	const QAngle angEyes = GetAnimEyeAngles();
+	const float flYaw = ( this == C_BasePlayer::GetLocalPlayer() ) ? EyeAngles()[YAW] : angEyes[YAW];
+	m_pHiddenAnimState->Update( flYaw, angEyes[PITCH] );
+
+	BaseClass::UpdateClientSideAnimation();
+}
+
+const QAngle &C_Hidden_Player::GetRenderAngles( void )
+{
+	if ( IsRagdoll() )
+		return vec3_angle;
+
+	return m_pHiddenAnimState->GetRenderAngles();
+}
+
+void C_Hidden_Player::DoAnimationEvent( HiddenPlayerAnimEvent_t event )
+{
+	// The throw comes through m_iThrowGrenadeCounter.
+	if ( event != HIDDEN_ANIMEVENT_THROW_GRENADE )
+		m_pHiddenAnimState->DoAnimationEvent( event );
+}
+
+C_WeaponHiddenBase *C_Hidden_Player::HiddenAnim_GetActiveWeapon( void )
+{
+	return dynamic_cast<C_WeaponHiddenBase *>( GetActiveWeapon() );
 }
 
 C_Hidden_Player *C_Hidden_Player::GetLocalHiddenPlayer( void )

@@ -10,6 +10,7 @@
 #include "hidden_gamerules.h"
 #include "hidden_cvars.h"
 #include "team.h"
+#include "weapon_hiddenbase.h"
 
 // memdbgon must be the last include file in a .cpp file!!!
 #include "tier0/memdbgon.h"
@@ -29,6 +30,37 @@
 
 LINK_ENTITY_TO_CLASS( player, CHidden_Player );
 
+//-----------------------------------------------------------------------------
+// Player animation events (the SDK template's), sent to the clients that can see the player.
+//-----------------------------------------------------------------------------
+class CTEHiddenPlayerAnimEvent : public CBaseTempEntity
+{
+public:
+	DECLARE_CLASS( CTEHiddenPlayerAnimEvent, CBaseTempEntity );
+	DECLARE_SERVERCLASS();
+
+	CTEHiddenPlayerAnimEvent( const char *pszName ) : CBaseTempEntity( pszName ) {}
+
+	CNetworkHandle( CBasePlayer, m_hPlayer );
+	CNetworkVar( int, m_iEvent );
+};
+
+IMPLEMENT_SERVERCLASS_ST_NOBASE( CTEHiddenPlayerAnimEvent, DT_TEHiddenPlayerAnimEvent )
+	SendPropEHandle( SENDINFO( m_hPlayer ) ),
+	SendPropInt( SENDINFO( m_iEvent ), Q_log2( HIDDEN_ANIMEVENT_COUNT ) + 1, SPROP_UNSIGNED ),
+END_SEND_TABLE()
+
+static CTEHiddenPlayerAnimEvent g_TEHiddenPlayerAnimEvent( "HiddenPlayerAnimEvent" );
+
+static void TE_HiddenPlayerAnimEvent( CBasePlayer *pPlayer, HiddenPlayerAnimEvent_t event )
+{
+	CPVSFilter filter( pPlayer->EyePosition() );
+
+	g_TEHiddenPlayerAnimEvent.m_hPlayer = pPlayer;
+	g_TEHiddenPlayerAnimEvent.m_iEvent = event;
+	g_TEHiddenPlayerAnimEvent.Create( filter, 0 );
+}
+
 LINK_ENTITY_TO_CLASS( info_marine_spawn, CPointEntity );
 LINK_ENTITY_TO_CLASS( info_hidden_spawn, CPointEntity );
 
@@ -37,6 +69,14 @@ static EHANDLE g_hLastMarineSpawn;
 static EHANDLE g_hLastHiddenSpawn;
 
 IMPLEMENT_SERVERCLASS_ST( CHidden_Player, DT_Hidden_Player )
+	// The clients animate players themselves, as the SDK template does (HL2MP already leaves out
+	// the pose parameters).
+	SendPropExclude( "DT_BaseAnimating", "m_flPlaybackRate" ),
+	SendPropExclude( "DT_BaseAnimating", "m_nSequence" ),
+	SendPropExclude( "DT_BaseEntity", "m_angRotation" ),
+	SendPropExclude( "DT_BaseAnimatingOverlay", "overlay_vars" ),
+	SendPropExclude( "DT_ServerAnimationData", "m_flCycle" ),
+	SendPropExclude( "DT_AnimTimeMustBeFirst", "m_flAnimTime" ),
 	SendPropInt( SENDINFO( m_iPlayerClass ), 3 ),
 	SendPropInt( SENDINFO( m_iCharacter ), 5 ),
 	SendPropInt( SENDINFO( m_iPrimary ), 5 ),
@@ -51,6 +91,7 @@ IMPLEMENT_SERVERCLASS_ST( CHidden_Player, DT_Hidden_Player )
 	SendPropFloat( SENDINFO( m_flBlur ), 0, SPROP_NOSCALE ),
 	SendPropBool( SENDINFO( m_bLAM ) ),
 	SendPropBool( SENDINFO( m_bNightVision ) ),
+	SendPropInt( SENDINFO( m_iThrowGrenadeCounter ), HIDDEN_THROWGRENADE_COUNTER_BITS, SPROP_UNSIGNED ),
 END_SEND_TABLE()
 
 BEGIN_DATADESC( CHidden_Player )
@@ -75,7 +116,17 @@ CHidden_Player::CHidden_Player()
 	m_iBoostCount = 0;
 	m_flBoostTimer = 0.0f;
 	m_bBoosted = false;
+	m_iThrowGrenadeCounter = 0;
 	ResetStun();
+
+	// The animation runs on the clients; the server keeps its own for the hitboxes.
+	m_pHiddenAnimState = CreateHiddenPlayerAnimState( this, this );
+	UseClientSideAnimation();
+}
+
+CHidden_Player::~CHidden_Player()
+{
+	m_pHiddenAnimState->Release();
 }
 
 void CHidden_Player::Precache( void )
@@ -293,6 +344,9 @@ void CHidden_Player::PostThink( void )
 {
 	BaseClass::PostThink();
 
+	const QAngle angEyes = GetAnimEyeAngles();
+	m_pHiddenAnimState->Update( angEyes[YAW], angEyes[PITCH] );
+
 	if ( m_bStunned )
 		UpdateStun();
 
@@ -302,6 +356,33 @@ void CHidden_Player::PostThink( void )
 		SetMaxSpeed( HIDDEN_MARINE_SPEED );
 		m_bBoosted = false;
 	}
+}
+
+void CHidden_Player::SetAnimation( PLAYER_ANIM playerAnim )
+{
+	// Beta 4b's weapons set the base player animations, which the SDK anim state ignores; only a
+	// reload (CWeaponSDKBase::SendReloadEvents) reaches it. Firing and throws send their own events,
+	// and nothing sends the jump.
+	if ( playerAnim == PLAYER_RELOAD )
+		DoAnimationEvent( HIDDEN_ANIMEVENT_RELOAD );
+}
+
+void CHidden_Player::DoAnimationEvent( HiddenPlayerAnimEvent_t event )
+{
+	if ( event == HIDDEN_ANIMEVENT_THROW_GRENADE )
+	{
+		// Events can arrive late or not at all, so the clients watch this counter instead.
+		m_iThrowGrenadeCounter = ( m_iThrowGrenadeCounter + 1 ) % ( 1 << HIDDEN_THROWGRENADE_COUNTER_BITS );
+		return;
+	}
+
+	m_pHiddenAnimState->DoAnimationEvent( event );
+	TE_HiddenPlayerAnimEvent( this, event );
+}
+
+CWeaponHiddenBase *CHidden_Player::HiddenAnim_GetActiveWeapon( void )
+{
+	return dynamic_cast<CWeaponHiddenBase *>( GetActiveWeapon() );
 }
 
 void CHidden_Player::ImpulseCommands( void )

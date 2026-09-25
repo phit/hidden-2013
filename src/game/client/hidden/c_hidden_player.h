@@ -10,8 +10,9 @@
 
 #include "c_hl2mp_player.h"
 #include "hidden_shareddefs.h"
+#include "hidden_playeranimstate.h"
 
-class C_Hidden_Player : public C_HL2MP_Player
+class C_Hidden_Player : public C_HL2MP_Player, public IHiddenPlayerAnimStateHelpers
 {
 public:
 	DECLARE_CLASS( C_Hidden_Player, C_HL2MP_Player );
@@ -19,6 +20,7 @@ public:
 	DECLARE_PREDICTABLE();
 
 	C_Hidden_Player();
+	~C_Hidden_Player();
 
 	static C_Hidden_Player *GetLocalHiddenPlayer( void );
 
@@ -40,6 +42,14 @@ public:
 	bool LaserIsOn( void ) const { return m_bLAM; }
 	bool NightVisionEnabled( void ) const { return m_bNightVision; }
 
+	// Third-person animation (Beta 4b's SDK template anim state)
+	virtual void UpdateClientSideAnimation( void );
+	virtual const QAngle &GetRenderAngles( void );
+	void DoAnimationEvent( HiddenPlayerAnimEvent_t event );
+	virtual C_WeaponHiddenBase *HiddenAnim_GetActiveWeapon( void );
+	virtual bool HiddenAnim_CanMove( void ) { return true; }
+	virtual int HiddenAnim_GetThrowGrenadeCounter( void ) { return m_iThrowGrenadeCounter; }
+
 private:
 	C_Hidden_Player( const C_Hidden_Player & );
 
@@ -57,6 +67,9 @@ private:
 	float m_flBlur;
 	bool m_bLAM;
 	bool m_bNightVision;
+	int m_iThrowGrenadeCounter;
+
+	IHiddenPlayerAnimState *m_pHiddenAnimState;
 };
 
 inline C_Hidden_Player *ToHiddenPlayer( C_BaseEntity *pEntity )

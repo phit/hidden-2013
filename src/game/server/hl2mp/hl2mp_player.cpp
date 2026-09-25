@@ -624,7 +624,9 @@ void CHL2MP_Player::PostThink( void )
 		SetCollisionBounds( VEC_CROUCH_TRACE_MIN, VEC_CROUCH_TRACE_MAX );
 	}
 
+#ifndef HIDDEN	// CHidden_Player runs the SDK template anim state instead
 	m_PlayerAnimState.Update();
+#endif
 
 	// Store the eye angles pitch so the client can compute its animation state correctly.
 	m_angEyeAngles = EyeAngles();

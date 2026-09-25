@@ -11,8 +11,9 @@
 
 #include "hl2mp_player.h"
 #include "hidden_shareddefs.h"
+#include "hidden_playeranimstate.h"
 
-class CHidden_Player : public CHL2MP_Player
+class CHidden_Player : public CHL2MP_Player, public IHiddenPlayerAnimStateHelpers
 {
 public:
 	DECLARE_CLASS( CHidden_Player, CHL2MP_Player );
@@ -20,6 +21,7 @@ public:
 	DECLARE_DATADESC();
 
 	CHidden_Player();
+	~CHidden_Player();
 
 	static CHidden_Player *CreatePlayer( const char *className, edict_t *ed )
 	{
@@ -35,6 +37,13 @@ public:
 	virtual void PlayerDeathThink( void );
 	virtual void PostThink( void );
 	virtual void ImpulseCommands( void );
+
+	// Third-person animation (Beta 4b's SDK template anim state, played on the clients).
+	virtual void SetAnimation( PLAYER_ANIM playerAnim );
+	void DoAnimationEvent( HiddenPlayerAnimEvent_t event );
+	virtual CWeaponHiddenBase *HiddenAnim_GetActiveWeapon( void );
+	virtual bool HiddenAnim_CanMove( void ) { return true; }
+	virtual int HiddenAnim_GetThrowGrenadeCounter( void ) { return m_iThrowGrenadeCounter; }
 	virtual CBaseEntity *EntSelectSpawnPoint( void );
 
 	// Only marines have a flashlight, and it's silent (equipment 1).
@@ -119,6 +128,9 @@ private:
 	CNetworkVar( float, m_flBlur );
 	CNetworkVar( bool, m_bLAM );
 	CNetworkVar( bool, m_bNightVision );
+	CNetworkVar( int, m_iThrowGrenadeCounter );
+
+	IHiddenPlayerAnimState *m_pHiddenAnimState;
 
 	int m_iBoostCount;
 	float m_flBoostTimer;

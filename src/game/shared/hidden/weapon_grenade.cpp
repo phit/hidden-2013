@@ -274,6 +274,7 @@ public:
 	virtual bool Reload( void );
 	virtual void ItemPostFrame( void );
 	virtual bool AllowsAutoSwitchFrom( void ) const { return !m_bPinPulled; }
+	virtual bool IsPinPulled( void ) const { return m_bPinPulled; }
 
 	// The pipe bomb isn't lowered between rounds.
 	virtual void SetSafe( void ) {}
@@ -415,7 +416,11 @@ void CWeaponGrenade::ItemPostFrame( void )
 	if ( m_bPinPulled && !( pPlayer->m_nButtons & IN_ATTACK ) && gpGlobals->curtime > m_flNextPrimaryAttack )
 	{
 		// Let go of the button: throw.
-		pPlayer->SetAnimation( PLAYER_ATTACK1 );
+#ifndef CLIENT_DLL
+		CHidden_Player *pHiddenPlayer = ToHiddenPlayer( pPlayer );
+		if ( pHiddenPlayer )
+			pHiddenPlayer->DoAnimationEvent( HIDDEN_ANIMEVENT_THROW_GRENADE );
+#endif
 		StartGrenadeThrow();
 		pPlayer->RemoveAmmo( 1, m_iPrimaryAmmoType );
 		m_bPinPulled = false;

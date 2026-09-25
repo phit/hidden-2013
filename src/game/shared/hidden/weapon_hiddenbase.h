@@ -52,6 +52,9 @@ public:
 	// is lost. The reserve counts magazines (Beta 4b changed CBaseCombatWeapon::FinishReload).
 	virtual void FinishReload( void );
 
+	// For the third-person grenade prime animation.
+	virtual bool IsPinPulled( void ) const { return false; }
+
 protected:
 	// The 2006 SDK's ACT_VM_LOWERED, which SDK 2013 dropped. The Beta 4b viewmodels still use it.
 	static Activity GetLoweredActivity( void ) { return ActivityList_RegisterPrivateActivity( "ACT_VM_LOWERED" ); }
