@@ -199,3 +199,69 @@ void InstallGameRules()
 	CreateGameRulesObject( "CHiddenRules" );
 }
 
+
+//=========================================================
+// Beta 4b's server commands (docs/spec/cvars.md)
+//=========================================================
+CON_COMMAND_F( hdn_restartround, "Restarts the round", FCVAR_GAMEDLL )
+{
+	if ( !UTIL_IsCommandIssuedByServerAdmin() )
+		return;
+
+	HiddenRules()->RestartRound();
+}
+
+// A debug leftover anyone can use: stuns yourself, which blurs your screen.
+CON_COMMAND( blur, "blurs the screen" )
+{
+	CHidden_Player *pPlayer = ToHiddenPlayer( UTIL_GetCommandClient() );
+	if ( pPlayer )
+		pPlayer->Stun( pPlayer );
+}
+
+// The prefix a player had alive, without "(Dead)"; used for the text below.
+const char *HiddenGetDeadChatPrefix( bool bTeamOnly, CBasePlayer *pPlayer )
+{
+	if ( !pPlayer )
+		return "";
+
+	switch ( pPlayer->GetTeamNumber() )
+	{
+	case TEAM_HIDDEN:	return "(Hidden)";
+	case TEAM_IRIS:		return "(IRIS)";
+	default:			return "";
+	}
+}
+
+extern bool g_bHiddenDeadSay;
+extern void Host_Say( edict_t *pEdict, const CCommand &args, bool teamonly );
+
+// setposx and setposy aren't position commands: the client sends what its player was typing when
+// they died through these, to everyone (x) or the team (y), as if they'd said it alive.
+static void HiddenDeadSay( const CCommand &args, bool bTeamOnly )
+{
+	CBasePlayer *pPlayer = ToBasePlayer( UTIL_GetCommandClient() );
+	if ( !pPlayer || !pPlayer->CanPlayerTalk() || args.ArgC() < 2 )
+		return;
+
+	CCommand sayArgs;
+	char szSay[256];
+	Q_snprintf( szSay, sizeof( szSay ), "%s %s", bTeamOnly ? "say_team" : "say", args.ArgS() );
+	sayArgs.Tokenize( szSay );
+
+	g_bHiddenDeadSay = true;
+	Host_Say( pPlayer->edict(), sayArgs, bTeamOnly );
+	g_bHiddenDeadSay = false;
+
+	pPlayer->NotePlayerTalked();
+}
+
+CON_COMMAND( setposx, "" )
+{
+	HiddenDeadSay( args, false );
+}
+
+CON_COMMAND( setposy, "" )
+{
+	HiddenDeadSay( args, true );
+}

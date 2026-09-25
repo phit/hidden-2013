@@ -43,7 +43,11 @@ ConVar mp_allowspectators(
 
 ConVar friendlyfire(
 	"mp_friendlyfire",
+#ifdef HIDDEN
+	"1",	// Beta 4b's default
+#else
 	"0",
+#endif
 	FCVAR_REPLICATED | FCVAR_NOTIFY,
 	"Allows team members to injure other members of their team"
 	);

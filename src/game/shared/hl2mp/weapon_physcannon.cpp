@@ -62,7 +62,11 @@ ConVar physcannon_chargetime("physcannon_chargetime", "2", FCVAR_REPLICATED | FC
 ConVar physcannon_pullforce( "physcannon_pullforce", "4000", FCVAR_REPLICATED | FCVAR_CHEAT );
 ConVar physcannon_cone( "physcannon_cone", "0.97", FCVAR_REPLICATED | FCVAR_CHEAT );
 ConVar physcannon_ball_cone( "physcannon_ball_cone", "0.997", FCVAR_REPLICATED | FCVAR_CHEAT );
+#ifdef HIDDEN
+ConVar player_throwforce( "player_throwforce", "7500", FCVAR_REPLICATED | FCVAR_CHEAT );	// Beta 4b's default
+#else
 ConVar player_throwforce( "player_throwforce", "1000", FCVAR_REPLICATED | FCVAR_CHEAT );
+#endif
 
 #ifndef CLIENT_DLL
 extern ConVar hl2_normspeed;

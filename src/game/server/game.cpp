@@ -41,7 +41,11 @@ ConVar	flashlight( "mp_flashlight","1", FCVAR_NOTIFY );
 ConVar	flashlight( "mp_flashlight","0", FCVAR_NOTIFY );
 #endif
 ConVar	aimcrosshair( "mp_autocrosshair","1", FCVAR_NOTIFY );
+#ifdef HIDDEN
+ConVar	decalfrequency( "decalfrequency","30", FCVAR_NOTIFY );	// Beta 4b's default
+#else
 ConVar	decalfrequency( "decalfrequency","10", FCVAR_NOTIFY );
+#endif
 ConVar	teamlist( "mp_teamlist","hgrunt;scientist", FCVAR_NOTIFY );
 ConVar	teamoverride( "mp_teamoverride","1" );
 ConVar	defaultteam( "mp_defaultteam","0" );

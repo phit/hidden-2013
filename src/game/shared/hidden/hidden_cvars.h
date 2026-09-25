@@ -14,6 +14,7 @@ extern ConVar mp_roundtime;
 extern ConVar hdn_jointime;
 extern ConVar hdn_hiddenrounds;
 extern ConVar hdn_selectmethod;
+extern ConVar hdn_staminadrain;
 extern ConVar hdn_limitbombs;
 extern ConVar hdn_radio_limit;
 extern ConVar hdn_deathnotices;

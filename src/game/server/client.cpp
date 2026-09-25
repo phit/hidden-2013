@@ -170,6 +170,12 @@ char * CheckChatText( CBasePlayer *pPlayer, char *text )
 // or as
 // blah blah blah
 //
+#ifdef HIDDEN
+// Set by setposx/setposy: text a player typed as they died goes to everyone, with the prefix they had alive.
+bool g_bHiddenDeadSay = false;
+extern const char *HiddenGetDeadChatPrefix( bool bTeamOnly, CBasePlayer *pPlayer );
+#endif
+
 void Host_Say( edict_t *pEdict, const CCommand &args, bool teamonly )
 {
 	CBasePlayer *client;
@@ -243,6 +249,10 @@ void Host_Say( edict_t *pEdict, const CCommand &args, bool teamonly )
 		Assert( strlen( pPlayer->GetPlayerName() ) > 0 );
 
 		bSenderDead = ( pPlayer->m_lifeState != LIFE_ALIVE );
+#ifdef HIDDEN
+		if ( g_bHiddenDeadSay )
+			bSenderDead = false;
+#endif
 	}
 	else
 	{
@@ -256,6 +266,10 @@ void Host_Say( edict_t *pEdict, const CCommand &args, bool teamonly )
 	{
 		pszFormat = g_pGameRules->GetChatFormat( teamonly, pPlayer );
 		pszPrefix = g_pGameRules->GetChatPrefix( teamonly, pPlayer );	
+#ifdef HIDDEN
+		if ( g_bHiddenDeadSay )
+			pszPrefix = HiddenGetDeadChatPrefix( teamonly, pPlayer );
+#endif
 		pszLocation = g_pGameRules->GetChatLocation( teamonly, pPlayer );
 	}
 
