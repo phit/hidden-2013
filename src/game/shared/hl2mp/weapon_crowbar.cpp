@@ -43,7 +43,9 @@ BEGIN_PREDICTION_DATA( CWeaponCrowbar )
 END_PREDICTION_DATA()
 
 LINK_ENTITY_TO_CLASS( weapon_crowbar, CWeaponCrowbar );
+#ifndef HIDDEN	// Hidden: Source has no HL2MP weapons; kept only for the HL2 and HL2MP code
 PRECACHE_WEAPON_REGISTER( weapon_crowbar );
+#endif
 
 #ifndef CLIENT_DLL
 

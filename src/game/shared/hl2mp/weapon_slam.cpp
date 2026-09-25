@@ -70,7 +70,9 @@ END_PREDICTION_DATA()
 #endif
 
 LINK_ENTITY_TO_CLASS( weapon_slam, CWeapon_SLAM );
+#ifndef HIDDEN	// Hidden: Source has no HL2MP weapons; kept only for the bots and player code
 PRECACHE_WEAPON_REGISTER(weapon_slam);
+#endif
 
 #ifndef CLIENT_DLL
 

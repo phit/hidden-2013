@@ -898,7 +898,9 @@ END_PREDICTION_DATA()
 #endif
 
 LINK_ENTITY_TO_CLASS( weapon_physcannon, CWeaponPhysCannon );
+#ifndef HIDDEN	// Hidden: Source has no HL2MP weapons; kept only for the bots and player code
 PRECACHE_WEAPON_REGISTER( weapon_physcannon );
+#endif
 
 #ifndef CLIENT_DLL
 
