@@ -310,10 +310,17 @@ $Project "Server (Hidden)"
 
 		$Folder	"Hidden"
 		{
+			$File	"hidden\hidden_bot.cpp"
 			$File	"hidden\hidden_client.cpp"
 			$File	"hidden\hidden_gameinterface.cpp"
 			$File	"$SRCDIR\game\shared\hidden\hidden_gamerules.cpp"
 			$File	"$SRCDIR\game\shared\hidden\hidden_gamerules.h"
+			$File	"hidden\hidden_player.cpp"
+			$File	"hidden\hidden_player.h"
+			$File	"$SRCDIR\game\shared\hidden\hidden_cvars.cpp"
+			$File	"$SRCDIR\game\shared\hidden\hidden_cvars.h"
+			$File	"$SRCDIR\game\shared\hidden\hidden_spectator.cpp"
+			$File	"$SRCDIR\game\shared\hidden\hidden_spectator.h"
 			$File	"$SRCDIR\game\shared\hidden\hidden_shareddefs.h"
 		}
 

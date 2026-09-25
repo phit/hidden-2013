@@ -10,6 +10,7 @@
 
 #ifndef CLIENT_DLL
 	#include "team.h"
+	#include "hidden_player.h"
 #endif
 
 // memdbgon must be the last include file in a .cpp file!!!
@@ -128,5 +129,22 @@ void CHiddenRules::CreateStandardEntities( void )
 	CTeamplayRules::CreateStandardEntities();
 
 	CBaseEntity::Create( "hidden_gamerules", vec3_origin, vec3_angle );
+}
+#endif
+
+#ifndef CLIENT_DLL
+void CHiddenRules::SetCharacterTaken( int iCharacter, bool bTaken )
+{
+	if ( iCharacter >= 0 && iCharacter < HIDDEN_NUM_CHARACTERS )
+		m_bCharacterTaken.Set( iCharacter, bTaken );
+}
+
+void CHiddenRules::ClientDisconnected( edict_t *pClient )
+{
+	CHidden_Player *pPlayer = ToHiddenPlayer( CBaseEntity::Instance( pClient ) );
+	if ( pPlayer )
+		pPlayer->ReleaseCharacter();
+
+	BaseClass::ClientDisconnected( pClient );
 }
 #endif

@@ -14,7 +14,7 @@
 */
 
 #include "cbase.h"
-#include "hl2mp_player.h"
+#include "hidden_player.h"
 #include "hidden_gamerules.h"
 #include "gamerules.h"
 #include "teamplay_gamerules.h"
@@ -87,7 +87,7 @@ called each time a player is spawned into the game
 void ClientPutInServer( edict_t *pEdict, const char *playername )
 {
 	// Allocate a CBaseTFPlayer for pev, and call spawn
-	CHL2MP_Player *pPlayer = CHL2MP_Player::CreatePlayer( "player", pEdict );
+	CHidden_Player *pPlayer = CHidden_Player::CreatePlayer( "player", pEdict );
 	pPlayer->SetPlayerName( playername );
 }
 

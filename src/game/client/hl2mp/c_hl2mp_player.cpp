@@ -26,7 +26,10 @@
 
 ConVar sv_infinite_aux_power( "sv_infinite_aux_power", "0", FCVAR_CHEAT | FCVAR_REPLICATED );
 
+#ifndef HIDDEN
+// Hidden links "player" to its own player class.
 LINK_ENTITY_TO_CLASS( player, C_HL2MP_Player );
+#endif
 
 // specific to the local player
 BEGIN_RECV_TABLE_NOBASE( C_HL2MP_Player, DT_HL2MPLocalPlayerExclusive )

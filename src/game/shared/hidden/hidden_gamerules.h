@@ -39,6 +39,7 @@ public:
 	virtual ~CHiddenRules();
 
 	virtual const char *GetGameDescription( void );
+	virtual bool IsTeamplay( void ) { return true; }
 
 	HiddenGameType_t GetGameType( void ) const { return m_nGameType; }
 	float GetRoundTimeRemaining( void ) const;
@@ -46,6 +47,10 @@ public:
 
 #ifndef CLIENT_DLL
 	virtual void CreateStandardEntities( void );
+	virtual bool FPlayerCanRespawn( CBasePlayer *pPlayer ) { return false; }
+	virtual void ClientDisconnected( edict_t *pClient );
+
+	void SetCharacterTaken( int iCharacter, bool bTaken );
 #endif
 
 protected:

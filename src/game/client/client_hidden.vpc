@@ -124,6 +124,12 @@ $Project "Client (Hidden)"
 		{
 			$File	"$SRCDIR\game\shared\hidden\hidden_gamerules.cpp"
 			$File	"$SRCDIR\game\shared\hidden\hidden_gamerules.h"
+			$File	"hidden\c_hidden_player.cpp"
+			$File	"hidden\c_hidden_player.h"
+			$File	"$SRCDIR\game\shared\hidden\hidden_cvars.cpp"
+			$File	"$SRCDIR\game\shared\hidden\hidden_cvars.h"
+			$File	"$SRCDIR\game\shared\hidden\hidden_spectator.cpp"
+			$File	"$SRCDIR\game\shared\hidden\hidden_spectator.h"
 			$File	"$SRCDIR\game\shared\hidden\hidden_shareddefs.h"
 		}
 
