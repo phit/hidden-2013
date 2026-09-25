@@ -2,8 +2,9 @@
 """Import Hidden: Source Beta 4b content into game/mod_hidden/legacy.
 
 The new mod reuses the old mod's assets but none of its code, so only content
-folders are copied. bin/, shaders/ (2006 shader DLL output) and per-install
-state such as cfg/, downloads and demos are skipped.
+folders are copied, plus the stock defaults in cfg/ (default binds, server
+configs). bin/, shaders/ (2006 shader DLL output) and per-install state such as
+config.cfg, downloads and demos are skipped.
 
 Sources, in any combination and order (later ones win):
   - an installed mod folder, e.g. ...\\steamapps\\sourcemods\\hidden
@@ -27,6 +28,10 @@ DEST = ROOT / "game" / "mod_hidden" / "legacy"
 
 CONTENT_DIRS = {"materials", "models", "sound", "maps", "scripts", "resource", "media"}
 
+# The files Beta 4b shipped in cfg/. Anything else there is a player's own state.
+CFG_FILES = {"config_default.cfg", "listenserver.cfg", "server.cfg", "tutorial.cfg", "valve.rc",
+             "settings_default.scr", "user_default.scr"}
+
 
 def content_relpath(parts):
     """Map an archive/member path to a path under legacy/, or None to skip it.
@@ -36,6 +41,8 @@ def content_relpath(parts):
     parts = [p for p in parts if p not in ("", ".")]
     if parts and parts[0].lower() == "hidden":
         parts = parts[1:]
+    if len(parts) == 2 and parts[0].lower() == "cfg" and parts[1].lower() in CFG_FILES:
+        return Path("cfg", parts[1].lower())
     if len(parts) < 2 or parts[0].lower() not in CONTENT_DIRS:
         return None
     parts[0] = parts[0].lower()
