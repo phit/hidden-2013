@@ -40,6 +40,9 @@ IMPLEMENT_SERVERCLASS_ST( CHidden_Player, DT_Hidden_Player )
 	SendPropInt( SENDINFO( m_iEquipment ), 5 ),
 	SendPropBool( SENDINFO( m_bNoHidden ) ),
 	SendPropInt( SENDINFO( m_iWeighting ), 16 ),
+	SendPropBool( SENDINFO( m_bSafety ) ),
+	SendPropBool( SENDINFO( m_bZoom ) ),
+	SendPropInt( SENDINFO( m_iShotsFired ), 8, SPROP_UNSIGNED ),
 END_SEND_TABLE()
 
 BEGIN_DATADESC( CHidden_Player )
@@ -56,6 +59,8 @@ CHidden_Player::CHidden_Player()
 	m_iWeighting = 0;
 	m_bReadyToPlay = false;
 	m_bSafety = false;
+	m_bZoom = false;
+	m_iShotsFired = 0;
 	m_bHadHidden = false;
 }
 
@@ -82,6 +87,8 @@ void CHidden_Player::Spawn( void )
 {
 	m_iWeighting = 0;
 	m_bSafety = false;
+	m_bZoom = false;
+	m_iShotsFired = 0;
 
 	const int iTeam = GetTeamNumber();
 	const bool bMarine = ( iTeam == TEAM_IRIS && HasValidCharacter() && m_iPlayerClass != HIDDEN_CLASS_NONE );

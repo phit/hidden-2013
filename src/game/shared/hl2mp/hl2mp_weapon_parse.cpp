@@ -9,10 +9,12 @@
 #include "hl2mp_weapon_parse.h"
 #include "ammodef.h"
 
+#ifndef HIDDEN // Hidden parses its own weapon info (hidden_weapon_parse.cpp)
 FileWeaponInfo_t* CreateWeaponInfo()
 {
 	return new CHL2MPSWeaponInfo;
 }
+#endif
 
 
 

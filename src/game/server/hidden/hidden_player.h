@@ -56,6 +56,12 @@ public:
 	bool GetSafe( void ) const { return m_bSafety; }
 	void SetSafe( bool bSafe ) { m_bSafety = bSafe; }
 
+	// Weapon state shared with the client (docs/spec/weapons.md)
+	bool GetZoom( void ) const { return m_bZoom; }
+	void SetZoom( bool bZoom ) { m_bZoom = bZoom; }
+	int GetShotsFired( void ) const { return m_iShotsFired; }
+	void SetShotsFired( int iShots ) { m_iShotsFired = iShots; }
+
 	// Put a player who isn't playing this round into observer mode, keeping their team.
 	void BecomeObserver( void );
 
@@ -73,9 +79,11 @@ private:
 	CNetworkVar( int, m_iEquipment );
 	CNetworkVar( bool, m_bNoHidden );
 	CNetworkVar( int, m_iWeighting );
+	CNetworkVar( bool, m_bSafety );
+	CNetworkVar( bool, m_bZoom );
+	CNetworkVar( int, m_iShotsFired );
 
 	bool m_bReadyToPlay;
-	bool m_bSafety;
 	bool m_bHadHidden;
 };
 

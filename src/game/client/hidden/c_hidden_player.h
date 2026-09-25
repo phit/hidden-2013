@@ -16,6 +16,7 @@ class C_Hidden_Player : public C_HL2MP_Player
 public:
 	DECLARE_CLASS( C_Hidden_Player, C_HL2MP_Player );
 	DECLARE_CLIENTCLASS();
+	DECLARE_PREDICTABLE();
 
 	C_Hidden_Player();
 
@@ -29,6 +30,12 @@ public:
 	bool GetNoHidden( void ) const { return m_bNoHidden; }
 	int GetWeighting( void ) const { return m_iWeighting; }
 
+	bool GetSafe( void ) const { return m_bSafety; }
+	bool GetZoom( void ) const { return m_bZoom; }
+	void SetZoom( bool bZoom ) { m_bZoom = bZoom; }
+	int GetShotsFired( void ) const { return m_iShotsFired; }
+	void SetShotsFired( int iShots ) { m_iShotsFired = iShots; }
+
 private:
 	C_Hidden_Player( const C_Hidden_Player & );
 
@@ -39,6 +46,9 @@ private:
 	int m_iEquipment;
 	bool m_bNoHidden;
 	int m_iWeighting;
+	bool m_bSafety;
+	bool m_bZoom;
+	int m_iShotsFired;
 };
 
 inline C_Hidden_Player *ToHiddenPlayer( C_BaseEntity *pEntity )

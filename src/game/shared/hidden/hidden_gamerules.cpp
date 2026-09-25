@@ -7,10 +7,12 @@
 
 #include "cbase.h"
 #include "hidden_gamerules.h"
+#include "ammodef.h"
 
 #ifndef CLIENT_DLL
 	#include "team.h"
 	#include "hidden_player.h"
+	#include "weapon_hiddenbase.h"
 	#include "hidden_cvars.h"
 	#include "mapentities.h"
 	#include "eventqueue.h"
@@ -62,6 +64,31 @@ IMPLEMENT_NETWORKCLASS_ALIASED( HiddenGameRulesProxy, DT_HiddenGameRulesProxy )
 		SendPropDataTable( "hidden_gamerules_data", 0, &REFERENCE_SEND_TABLE( DT_HiddenRules ), SendProxy_HiddenRules )
 	END_SEND_TABLE()
 #endif
+
+// Beta 4b's ammo types (docs/spec/weapons.md). Max carry counts magazines, not rounds: a reload
+// always fills the clip and uses up one (CWeaponHiddenBase::FinishReload). Buckshot counts shells.
+CAmmoDef *GetAmmoDef()
+{
+	static CAmmoDef def;
+	static bool bInitted = false;
+
+	if ( !bInitted )
+	{
+		bInitted = true;
+
+		//				name				damage type						tracer					plr	npc	carry	force		flags
+		def.AddAmmoType( "AMMO_GRENADE",	DMG_BLAST,						TRACER_LINE,			0,	0,	10,		75.0f,		0 );
+		def.AddAmmoType( "AMMO_BULLETS",	DMG_BULLET,						TRACER_LINE_AND_WHIZ,	0,	0,	2,		2345.0f,	0 );
+		def.AddAmmoType( "AMMO_556",		DMG_BULLET,						TRACER_LINE_AND_WHIZ,	0,	0,	2,		2345.0f,	0 );
+		def.AddAmmoType( "AMMO_PISTOL",		DMG_BULLET,						TRACER_LINE,			0,	0,	3,		2000.0f,	0 );
+		def.AddAmmoType( "AMMO_9MM",		DMG_BULLET,						TRACER_LINE,			0,	0,	3,		2000.0f,	0 );
+		def.AddAmmoType( "AMMO_BUCKSHOT",	DMG_BULLET | DMG_BUCKSHOT,		TRACER_LINE,			0,	0,	38,		2600.0f,	0 );
+		def.AddAmmoType( "XBowBolt",		DMG_BULLET | DMG_POISON,		TRACER_LINE,			0,	0,	4,		75.0f,		0 );	// 0x20002 as in Beta 4b
+		def.AddAmmoType( "sonic",			DMG_BLAST,						TRACER_LINE,			0,	0,	10,		75.0f,		0 );
+	}
+
+	return &def;
+}
 
 #ifndef CLIENT_DLL
 // Beta 4b's team names. Team 0 was also called "IRIS"; "Unassigned" reads better in logs.
@@ -299,8 +326,14 @@ void CHiddenRules::GoToIntermission( void )
 	for ( int i = 1; i <= gpGlobals->maxClients; i++ )
 	{
 		CHidden_Player *pPlayer = ToHiddenPlayer( UTIL_PlayerByIndex( i ) );
-		if ( pPlayer && pPlayer->IsAlive() )
-			pPlayer->SetSafe( true );
+		if ( !pPlayer || !pPlayer->IsAlive() )
+			continue;
+
+		pPlayer->SetSafe( true );
+
+		CWeaponHiddenBase *pWeapon = dynamic_cast<CWeaponHiddenBase *>( pPlayer->GetActiveWeapon() );
+		if ( pWeapon )
+			pWeapon->SetSafe();
 	}
 
 	m_nRoundState = HasTimeLimitPassed() ? ROUND_GAME_OVER : ROUND_INTERMISSION;

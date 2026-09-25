@@ -349,7 +349,9 @@ void CHL2MP_Player::Spawn(void)
 
 		RemoveEffects( EF_NODRAW );
 		
+#ifndef HIDDEN // Hidden hands out its own loadout
 		GiveDefaultItems();
+#endif
 	}
 
 	SetNumAnimOverlays( 3 );

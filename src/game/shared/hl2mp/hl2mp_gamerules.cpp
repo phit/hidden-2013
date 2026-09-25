@@ -943,6 +943,7 @@ bool CHL2MPRules::ClientCommand( CBaseEntity *pEdict, const CCommand &args )
 #define BULLET_IMPULSE(grains, ftpersec)	((ftpersec)*12*BULLET_MASS_GRAINS_TO_KG(grains)*BULLET_IMPULSE_EXAGGERATION)
 
 
+#ifndef HIDDEN // Hidden has its own ammo types (hidden_gamerules.cpp)
 CAmmoDef *GetAmmoDef()
 {
 	static CAmmoDef def;
@@ -967,6 +968,7 @@ CAmmoDef *GetAmmoDef()
 
 	return &def;
 }
+#endif
 
 #ifdef CLIENT_DLL
 

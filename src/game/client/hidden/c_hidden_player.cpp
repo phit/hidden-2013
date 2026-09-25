@@ -20,7 +20,16 @@ IMPLEMENT_CLIENTCLASS_DT( C_Hidden_Player, DT_Hidden_Player, CHidden_Player )
 	RecvPropInt( RECVINFO( m_iEquipment ) ),
 	RecvPropBool( RECVINFO( m_bNoHidden ) ),
 	RecvPropInt( RECVINFO( m_iWeighting ) ),
+	RecvPropBool( RECVINFO( m_bSafety ) ),
+	RecvPropBool( RECVINFO( m_bZoom ) ),
+	RecvPropInt( RECVINFO( m_iShotsFired ) ),
 END_RECV_TABLE()
+
+// Weapons change these in predicted code.
+BEGIN_PREDICTION_DATA( C_Hidden_Player )
+	DEFINE_PRED_FIELD( m_bZoom, FIELD_BOOLEAN, FTYPEDESC_INSENDTABLE ),
+	DEFINE_PRED_FIELD( m_iShotsFired, FIELD_INTEGER, FTYPEDESC_INSENDTABLE ),
+END_PREDICTION_DATA()
 
 C_Hidden_Player::C_Hidden_Player()
 {
@@ -31,6 +40,9 @@ C_Hidden_Player::C_Hidden_Player()
 	m_iEquipment = HIDDEN_LOADOUT_NONE;
 	m_bNoHidden = false;
 	m_iWeighting = 0;
+	m_bSafety = false;
+	m_bZoom = false;
+	m_iShotsFired = 0;
 }
 
 C_Hidden_Player *C_Hidden_Player::GetLocalHiddenPlayer( void )
