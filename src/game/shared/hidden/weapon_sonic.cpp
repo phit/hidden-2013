@@ -130,9 +130,8 @@ void CWeaponSonic::Precache( void )
 	UTIL_PrecacheOther( "npc_tripmine" );
 #endif
 
-	PrecacheScriptSound( "Weapon_Sonic.TripMineMode" );
-	PrecacheScriptSound( "Weapon_Sonic.SatchelDetonate" );
-	PrecacheScriptSound( "Weapon_Sonic.SatchelThrow" );
+	// Beta 4b also precached the SLAM's Weapon_Sonic.TripMineMode, SatchelDetonate and SatchelThrow,
+	// which it never played and no sound script defines.
 	PrecacheScriptSound( "IRIS.DeploySonicAlarm" );
 }
 

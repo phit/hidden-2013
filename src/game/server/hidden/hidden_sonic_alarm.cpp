@@ -102,7 +102,7 @@ void CHiddenSonicAlarm::Precache( void )
 
 	PrecacheScriptSound( "TripmineGrenade.Place" );
 	PrecacheScriptSound( "TripmineGrenade.Activate" );
-	PrecacheScriptSound( "TripmineGrenade.StopSound" );
+	PrecacheScriptSound( "TripmineGrenade.StopSound" );	// no sound script defines it, so it's silent, as in Beta 4b
 	PrecacheScriptSound( "Weapon_Sonic.Alarm" );
 }
 
