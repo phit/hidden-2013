@@ -15,6 +15,10 @@
 #include "hidden_weapon_parse.h"
 #include "activitylist.h"
 
+#ifndef CLIENT_DLL
+	#include "hidden_laserdot.h"
+#endif
+
 #ifdef CLIENT_DLL
 	#define CWeaponHiddenBase C_WeaponHiddenBase
 #endif
@@ -40,6 +44,9 @@ public:
 	virtual bool Deploy( void );
 	virtual bool Holster( CBaseCombatWeapon *pSwitchingTo = NULL );
 	virtual void ItemPostFrame( void );
+#ifndef CLIENT_DLL
+	virtual void UpdateOnRemove( void );
+#endif
 
 	// A reload always fills the clip and uses up one spare magazine; what was left in the old one
 	// is lost. The reserve counts magazines (Beta 4b changed CBaseCombatWeapon::FinishReload).
@@ -80,6 +87,15 @@ protected:
 	CNetworkVar( bool, m_bDeployed );
 
 private:
+#ifndef CLIENT_DLL
+	// The laser sight (equipment 0): a dot where the owner aims while their laser is on.
+	void CreateLaserPointer( void );
+	void UpdateLaserPosition( void );
+	void RemoveLaserPointer( void );
+
+	CHandle<CHiddenLaserDot> m_hLaserDot;
+#endif
+
 	void FireBullet( CHidden_Player *pPlayer, const Vector &vecSrc, const QAngle &angShoot, float flSpread,
 		int iDamage, float x, float y );
 

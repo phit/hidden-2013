@@ -37,6 +37,8 @@ public:
 	void SetShotsFired( int iShots ) { m_iShotsFired = iShots; }
 	bool IsStunned( void ) const { return m_bStunned; }
 	float GetBlur( void ) const { return m_flBlur; }
+	bool LaserIsOn( void ) const { return m_bLAM; }
+	bool NightVisionEnabled( void ) const { return m_bNightVision; }
 
 private:
 	C_Hidden_Player( const C_Hidden_Player & );
@@ -53,6 +55,8 @@ private:
 	int m_iShotsFired;
 	bool m_bStunned;
 	float m_flBlur;
+	bool m_bLAM;
+	bool m_bNightVision;
 };
 
 inline C_Hidden_Player *ToHiddenPlayer( C_BaseEntity *pEntity )

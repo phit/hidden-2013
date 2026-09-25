@@ -74,7 +74,9 @@ void CWeaponHiddenBase::SetSafe( void )
 	SendWeaponAnim( ACT_VM_IDLE_TO_LOWERED );
 	SetWeaponIdleTime( gpGlobals->curtime + 5.0f );
 
-	// TODO: turn off the laser sight (equipment)
+#ifndef CLIENT_DLL
+	RemoveLaserPointer();
+#endif
 }
 
 bool CWeaponHiddenBase::Deploy( void )
@@ -84,13 +86,21 @@ bool CWeaponHiddenBase::Deploy( void )
 
 	m_bDeployed = true;
 
-	// TODO: create the laser sight when the owner has it switched on (equipment)
+#ifndef CLIENT_DLL
+	CHidden_Player *pPlayer = GetHiddenPlayerOwner();
+	if ( pPlayer && !pPlayer->GetSafe() && pPlayer->GetEquipment() == HIDDEN_EQUIPMENT_LASER && pPlayer->LaserIsOn() )
+		CreateLaserPointer();
+#endif
+
 	return BaseClass::Deploy();
 }
 
 bool CWeaponHiddenBase::Holster( CBaseCombatWeapon *pSwitchingTo )
 {
-	// TODO: remove the laser sight (equipment)
+#ifndef CLIENT_DLL
+	RemoveLaserPointer();
+#endif
+
 	m_bDeployed = false;
 	return BaseClass::Holster( pSwitchingTo );
 }
@@ -103,15 +113,78 @@ void CWeaponHiddenBase::ItemPostFrame( void )
 		return;
 
 	CHidden_Player *pPlayer = GetHiddenPlayerOwner();
-	if ( !pPlayer )
+	if ( !pPlayer || !pPlayer->IsAlive() )
 		return;
 
 	// A marine's weapon comes back out when they leave a ladder.
 	if ( pPlayer->GetMoveType() != MOVETYPE_LADDER && pPlayer->GetTeamNumber() == TEAM_IRIS )
 		Deploy();
 
-	// TODO: update the laser sight dot (equipment)
+#ifndef CLIENT_DLL
+	if ( pPlayer->GetSafe() || pPlayer->GetTeamNumber() == TEAM_HIDDEN )
+		return;
+
+	// The laser follows the equipment toggle; unlike Deploy, this doesn't check the equipment.
+	UpdateLaserPosition();
+
+	if ( pPlayer->LaserIsOn() )
+	{
+		if ( !m_hLaserDot )
+		{
+			DevMsg( 1, "Creating laser pointer in ItemPostFrame\n" );
+			CreateLaserPointer();
+		}
+	}
+	else
+	{
+		RemoveLaserPointer();
+	}
+#endif
 }
+
+#ifndef CLIENT_DLL
+void CWeaponHiddenBase::UpdateOnRemove( void )
+{
+	// Beta 4b leaves the dot behind when a weapon goes away with its owner.
+	RemoveLaserPointer();
+	BaseClass::UpdateOnRemove();
+}
+
+void CWeaponHiddenBase::CreateLaserPointer( void )
+{
+	if ( m_hLaserDot || !GetOwner() )
+		return;
+
+	m_hLaserDot = CHiddenLaserDot::Create( GetAbsOrigin(), GetOwner() );
+	UpdateLaserPosition();
+}
+
+void CWeaponHiddenBase::UpdateLaserPosition( void )
+{
+	CHidden_Player *pPlayer = GetHiddenPlayerOwner();
+	if ( !pPlayer || !pPlayer->IsAlive() || !pPlayer->LaserIsOn() )
+		return;
+
+	Vector vecForward;
+	pPlayer->EyeVectors( &vecForward );
+	const Vector vecSrc = pPlayer->Weapon_ShootPosition();
+
+	trace_t tr;
+	UTIL_TraceLine( vecSrc, vecSrc + vecForward * MAX_TRACE_LENGTH, MASK_SHOT & ~CONTENTS_WINDOW, pPlayer, COLLISION_GROUP_NONE, &tr );
+
+	if ( m_hLaserDot )
+		m_hLaserDot->SetLaserPosition( tr.endpos, tr.plane.normal );
+}
+
+void CWeaponHiddenBase::RemoveLaserPointer( void )
+{
+	if ( !m_hLaserDot )
+		return;
+
+	UTIL_Remove( m_hLaserDot );
+	m_hLaserDot = NULL;
+}
+#endif
 
 void CWeaponHiddenBase::FinishReload( void )
 {

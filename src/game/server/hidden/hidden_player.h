@@ -34,10 +34,17 @@ public:
 	virtual bool ClientCommand( const CCommand &args );
 	virtual void PlayerDeathThink( void );
 	virtual void PostThink( void );
+	virtual void ImpulseCommands( void );
 	virtual CBaseEntity *EntSelectSpawnPoint( void );
+
+	// Only marines have a flashlight, and it's silent (equipment 1).
+	virtual int FlashlightIsOn( void );
+	virtual void FlashlightTurnOn( void );
+	virtual void FlashlightTurnOff( void );
 
 	// Class, character and loadout
 	int GetPlayerClass( void ) const { return m_iPlayerClass; }
+	int GetEquipment( void ) const { return m_iEquipment; }
 	int GetCharacter( void ) const { return m_iCharacter; }
 	bool HasValidCharacter( void ) const { return m_iCharacter >= 0; }
 	void ReleaseCharacter( void );
@@ -62,6 +69,16 @@ public:
 	void SetZoom( bool bZoom ) { m_bZoom = bZoom; }
 	int GetShotsFired( void ) const { return m_iShotsFired; }
 	void SetShotsFired( int iShots ) { m_iShotsFired = iShots; }
+
+	// Equipment (docs/spec/hidden-abilities.md): the laser sight, night vision and the boost.
+	bool LaserIsOn( void ) const { return m_bLAM; }
+	void LaserTurnOn( void ) { m_bLAM = true; }
+	void LaserTurnOff( void ) { m_bLAM = false; }
+	bool NightVisionEnabled( void ) const { return m_bNightVision; }
+	void SetNightVision( bool bEnabled ) { m_bNightVision = bEnabled; }
+	bool IsBoosted( void ) const { return m_bBoosted; }
+	int GetBoostCount( void ) const { return m_iBoostCount; }
+	void Boost( void );
 
 	// Put a player who isn't playing this round into observer mode, keeping their team.
 	void BecomeObserver( void );
@@ -100,6 +117,12 @@ private:
 	CNetworkVar( int, m_iShotsFired );
 	CNetworkVar( bool, m_bStunned );
 	CNetworkVar( float, m_flBlur );
+	CNetworkVar( bool, m_bLAM );
+	CNetworkVar( bool, m_bNightVision );
+
+	int m_iBoostCount;
+	float m_flBoostTimer;
+	bool m_bBoosted;
 
 	CUtlVector<StunTracker_t> m_Stunners;
 	float m_flStunTime;

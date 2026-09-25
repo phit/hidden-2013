@@ -23,6 +23,10 @@
 #define HIDDEN_HIDDEN_SPEED			220.0f
 #define HIDDEN_HIDDEN_FOV			110
 
+#define HIDDEN_BOOST_SPEED			250.0f
+#define HIDDEN_BOOST_TIME			10.0f
+#define HIDDEN_BOOST_CHARGES		3
+
 LINK_ENTITY_TO_CLASS( player, CHidden_Player );
 
 LINK_ENTITY_TO_CLASS( info_marine_spawn, CPointEntity );
@@ -45,6 +49,8 @@ IMPLEMENT_SERVERCLASS_ST( CHidden_Player, DT_Hidden_Player )
 	SendPropInt( SENDINFO( m_iShotsFired ), 8, SPROP_UNSIGNED ),
 	SendPropBool( SENDINFO( m_bStunned ) ),
 	SendPropFloat( SENDINFO( m_flBlur ), 0, SPROP_NOSCALE ),
+	SendPropBool( SENDINFO( m_bLAM ) ),
+	SendPropBool( SENDINFO( m_bNightVision ) ),
 END_SEND_TABLE()
 
 BEGIN_DATADESC( CHidden_Player )
@@ -64,6 +70,11 @@ CHidden_Player::CHidden_Player()
 	m_bZoom = false;
 	m_iShotsFired = 0;
 	m_bHadHidden = false;
+	m_bLAM = false;
+	m_bNightVision = false;
+	m_iBoostCount = 0;
+	m_flBoostTimer = 0.0f;
+	m_bBoosted = false;
 	ResetStun();
 }
 
@@ -75,6 +86,9 @@ void CHidden_Player::Precache( void )
 	PrecacheModel( HIDDEN_MODEL_MARINE_SUPPORT );
 	PrecacheModel( HIDDEN_MODEL_HIDDEN );
 	PrecacheModel( HIDDEN_MODEL_HIDDEN_RAGDOLL );
+
+	PrecacheScriptSound( "IRIS.DeployNV" );
+	PrecacheScriptSound( "IRIS.UnDeployNV" );
 }
 
 void CHidden_Player::InitialSpawn( void )
@@ -92,6 +106,9 @@ void CHidden_Player::Spawn( void )
 	m_bSafety = false;
 	m_bZoom = false;
 	m_iShotsFired = 0;
+	m_bNightVision = false;
+	m_bLAM = false;
+	m_iBoostCount = 0;
 	ResetStun();
 
 	const int iTeam = GetTeamNumber();
@@ -181,8 +198,14 @@ void CHidden_Player::GiveMarineLoadout( void )
 
 	switch ( m_iEquipment )
 	{
+	case HIDDEN_EQUIPMENT_LASER:
+		LaserTurnOn();	// marines start with the laser on
+		break;
 	case HIDDEN_EQUIPMENT_SONIC:
 		GiveNamedItem( "weapon_sonic" );
+		break;
+	case HIDDEN_EQUIPMENT_BOOST:
+		m_iBoostCount = HIDDEN_BOOST_CHARGES;
 		break;
 	}
 
@@ -272,6 +295,87 @@ void CHidden_Player::PostThink( void )
 
 	if ( m_bStunned )
 		UpdateStun();
+
+	// The boost wears off back to walking speed.
+	if ( m_bBoosted && m_flBoostTimer < gpGlobals->curtime )
+	{
+		SetMaxSpeed( HIDDEN_MARINE_SPEED );
+		m_bBoosted = false;
+	}
+}
+
+void CHidden_Player::ImpulseCommands( void )
+{
+	if ( GetImpulse() != 100 )
+	{
+		BaseClass::ImpulseCommands();
+		return;
+	}
+
+	// The flashlight key uses the equipment. Like Beta 4b, this doesn't check the team, so a Hidden who
+	// picked night vision as a marine can still toggle it.
+	switch ( m_iEquipment )
+	{
+	case HIDDEN_EQUIPMENT_LASER:
+		DevMsg( 1, "laser toggle\n" );
+		if ( LaserIsOn() )
+			LaserTurnOff();
+		else
+			LaserTurnOn();
+		break;
+
+	case HIDDEN_EQUIPMENT_FLASHLIGHT:
+		DevMsg( 1, "Flash Light toggle\n" );
+		if ( FlashlightIsOn() )
+			FlashlightTurnOff();
+		else
+			FlashlightTurnOn();
+		break;
+
+	case HIDDEN_EQUIPMENT_NIGHTVISION:
+		DevMsg( 1, "Night vision toggle\n" );
+		EmitSound( m_bNightVision ? "IRIS.UnDeployNV" : "IRIS.DeployNV" );
+		SetNightVision( !m_bNightVision );
+		break;
+
+	case HIDDEN_EQUIPMENT_BOOST:
+		DevMsg( 1, "Boost values : %i - %i\n", m_bBoosted ? 1 : 0, m_iBoostCount );
+		if ( !m_bBoosted && m_iBoostCount > 0 )
+		{
+			Boost();
+			m_iBoostCount--;
+
+			// The rush blurs the marine's view.
+			Shockwave( 2.0f, 10.0f );
+		}
+		break;
+	}
+
+	ClearImpulse();
+}
+
+void CHidden_Player::Boost( void )
+{
+	m_flBoostTimer = gpGlobals->curtime + HIDDEN_BOOST_TIME;
+	SetMaxSpeed( HIDDEN_BOOST_SPEED );
+	m_bBoosted = true;
+}
+
+int CHidden_Player::FlashlightIsOn( void )
+{
+	return IsEffectActive( EF_DIMLIGHT );
+}
+
+void CHidden_Player::FlashlightTurnOn( void )
+{
+	if ( GetTeamNumber() == TEAM_IRIS )
+		AddEffects( EF_DIMLIGHT );
+}
+
+void CHidden_Player::FlashlightTurnOff( void )
+{
+	if ( GetTeamNumber() == TEAM_IRIS )
+		RemoveEffects( EF_DIMLIGHT );
 }
 
 void CHidden_Player::Stun( CBasePlayer *pStunner )

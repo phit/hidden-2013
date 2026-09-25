@@ -767,6 +767,9 @@ public:
 	float	GetFOVDistanceAdjustFactorForNetworking();
 
 	int		GetImpulse( void ) const { return m_nImpulse; }
+#ifdef HIDDEN
+	void	ClearImpulse( void ) { m_nImpulse = 0; }
+#endif
 
 	// Movement constraints
 	void	ActivateMovementConstraint( CBaseEntity *pEntity, const Vector &vecCenter, float flRadius, float flConstraintWidth, float flSpeedFactor );

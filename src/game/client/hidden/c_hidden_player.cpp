@@ -25,6 +25,8 @@ IMPLEMENT_CLIENTCLASS_DT( C_Hidden_Player, DT_Hidden_Player, CHidden_Player )
 	RecvPropInt( RECVINFO( m_iShotsFired ) ),
 	RecvPropBool( RECVINFO( m_bStunned ) ),
 	RecvPropFloat( RECVINFO( m_flBlur ) ),
+	RecvPropBool( RECVINFO( m_bLAM ) ),
+	RecvPropBool( RECVINFO( m_bNightVision ) ),
 END_RECV_TABLE()
 
 // Weapons change these in predicted code.
@@ -47,6 +49,8 @@ C_Hidden_Player::C_Hidden_Player()
 	m_iShotsFired = 0;
 	m_bStunned = false;
 	m_flBlur = 0.0f;
+	m_bLAM = false;
+	m_bNightVision = false;
 }
 
 C_Hidden_Player *C_Hidden_Player::GetLocalHiddenPlayer( void )
