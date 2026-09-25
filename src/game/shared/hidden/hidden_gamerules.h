@@ -63,6 +63,11 @@ public:
 	virtual void DeathNotice( CBasePlayer *pVictim, const CTakeDamageInfo &info );
 	virtual bool FPlayerCanTakeDamage( CBasePlayer *pPlayer, CBaseEntity *pAttacker, const CTakeDamageInfo &info );
 	virtual float FlPlayerFallDamage( CBasePlayer *pPlayer );
+
+	// Chat reads "(IRIS) name : (location) text" (Beta 4b's Host_Say), not HL2MP's localized formats.
+	virtual const char *GetChatFormat( bool bTeamOnly, CBasePlayer *pPlayer ) { return NULL; }
+	virtual const char *GetChatPrefix( bool bTeamOnly, CBasePlayer *pPlayer );
+	virtual const char *GetChatLocation( bool bTeamOnly, CBasePlayer *pPlayer );
 	virtual void RadiusDamage( const CTakeDamageInfo &info, const Vector &vecSrc, float flRadius, int iClassIgnore, CBaseEntity *pEntityIgnore );
 
 	void RestartRound( void );

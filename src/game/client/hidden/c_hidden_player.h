@@ -41,6 +41,7 @@ public:
 	float GetBlur( void ) const { return m_flBlur; }
 	bool LaserIsOn( void ) const { return m_bLAM; }
 	bool NightVisionEnabled( void ) const { return m_bNightVision; }
+	const char *GetCurrentLocation( void ) const { return m_szCurrentLocation; }
 
 	// Third-person animation (Beta 4b's SDK template anim state)
 	virtual void UpdateClientSideAnimation( void );
@@ -68,6 +69,7 @@ private:
 	bool m_bLAM;
 	bool m_bNightVision;
 	int m_iThrowGrenadeCounter;
+	char m_szCurrentLocation[HIDDEN_LOCATION_LENGTH];
 
 	IHiddenPlayerAnimState *m_pHiddenAnimState;
 };

@@ -668,4 +668,29 @@ float CHiddenRules::FlPlayerFallDamage( CBasePlayer *pPlayer )
 	pPlayer->m_Local.m_flFallVelocity -= PLAYER_MAX_SAFE_FALL_SPEED;
 	return pPlayer->m_Local.m_flFallVelocity * DAMAGE_FOR_FALL_SPEED;
 }
+
+const char *CHiddenRules::GetChatPrefix( bool bTeamOnly, CBasePlayer *pPlayer )
+{
+	if ( !pPlayer )
+		return "";
+
+	if ( !pPlayer->IsAlive() )
+		return "(Dead)";
+
+	switch ( pPlayer->GetTeamNumber() )
+	{
+	case TEAM_HIDDEN:	return "(Hidden)";
+	case TEAM_IRIS:		return "(IRIS)";
+	default:			return "";
+	}
+}
+
+const char *CHiddenRules::GetChatLocation( bool bTeamOnly, CBasePlayer *pPlayer )
+{
+	// Only marines give their location away, in team and public chat alike.
+	if ( !pPlayer || pPlayer->GetTeamNumber() != TEAM_IRIS )
+		return "";
+
+	return ToHiddenPlayer( pPlayer )->GetCurrentLocation();
+}
 #endif

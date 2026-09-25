@@ -89,6 +89,10 @@ public:
 	int GetBoostCount( void ) const { return m_iBoostCount; }
 	void Boost( void );
 
+	// The location_brush the player last touched, shown in chat. Returns true if it changed.
+	const char *GetCurrentLocation( void ) const { return m_szCurrentLocation; }
+	bool SetCurrentLocation( const char *pszLocation );
+
 	// Put a player who isn't playing this round into observer mode, keeping their team.
 	void BecomeObserver( void );
 
@@ -129,6 +133,7 @@ private:
 	CNetworkVar( bool, m_bLAM );
 	CNetworkVar( bool, m_bNightVision );
 	CNetworkVar( int, m_iThrowGrenadeCounter );
+	CNetworkString( m_szCurrentLocation, HIDDEN_LOCATION_LENGTH );
 
 	IHiddenPlayerAnimState *m_pHiddenAnimState;
 

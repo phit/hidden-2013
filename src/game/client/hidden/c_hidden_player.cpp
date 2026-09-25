@@ -61,6 +61,7 @@ IMPLEMENT_CLIENTCLASS_DT( C_Hidden_Player, DT_Hidden_Player, CHidden_Player )
 	RecvPropBool( RECVINFO( m_bLAM ) ),
 	RecvPropBool( RECVINFO( m_bNightVision ) ),
 	RecvPropInt( RECVINFO( m_iThrowGrenadeCounter ) ),
+	RecvPropString( RECVINFO( m_szCurrentLocation ) ),
 END_RECV_TABLE()
 
 // Weapons change these in predicted code.
@@ -86,6 +87,7 @@ C_Hidden_Player::C_Hidden_Player()
 	m_bLAM = false;
 	m_bNightVision = false;
 	m_iThrowGrenadeCounter = 0;
+	m_szCurrentLocation[0] = '\0';
 
 	m_pHiddenAnimState = CreateHiddenPlayerAnimState( this, this );
 }

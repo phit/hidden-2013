@@ -265,7 +265,11 @@ void Host_Say( edict_t *pEdict, const CCommand &args, bool teamonly )
 	{
 		if ( pszLocation && strlen( pszLocation ) )
 		{
+#ifdef HIDDEN
+			Q_snprintf( text, sizeof(text), "%s %s : (%s) ", pszPrefix, pszPlayerName, pszLocation );
+#else
 			Q_snprintf( text, sizeof(text), "%s %s @ %s: ", pszPrefix, pszPlayerName, pszLocation );
+#endif
 		}
 		else
 		{

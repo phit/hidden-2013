@@ -92,6 +92,7 @@ IMPLEMENT_SERVERCLASS_ST( CHidden_Player, DT_Hidden_Player )
 	SendPropBool( SENDINFO( m_bLAM ) ),
 	SendPropBool( SENDINFO( m_bNightVision ) ),
 	SendPropInt( SENDINFO( m_iThrowGrenadeCounter ), HIDDEN_THROWGRENADE_COUNTER_BITS, SPROP_UNSIGNED ),
+	SendPropString( SENDINFO( m_szCurrentLocation ) ),
 END_SEND_TABLE()
 
 BEGIN_DATADESC( CHidden_Player )
@@ -117,6 +118,7 @@ CHidden_Player::CHidden_Player()
 	m_flBoostTimer = 0.0f;
 	m_bBoosted = false;
 	m_iThrowGrenadeCounter = 0;
+	m_szCurrentLocation.GetForModify()[0] = '\0';
 	ResetStun();
 
 	// The animation runs on the clients; the server keeps its own for the hitboxes.
@@ -311,6 +313,15 @@ void CHidden_Player::GiveHiddenLoadout( void )
 	}
 
 	GiveNamedItem( "weapon_knife" );
+}
+
+bool CHidden_Player::SetCurrentLocation( const char *pszLocation )
+{
+	if ( !Q_strcmp( m_szCurrentLocation, pszLocation ) )
+		return false;
+
+	Q_strncpy( m_szCurrentLocation.GetForModify(), pszLocation, HIDDEN_LOCATION_LENGTH );
+	return true;
 }
 
 void CHidden_Player::BecomeObserver( void )

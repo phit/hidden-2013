@@ -24,6 +24,8 @@ enum HiddenGameType_t
 	HIDDEN_GAMETYPE_HIDDEN_TUTORIAL,	// htr_
 };
 
+#define HIDDEN_LOCATION_LENGTH	25	// Beta 4b's location names are at most this long
+
 #define HIDDEN_MAX_MARINES		8	// at most this many marines spawn per round
 #define HIDDEN_NUM_CHARACTERS	9	// marine characters, one per player
 

@@ -9,11 +9,11 @@
 #define HIDDEN_SPECTATOR_H
 #pragma once
 
+#include "hidden_shareddefs.h"
+
 #ifdef CLIENT_DLL
 	#define CHiddenSpectatorPoint C_HiddenSpectatorPoint
 #endif
-
-#define HIDDEN_LOCATION_LENGTH	25	// Beta 4b's location names are at most this long
 
 class CHiddenSpectatorPoint : public CBaseEntity
 {
