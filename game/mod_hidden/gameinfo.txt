@@ -41,11 +41,6 @@
 			game+mod			|all_source_engine_paths|hl2mp/hl2mp_english.vpk
 			game+mod			|all_source_engine_paths|hl2mp/hl2mp_pak.vpk
 
-			game				|all_source_engine_paths|hl2_complete/hl2_complete_textures.vpk
-			game				|all_source_engine_paths|hl2_complete/hl2_complete_sound_vo_english.vpk
-			game				|all_source_engine_paths|hl2_complete/hl2_complete_sound_misc.vpk
-			game				|all_source_engine_paths|hl2_complete/hl2_complete_misc.vpk
-
 			game				|all_source_engine_paths|hl2/hl2_textures.vpk
 			game				|all_source_engine_paths|hl2/hl2_sound_vo_english.vpk
 			game				|all_source_engine_paths|hl2/hl2_sound_misc.vpk
@@ -54,7 +49,6 @@
 			platform			|all_source_engine_paths|platform/platform_misc.vpk
 
 			game				|all_source_engine_paths|hl2mp
-			game				|all_source_engine_paths|hl2_complete
 			game				|all_source_engine_paths|hl2
 			platform			|all_source_engine_paths|platform
 
