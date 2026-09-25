@@ -35,6 +35,8 @@ public:
 	void SetZoom( bool bZoom ) { m_bZoom = bZoom; }
 	int GetShotsFired( void ) const { return m_iShotsFired; }
 	void SetShotsFired( int iShots ) { m_iShotsFired = iShots; }
+	bool IsStunned( void ) const { return m_bStunned; }
+	float GetBlur( void ) const { return m_flBlur; }
 
 private:
 	C_Hidden_Player( const C_Hidden_Player & );
@@ -49,6 +51,8 @@ private:
 	bool m_bSafety;
 	bool m_bZoom;
 	int m_iShotsFired;
+	bool m_bStunned;
+	float m_flBlur;
 };
 
 inline C_Hidden_Player *ToHiddenPlayer( C_BaseEntity *pEntity )

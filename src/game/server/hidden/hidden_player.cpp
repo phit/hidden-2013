@@ -43,6 +43,8 @@ IMPLEMENT_SERVERCLASS_ST( CHidden_Player, DT_Hidden_Player )
 	SendPropBool( SENDINFO( m_bSafety ) ),
 	SendPropBool( SENDINFO( m_bZoom ) ),
 	SendPropInt( SENDINFO( m_iShotsFired ), 8, SPROP_UNSIGNED ),
+	SendPropBool( SENDINFO( m_bStunned ) ),
+	SendPropFloat( SENDINFO( m_flBlur ), 0, SPROP_NOSCALE ),
 END_SEND_TABLE()
 
 BEGIN_DATADESC( CHidden_Player )
@@ -62,6 +64,7 @@ CHidden_Player::CHidden_Player()
 	m_bZoom = false;
 	m_iShotsFired = 0;
 	m_bHadHidden = false;
+	ResetStun();
 }
 
 void CHidden_Player::Precache( void )
@@ -89,6 +92,7 @@ void CHidden_Player::Spawn( void )
 	m_bSafety = false;
 	m_bZoom = false;
 	m_iShotsFired = 0;
+	ResetStun();
 
 	const int iTeam = GetTeamNumber();
 	const bool bMarine = ( iTeam == TEAM_IRIS && HasValidCharacter() && m_iPlayerClass != HIDDEN_CLASS_NONE );
@@ -260,6 +264,89 @@ void CHidden_Player::PlayerDeathThink( void )
 	// No respawning during a round: the dead watch until the next one.
 	if ( !IsObserver() && gpGlobals->curtime > GetDeathTime() + DEATH_ANIMATION_TIME )
 		BecomeObserver();
+}
+
+void CHidden_Player::PostThink( void )
+{
+	BaseClass::PostThink();
+
+	if ( m_bStunned )
+		UpdateStun();
+}
+
+void CHidden_Player::Stun( CBasePlayer *pStunner )
+{
+	StunTracker_t tracker;
+	tracker.hStunner = pStunner;
+	tracker.flExpires = gpGlobals->curtime + 10.0f;
+	m_Stunners.AddToTail( tracker );
+
+	if ( !m_bStunned )
+	{
+		m_bStunned = true;
+		m_flBlur = 6.0f;
+		m_flNextStunUpdate = gpGlobals->curtime + 0.2f;
+	}
+
+	// Each stun blurs a little more, up to 10; the first leaves it at 7.
+	if ( m_flBlur < 6.0f )
+		m_flBlur = 6.0f;
+	if ( m_flBlur < 10.0f )
+		m_flBlur += 1.0f;
+}
+
+void CHidden_Player::Shockwave( float flAmount, float flDuration )
+{
+	m_flStunTime = MAX( m_flStunTime, gpGlobals->curtime ) + flDuration;
+	m_bStunned = true;
+
+	if ( m_flBlur > 1.0f && m_flBlur < 10.0f )
+		m_flBlur += flAmount;
+	else
+		m_flBlur = flAmount;
+
+	m_flNextStunUpdate = gpGlobals->curtime + 0.2f;
+}
+
+void CHidden_Player::UpdateStun( void )
+{
+	if ( m_flNextStunUpdate < gpGlobals->curtime )
+	{
+		// Every stunner hurts the Hidden a little, 1.5 health a second each.
+		if ( GetTeamNumber() == TEAM_HIDDEN )
+		{
+			for ( int i = 0; i < m_Stunners.Count(); i++ )
+			{
+				CBaseEntity *pStunner = m_Stunners[i].hStunner;
+				CTakeDamageInfo info( pStunner, pStunner, GetAbsVelocity(), GetAbsOrigin(), 0.3f, DMG_DIRECT );
+				TakeDamage( info );
+			}
+		}
+
+		m_flNextStunUpdate = gpGlobals->curtime + 0.2f;
+
+		if ( m_flBlur > 1.0f )
+			m_flBlur -= 0.2f;
+
+		// Beta 4b steps past the entry after a removed one; it catches up on the next update.
+		for ( int i = 0; i < m_Stunners.Count(); i++ )
+		{
+			if ( m_Stunners[i].flExpires < gpGlobals->curtime )
+				m_Stunners.Remove( i );
+		}
+	}
+
+	if ( m_flStunTime < gpGlobals->curtime && m_Stunners.Count() == 0 )
+		m_bStunned = false;
+}
+
+void CHidden_Player::ResetStun( void )
+{
+	m_bStunned = false;
+	m_flBlur = 0.0f;
+	m_Stunners.RemoveAll();
+	m_flStunTime = 0.0f;
+	m_flNextStunUpdate = 0.0f;
 }
 
 CBaseEntity *CHidden_Player::EntSelectSpawnPoint( void )

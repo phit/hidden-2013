@@ -33,6 +33,7 @@ public:
 	virtual void ChangeTeam( int iTeam ) OVERRIDE;
 	virtual bool ClientCommand( const CCommand &args );
 	virtual void PlayerDeathThink( void );
+	virtual void PostThink( void );
 	virtual CBaseEntity *EntSelectSpawnPoint( void );
 
 	// Class, character and loadout
@@ -65,7 +66,22 @@ public:
 	// Put a player who isn't playing this round into observer mode, keeping their team.
 	void BecomeObserver( void );
 
+	// Stun and blur (docs/spec/hidden-abilities.md): FN303 hits stun, explosions and the boost
+	// send a shockwave. Only the Hidden takes stun damage; anyone's view blurs.
+	bool IsStunned( void ) const { return m_bStunned; }
+	void Stun( CBasePlayer *pStunner );
+	void Shockwave( float flAmount, float flDuration );
+
 private:
+	struct StunTracker_t
+	{
+		EHANDLE hStunner;
+		float flExpires;
+	};
+
+	void UpdateStun( void );
+	void ResetStun( void );
+
 	bool TakeCharacter( int iCharacter );
 	void SetupMarine( void );
 	void SetupHidden( void );
@@ -82,6 +98,12 @@ private:
 	CNetworkVar( bool, m_bSafety );
 	CNetworkVar( bool, m_bZoom );
 	CNetworkVar( int, m_iShotsFired );
+	CNetworkVar( bool, m_bStunned );
+	CNetworkVar( float, m_flBlur );
+
+	CUtlVector<StunTracker_t> m_Stunners;
+	float m_flStunTime;
+	float m_flNextStunUpdate;
 
 	bool m_bReadyToPlay;
 	bool m_bHadHidden;
