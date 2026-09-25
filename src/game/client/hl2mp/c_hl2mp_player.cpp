@@ -597,6 +597,7 @@ void C_HL2MP_Player::AddEntity( void )
 	// Zero out model pitch, blending takes care of all of it.
 	SetLocalAnglesDim( X_INDEX, 0 );
 
+#ifndef HIDDEN	// Beta 4b draws nothing for other players' flashlights
 	if( this != C_BasePlayer::GetLocalPlayer() )
 	{
 		if ( IsEffectActive( EF_DIMLIGHT ) )
@@ -670,6 +671,7 @@ void C_HL2MP_Player::AddEntity( void )
 			ReleaseFlashlight();
 		}
 	}
+#endif
 }
 
 ShadowType_t C_HL2MP_Player::ShadowCastType( void ) 
