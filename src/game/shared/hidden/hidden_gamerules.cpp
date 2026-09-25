@@ -590,6 +590,75 @@ bool CHiddenRules::FPlayerCanTakeDamage( CBasePlayer *pPlayer, CBaseEntity *pAtt
 	return CTeamplayRules::FPlayerCanTakeDamage( pPlayer, pAttacker, info );
 }
 
+// Beta 4b's CSDKGameRules::RadiusDamage, the SDK template's: linear falloff, blocked only by brushes,
+// no damage from outside the water to anyone fully under it. Every player hurt also gets a shockwave.
+void CHiddenRules::RadiusDamage( const CTakeDamageInfo &info, const Vector &vecSrcIn, float flRadius, int iClassIgnore, CBaseEntity *pEntityIgnore )
+{
+	const float flFalloff = flRadius ? info.GetDamage() / flRadius : 1.0f;
+	const bool bInWater = ( UTIL_PointContents( vecSrcIn ) & MASK_WATER ) != 0;
+
+	Vector vecSrc = vecSrcIn;
+	vecSrc.z += 1.0f;	// in case the grenade is lying on the ground
+
+	for ( CEntitySphereQuery sphere( vecSrc, flRadius ); sphere.GetCurrentEntity(); sphere.NextEntity() )
+	{
+		CBaseEntity *pEntity = sphere.GetCurrentEntity();
+		if ( pEntity == pEntityIgnore || pEntity->m_takedamage == DAMAGE_NO )
+			continue;
+
+		if ( iClassIgnore != CLASS_NONE && pEntity->Classify() == iClassIgnore )
+			continue;
+
+		// Blasts don't travel into the water.
+		if ( !bInWater && pEntity->GetWaterLevel() == 3 )
+			continue;
+
+		const Vector vecSpot = pEntity->BodyTarget( vecSrc, true );
+
+		trace_t tr;
+		UTIL_TraceLine( vecSrc, vecSpot, MASK_SOLID_BRUSHONLY, info.GetInflictor(), COLLISION_GROUP_NONE, &tr );
+		if ( tr.startsolid )
+		{
+			tr.endpos = vecSrc;
+			tr.fraction = 0.0f;
+		}
+
+		if ( tr.fraction != 1.0f && tr.m_pEnt != pEntity )
+			continue;
+
+		Vector vecToTarget = tr.endpos - vecSrc;
+		const float flDamage = info.GetDamage() - vecToTarget.Length() * flFalloff;
+		if ( flDamage <= 0.0f )
+			continue;
+
+		CTakeDamageInfo adjustedInfo = info;
+		adjustedInfo.SetDamage( flDamage );
+
+		VectorNormalize( vecToTarget );
+
+		if ( adjustedInfo.GetDamagePosition() == vec3_origin || adjustedInfo.GetDamageForce() == vec3_origin )
+		{
+			CalculateExplosiveDamageForce( &adjustedInfo, vecToTarget, vecSrc, 1.5f );
+		}
+		else
+		{
+			// The force passed in is the most there is; it falls off like the damage.
+			adjustedInfo.SetDamageForce( vecToTarget * ( adjustedInfo.GetDamageForce().Length() * flFalloff ) );
+			adjustedInfo.SetDamagePosition( vecSrc );
+		}
+
+		pEntity->TakeDamage( adjustedInfo );
+		pEntity->TraceAttackToTriggers( adjustedInfo, vecSrc, tr.endpos, vecToTarget );
+
+		CHidden_Player *pPlayer = ToHiddenPlayer( pEntity );
+		if ( pPlayer )
+		{
+			DevMsg( 1, "Shockwave - sdkgamerules\n" );
+			pPlayer->Shockwave( flDamage / 12.0f, 5.0f );
+		}
+	}
+}
+
 float CHiddenRules::FlPlayerFallDamage( CBasePlayer *pPlayer )
 {
 	// The Hidden takes no fall damage; marines use the HL2 formula.
