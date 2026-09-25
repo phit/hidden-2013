@@ -120,6 +120,13 @@ $Project "Client (Hidden)"
 			$File	"hl2\vgui_rootpanel_hl2.cpp"
 		}
 
+		$Folder	"Hidden"
+		{
+			$File	"$SRCDIR\game\shared\hidden\hidden_gamerules.cpp"
+			$File	"$SRCDIR\game\shared\hidden\hidden_gamerules.h"
+			$File	"$SRCDIR\game\shared\hidden\hidden_shareddefs.h"
+		}
+
 		$Folder	"HL2MP"
 		{
 			$File	"hl2mp\c_hl2mp_player.cpp"
