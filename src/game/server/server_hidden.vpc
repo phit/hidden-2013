@@ -335,6 +335,9 @@ $Project "Server (Hidden)"
 			$File	"$SRCDIR\game\shared\hidden\weapon_p90.cpp"
 			$File	"$SRCDIR\game\shared\hidden\weapon_pistol.cpp"
 			$File	"$SRCDIR\game\shared\hidden\weapon_shotgun.cpp"
+			$File	"$SRCDIR\game\shared\hidden\weapon_sonic.cpp"
+			$File	"hidden\hidden_sonic_alarm.cpp"
+			$File	"hidden\hidden_sonic_alarm.h"
 		}
 
 		$Folder	"HL2MP"

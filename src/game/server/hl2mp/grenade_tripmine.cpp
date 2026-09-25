@@ -22,7 +22,9 @@ ConVar    sk_plr_dmg_tripmine		( "sk_plr_dmg_tripmine","0");
 ConVar    sk_npc_dmg_tripmine		( "sk_npc_dmg_tripmine","0");
 ConVar    sk_tripmine_radius		( "sk_tripmine_radius","0");
 
+#ifndef HIDDEN // Hidden's sonic alarm takes this name (hidden_sonic_alarm.cpp)
 LINK_ENTITY_TO_CLASS( npc_tripmine, CTripmineGrenade );
+#endif
 
 BEGIN_DATADESC( CTripmineGrenade )
 
