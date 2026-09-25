@@ -55,6 +55,7 @@ CHidden_Player::CHidden_Player()
 	m_bNoHidden = false;
 	m_iWeighting = 0;
 	m_bReadyToPlay = false;
+	m_bSafety = false;
 	m_bHadHidden = false;
 }
 
@@ -80,6 +81,7 @@ void CHidden_Player::InitialSpawn( void )
 void CHidden_Player::Spawn( void )
 {
 	m_iWeighting = 0;
+	m_bSafety = false;
 
 	const int iTeam = GetTeamNumber();
 	const bool bMarine = ( iTeam == TEAM_IRIS && HasValidCharacter() && m_iPlayerClass != HIDDEN_CLASS_NONE );

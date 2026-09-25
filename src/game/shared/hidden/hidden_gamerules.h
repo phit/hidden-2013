@@ -12,6 +12,10 @@
 #include "hl2mp_gamerules.h"
 #include "hidden_shareddefs.h"
 
+#ifndef CLIENT_DLL
+	#include "hidden_selector.h"
+#endif
+
 #ifdef CLIENT_DLL
 	#define CHiddenRules C_HiddenRules
 	#define CHiddenGameRulesProxy C_HiddenGameRulesProxy
@@ -51,6 +55,45 @@ public:
 	virtual void ClientDisconnected( edict_t *pClient );
 
 	void SetCharacterTaken( int iCharacter, bool bTaken );
+
+	// Round loop (docs/spec/game-rules.md)
+	virtual void Think( void );
+	virtual void GoToIntermission( void );
+	virtual void PlayerKilled( CBasePlayer *pVictim, const CTakeDamageInfo &info );
+	virtual void DeathNotice( CBasePlayer *pVictim, const CTakeDamageInfo &info );
+	virtual bool FPlayerCanTakeDamage( CBasePlayer *pPlayer, CBaseEntity *pAttacker, const CTakeDamageInfo &info );
+	virtual float FlPlayerFallDamage( CBasePlayer *pPlayer );
+
+	void RestartRound( void );
+	void CleanUpMap( void );
+	CHiddenSelector &GetSelector( void ) { return m_Selector; }
+
+private:
+	enum RoundState_t
+	{
+		ROUND_INTERMISSION,		// waiting for the next round
+		ROUND_STARTING,			// players spawned, announce the start next frame
+		ROUND_MATERIAL_CHECK,	// then send the cloak material CRCs
+		ROUND_ACTIVE,			// playing; check for a winner every frame
+		ROUND_ENDING,			// someone won
+		ROUND_GAME_OVER,		// time limit reached, change level after the chat time
+	};
+
+	void FireSimpleEvent( const char *pszName );
+	bool HasTimeLimitPassed( void ) const;
+	bool IsRoundTimeUp( void );
+	bool IRISWins( void );
+	bool HiddenWins( void );
+
+	CHiddenSelector m_Selector;
+	RoundState_t m_nRoundState;
+	float m_flIntermissionEnd;
+	int m_iMarineCount;		// living marines
+	int m_iHiddenCount;		// players on the Hidden team
+	bool m_bLastRoundAnnounced;
+	bool m_bLevelChanged;
+	CRC32_t m_nMaterialCRC;
+	CRC32_t m_nMaterialDX7CRC;
 #endif
 
 protected:

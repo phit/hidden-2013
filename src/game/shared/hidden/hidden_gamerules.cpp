@@ -11,6 +11,12 @@
 #ifndef CLIENT_DLL
 	#include "team.h"
 	#include "hidden_player.h"
+	#include "hidden_cvars.h"
+	#include "mapentities.h"
+	#include "eventqueue.h"
+	#include "checksum_crc.h"
+	#include "viewport_panel_names.h"
+	#include "gameinterface.h"
 #endif
 
 // memdbgon must be the last include file in a .cpp file!!!
@@ -67,6 +73,41 @@ static const char *s_HiddenTeamNames[] =
 	"Hidden",
 };
 
+// Beta 4b's CleanUpMap preserve list (docs/spec/game-rules.md): doors, rotating brushes and ambient
+// sounds keep their state between rounds. Our own game rules proxy replaces sdk_gamerules.
+static const char *s_HiddenPreserveEnts[] =
+{
+	"ai_network", "ai_hint", "ambient_generic", "hidden_gamerules", "team_manager", "player_manager",
+	"env_soundscape", "env_soundscape_proxy", "env_soundscape_triggerable", "env_sun", "env_wind",
+	"env_fog_controller", "func_brush", "func_door", "func_wall", "func_illusionary", "func_rotating",
+	"infodecal", "info_projecteddecal", "info_node", "info_target", "info_node_hint",
+	"info_marine_spawn", "info_hidden_spawn", "info_spectator", "info_map_parameters", "keyframe_rope",
+	"move_rope", "info_ladder", "player", "point_viewcontrol", "scene_manager", "shadow_control",
+	"sky_camera", "soundent", "trigger_soundscape", "viewmodel", "predicted_viewmodel", "worldspawn",
+	"point_devshot_camera",
+	"", // END Marker
+};
+
+extern bool FindInList( const char **pStrings, const char *pToFind );
+extern ConVar mp_chattime;
+
+// CRC of a file as the client sees it, for the material_check event.
+static CRC32_t MaterialCRC( const char *pszPath )
+{
+	char szPath[MAX_PATH];
+	Q_strncpy( szPath, pszPath, sizeof( szPath ) );
+	Q_strlower( szPath );
+
+	int iLength = 0;
+	byte *pData = UTIL_LoadFileForMe( szPath, &iLength );
+	if ( !pData )
+		return 0;
+
+	CRC32_t nCRC = CRC32_ProcessSingleBuffer( pData, iLength );
+	UTIL_FreeFile( pData );
+	return nCRC;
+}
+
 // The map name's prefix (the text before the first '_') picks the game type.
 static HiddenGameType_t GameTypeForMap( const char *pszMap )
 {
@@ -94,6 +135,18 @@ CHiddenRules::CHiddenRules()
 		g_Teams[i]->Init( s_HiddenTeamNames[i], i );
 
 	m_nGameType = GameTypeForMap( STRING( gpGlobals->mapname ) );
+
+	m_nRoundState = ROUND_INTERMISSION;
+	m_iMarineCount = 0;
+	m_iHiddenCount = 0;
+	m_bLastRoundAnnounced = false;
+	m_bLevelChanged = false;
+	m_nMaterialCRC = MaterialCRC( "materials/models/manor/mn_tapestry.vmt" );
+	m_nMaterialDX7CRC = MaterialCRC( "materials/models/manor/mn_tapestry_dx7.vmt" );
+
+	// The first round starts hdn_jointime seconds after the map loads.
+	GoToIntermission();
+	m_flIntermissionEnd = gpGlobals->curtime + hdn_jointime.GetFloat();
 #endif
 }
 
@@ -143,8 +196,374 @@ void CHiddenRules::ClientDisconnected( edict_t *pClient )
 {
 	CHidden_Player *pPlayer = ToHiddenPlayer( CBaseEntity::Instance( pClient ) );
 	if ( pPlayer )
+	{
+		if ( pPlayer->GetTeamNumber() == TEAM_IRIS && pPlayer->IsAlive() )
+		{
+			m_iMarineCount--;
+		}
+		else if ( pPlayer->GetTeamNumber() == TEAM_HIDDEN )
+		{
+			// If the last Hidden leaves, IRIS wins on the next think.
+			m_iHiddenCount = MAX( 0, m_iHiddenCount - 1 );
+			m_Selector.ForfeitHidden( pPlayer );
+		}
+
 		pPlayer->ReleaseCharacter();
+	}
 
 	BaseClass::ClientDisconnected( pClient );
+}
+#endif
+
+#ifndef CLIENT_DLL
+void CHiddenRules::FireSimpleEvent( const char *pszName )
+{
+	IGameEvent *pEvent = gameeventmanager->CreateEvent( pszName );
+	if ( pEvent )
+		gameeventmanager->FireEvent( pEvent );
+}
+
+bool CHiddenRules::HasTimeLimitPassed( void ) const
+{
+	const float flTimeLimit = mp_timelimit.GetFloat() * 60.0f;
+	return flTimeLimit != 0.0f && gpGlobals->curtime >= flTimeLimit;
+}
+
+void CHiddenRules::Think( void )
+{
+	// Skip CHL2MPRules and CMultiplayRules: they end the map on their own time and frag limits.
+	CGameRules::Think();
+
+	switch ( m_nRoundState )
+	{
+	case ROUND_INTERMISSION:
+		if ( gpGlobals->curtime >= m_flIntermissionEnd )
+		{
+			DevMsg( 1, "Intermission over, restarting round\n" );
+			RestartRound();
+		}
+		break;
+
+	case ROUND_STARTING:
+		FireSimpleEvent( "game_round_start" );
+		UTIL_RestartAmbientSounds();
+		m_nRoundState = ROUND_MATERIAL_CHECK;
+		break;
+
+	case ROUND_MATERIAL_CHECK:
+	{
+		DevMsg( 1, "Checking Material CRCS, who's been a bad person?\n" );
+		IGameEvent *pEvent = gameeventmanager->CreateEvent( "material_check" );
+		if ( pEvent )
+		{
+			pEvent->SetInt( "vmt_CRC", (int)m_nMaterialCRC );
+			pEvent->SetInt( "bump_CRC", (int)m_nMaterialDX7CRC );
+			gameeventmanager->FireEvent( pEvent );
+		}
+		m_nRoundState = ROUND_ACTIVE;
+		break;
+	}
+
+	case ROUND_ACTIVE:
+		if ( !m_bLastRoundAnnounced && HasTimeLimitPassed() )
+		{
+			UTIL_ClientPrintAll( HUD_PRINTCENTER, "Last Round" );
+			m_bLastRoundAnnounced = true;
+		}
+		if ( IRISWins() || HiddenWins() )
+			m_nRoundState = ROUND_ENDING;
+		break;
+
+	case ROUND_ENDING:
+		FireSimpleEvent( "game_round_end" );
+		GoToIntermission();
+		break;
+
+	case ROUND_GAME_OVER:
+		if ( !m_bLevelChanged && gpGlobals->curtime >= m_flIntermissionEnd )
+		{
+			DevMsg( 1, "Intermission over, changing levels\n" );
+			m_Selector.ClearHidden();
+			m_bLevelChanged = true;
+			ChangeLevel();
+		}
+		break;
+	}
+}
+
+void CHiddenRules::GoToIntermission( void )
+{
+	m_flIntermissionEnd = gpGlobals->curtime + mp_chattime.GetInt();
+
+	// Safety on: nobody can be hurt until the next round.
+	for ( int i = 1; i <= gpGlobals->maxClients; i++ )
+	{
+		CHidden_Player *pPlayer = ToHiddenPlayer( UTIL_PlayerByIndex( i ) );
+		if ( pPlayer && pPlayer->IsAlive() )
+			pPlayer->SetSafe( true );
+	}
+
+	m_nRoundState = HasTimeLimitPassed() ? ROUND_GAME_OVER : ROUND_INTERMISSION;
+}
+
+void CHiddenRules::RestartRound( void )
+{
+	CHidden_Player *pHidden = m_Selector.SelectHidden( m_nGameType, hdn_hiddenrounds.GetInt() );
+	if ( !pHidden )
+	{
+		GoToIntermission();	// not enough players; try again later
+		return;
+	}
+
+	CleanUpMap();
+	UTIL_ClientPrintAll( HUD_PRINTCENTER, "Round restarting..." );
+
+	// Everyone who isn't spectating plays: the chosen player as the Hidden, the rest as marines.
+	for ( int i = 1; i <= gpGlobals->maxClients; i++ )
+	{
+		CHidden_Player *pPlayer = ToHiddenPlayer( UTIL_PlayerByIndex( i ) );
+		if ( !pPlayer || pPlayer->GetTeamNumber() == TEAM_SPECTATOR || pPlayer->GetTeamNumber() == TEAM_UNASSIGNED )
+			continue;
+
+		pPlayer->ChangeTeam( pPlayer == pHidden ? TEAM_HIDDEN : TEAM_IRIS );
+		pPlayer->RemoveAllItems( true );
+		pPlayer->ShowViewPortPanel( PANEL_SCOREBOARD, false );
+	}
+
+	// Spawn the Hidden and the first eight marines; everyone else watches.
+	int iMarines = 0;
+	for ( int i = 1; i <= gpGlobals->maxClients; i++ )
+	{
+		CHidden_Player *pPlayer = ToHiddenPlayer( UTIL_PlayerByIndex( i ) );
+		if ( !pPlayer )
+			continue;
+
+		const int iTeam = pPlayer->GetTeamNumber();
+		if ( iTeam == TEAM_HIDDEN || ( iTeam == TEAM_IRIS && iMarines++ < HIDDEN_MAX_MARINES ) )
+		{
+			if ( pPlayer->IsObserver() )
+				pPlayer->StopObserverMode();
+			pPlayer->State_Transition( STATE_ACTIVE );
+			pPlayer->Spawn();
+		}
+		else if ( iTeam != TEAM_SPECTATOR )
+		{
+			pPlayer->BecomeObserver();
+		}
+	}
+
+	m_iMarineCount = 0;
+	m_iHiddenCount = 0;
+	for ( int i = 1; i <= gpGlobals->maxClients; i++ )
+	{
+		CBasePlayer *pPlayer = UTIL_PlayerByIndex( i );
+		if ( !pPlayer )
+			continue;
+
+		if ( pPlayer->GetTeamNumber() == TEAM_IRIS && pPlayer->IsAlive() )
+			m_iMarineCount++;
+		else if ( pPlayer->GetTeamNumber() == TEAM_HIDDEN )
+			m_iHiddenCount++;
+	}
+
+	DevMsg( 1, "Fired roundrestart event\n" );
+	FireSimpleEvent( "game_round_restart" );
+
+	m_nRoundState = ROUND_STARTING;
+	m_iRoundDuration = mp_roundtime.GetInt();
+	m_flRoundStart = gpGlobals->curtime;
+}
+
+void CHiddenRules::CleanUpMap( void )
+{
+	// As CHL2MPRules::CleanUpMap, with Beta 4b's preserve list.
+	for ( CBaseEntity *pCur = gEntList.FirstEnt(); pCur; pCur = gEntList.NextEnt( pCur ) )
+	{
+		CBaseCombatWeapon *pWeapon = pCur->MyCombatWeaponPointer();
+		if ( pWeapon )
+		{
+			if ( !pWeapon->GetOwner() )
+				UTIL_Remove( pCur );
+		}
+		else if ( !FindInList( s_HiddenPreserveEnts, pCur->GetClassname() ) )
+		{
+			UTIL_Remove( pCur );
+		}
+	}
+
+	gEntList.CleanupDeleteList();
+	g_EventQueue.Clear();
+
+	class CHiddenMapEntityFilter : public IMapEntityFilter
+	{
+	public:
+		virtual bool ShouldCreateEntity( const char *pClassname )
+		{
+			if ( !FindInList( s_HiddenPreserveEnts, pClassname ) )
+				return true;
+
+			// Not created, so CreateNextEntity won't advance past it.
+			if ( m_iIterator != g_MapEntityRefs.InvalidIndex() )
+				m_iIterator = g_MapEntityRefs.Next( m_iIterator );
+			return false;
+		}
+
+		virtual CBaseEntity *CreateNextEntity( const char *pClassname )
+		{
+			if ( m_iIterator == g_MapEntityRefs.InvalidIndex() )
+			{
+				Assert( false );
+				return NULL;
+			}
+
+			CMapEntityRef &ref = g_MapEntityRefs[m_iIterator];
+			m_iIterator = g_MapEntityRefs.Next( m_iIterator );
+
+			// Reuse the entity's old edict slot if it's free, to keep its baseline.
+			if ( ref.m_iEdict == -1 || engine->PEntityOfEntIndex( ref.m_iEdict ) )
+				return CreateEntityByName( pClassname );
+			return CreateEntityByName( pClassname, ref.m_iEdict );
+		}
+
+		int m_iIterator;
+	};
+
+	CHiddenMapEntityFilter filter;
+	filter.m_iIterator = g_MapEntityRefs.Head();
+	MapEntity_ParseAllEntities( engine->GetMapEntitiesString(), &filter, true );
+}
+
+bool CHiddenRules::IsRoundTimeUp( void )
+{
+	if ( m_flRoundStart >= 0.0f && RoundFloatToInt( gpGlobals->curtime - m_flRoundStart ) < m_iRoundDuration )
+		return false;
+
+	// Time's up: the Hidden loses their place and every surviving marine scores.
+	DevMsg( 1, "round timer ended\n" );
+	m_Selector.ForfeitHidden( m_Selector.GetCurrentHidden() );
+
+	for ( int i = 1; i <= gpGlobals->maxClients; i++ )
+	{
+		CBasePlayer *pPlayer = UTIL_PlayerByIndex( i );
+		if ( pPlayer && pPlayer->IsAlive() && pPlayer->GetTeamNumber() == TEAM_IRIS )
+			pPlayer->IncrementFragCount( 1 );
+	}
+	return true;
+}
+
+bool CHiddenRules::IRISWins( void )
+{
+	if ( m_iHiddenCount > 0 && !IsRoundTimeUp() )
+		return false;
+
+	UTIL_ClientPrintAll( HUD_PRINTCENTER, "I.R.I.S. Wins" );
+	return true;
+}
+
+bool CHiddenRules::HiddenWins( void )
+{
+	if ( m_iMarineCount > 0 )
+		return false;
+
+	UTIL_ClientPrintAll( HUD_PRINTCENTER, "Hidden Wins" );
+	return true;
+}
+
+void CHiddenRules::PlayerKilled( CBasePlayer *pVictim, const CTakeDamageInfo &info )
+{
+	DeathNotice( pVictim, info );
+
+	CBasePlayer *pScorer = ToBasePlayer( GetDeathScorer( info.GetAttacker(), info.GetInflictor() ) );
+	CHidden_Player *pVictimHidden = ToHiddenPlayer( pVictim );
+
+	pVictim->IncrementDeathCount( 1 );
+	if ( pVictimHidden )
+		pVictimHidden->AddWeighting( -20 );
+	FireTargets( "game_playerdie", pVictim, pVictim, USE_TOGGLE, 0 );
+
+	const bool bVictimHidden = ( pVictim->GetTeamNumber() == TEAM_HIDDEN );
+	if ( bVictimHidden )
+		m_iHiddenCount--;
+	else if ( pVictim->GetTeamNumber() == TEAM_IRIS )
+		m_iMarineCount--;
+
+	if ( !pScorer || pScorer == pVictim )
+	{
+		// Suicide or killed by the world.
+		pVictim->IncrementFragCount( -1 );
+		if ( bVictimHidden )
+		{
+			DevMsg( 1, pScorer ? "Hidden Suicided\n" : "Hidden killed by world\n" );
+			m_Selector.ForfeitHidden( pVictimHidden );
+		}
+	}
+	else
+	{
+		CHidden_Player *pScorerHidden = ToHiddenPlayer( pScorer );
+		if ( bVictimHidden )
+		{
+			// A marine killed the Hidden.
+			DevMsg( 1, "Hidden killed\n" );
+			pScorer->IncrementFragCount( 2 );
+			if ( pScorerHidden )
+				pScorerHidden->AddWeighting( 50 );
+			m_Selector.NewHidden( pScorerHidden );
+		}
+		else
+		{
+			// The Hidden scores for a marine; a marine loses a point for a teamkill.
+			pScorer->IncrementFragCount( pScorer->GetTeamNumber() == TEAM_HIDDEN ? 1 : -1 );
+		}
+
+		pScorer->AllowImmediateDecalPainting();
+		FireTargets( "game_playerkill", pScorer, pScorer, USE_TOGGLE, 0 );
+	}
+
+	DevMsg( 1, "Marines Left:%i\n", m_iMarineCount );
+	DevMsg( 1, "Hiddens Left:%i\n", m_iHiddenCount );
+}
+
+void CHiddenRules::DeathNotice( CBasePlayer *pVictim, const CTakeDamageInfo &info )
+{
+	// The Hidden's kills stay out of the kill feed unless hdn_deathnotices is 1; they're only logged.
+	CBaseEntity *pAttacker = info.GetAttacker();
+	if ( pAttacker && pAttacker != pVictim && pAttacker->GetTeamNumber() == TEAM_HIDDEN && !hdn_deathnotices.GetBool() )
+	{
+		CBasePlayer *pKiller = ToBasePlayer( pAttacker );
+		if ( pKiller && pKiller->GetTeam() && pVictim->GetTeam() )
+		{
+			UTIL_LogPrintf( "\"%s<%i><%s><%s>\" killed \"%s<%i><%s><%s>\"\n",
+				pKiller->GetPlayerName(), pKiller->GetUserID(), pKiller->GetNetworkIDString(), pKiller->GetTeam()->GetName(),
+				pVictim->GetPlayerName(), pVictim->GetUserID(), pVictim->GetNetworkIDString(), pVictim->GetTeam()->GetName() );
+		}
+		return;
+	}
+
+	BaseClass::DeathNotice( pVictim, info );
+}
+
+bool CHiddenRules::FPlayerCanTakeDamage( CBasePlayer *pPlayer, CBaseEntity *pAttacker, const CTakeDamageInfo &info )
+{
+	if ( pAttacker && pAttacker->IsPlayer() )
+	{
+		CHidden_Player *pVictim = ToHiddenPlayer( pPlayer );
+		if ( pVictim && pVictim->GetSafe() )
+			return false;
+
+		if ( pAttacker->GetTeamNumber() == pPlayer->GetTeamNumber() && !friendlyfire.GetBool() )
+			return false;
+	}
+
+	return CTeamplayRules::FPlayerCanTakeDamage( pPlayer, pAttacker, info );
+}
+
+float CHiddenRules::FlPlayerFallDamage( CBasePlayer *pPlayer )
+{
+	// The Hidden takes no fall damage; marines use the HL2 formula.
+	if ( pPlayer->GetTeamNumber() == TEAM_HIDDEN )
+		return 0.0f;
+
+	pPlayer->m_Local.m_flFallVelocity -= PLAYER_MAX_SAFE_FALL_SPEED;
+	return pPlayer->m_Local.m_flFallVelocity * DAMAGE_FOR_FALL_SPEED;
 }
 #endif

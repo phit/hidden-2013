@@ -52,6 +52,10 @@ public:
 	int GetWeighting( void ) const { return m_iWeighting; }
 	void AddWeighting( int iAmount );
 
+	// Safety is on between rounds: no damage, weapons lowered.
+	bool GetSafe( void ) const { return m_bSafety; }
+	void SetSafe( bool bSafe ) { m_bSafety = bSafe; }
+
 	// Put a player who isn't playing this round into observer mode, keeping their team.
 	void BecomeObserver( void );
 
@@ -71,6 +75,7 @@ private:
 	CNetworkVar( int, m_iWeighting );
 
 	bool m_bReadyToPlay;
+	bool m_bSafety;
 	bool m_bHadHidden;
 };
 
