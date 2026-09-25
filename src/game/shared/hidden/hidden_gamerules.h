@@ -47,6 +47,7 @@ public:
 	virtual bool ShouldCollide( int collisionGroup0, int collisionGroup1 );
 
 	HiddenGameType_t GetGameType( void ) const { return m_nGameType; }
+	bool IsTutorial( void ) const { return m_nGameType == HIDDEN_GAMETYPE_MARINE_TUTORIAL || m_nGameType == HIDDEN_GAMETYPE_HIDDEN_TUTORIAL; }
 	float GetRoundTimeRemaining( void ) const;
 	bool IsCharacterTaken( int iCharacter ) const;
 
@@ -54,6 +55,7 @@ public:
 	virtual void CreateStandardEntities( void );
 	virtual bool FPlayerCanRespawn( CBasePlayer *pPlayer ) { return false; }
 	virtual void ClientDisconnected( edict_t *pClient );
+	virtual bool ClientCommand( CBaseEntity *pEdict, const CCommand &args );
 
 	void SetCharacterTaken( int iCharacter, bool bTaken );
 
@@ -84,13 +86,24 @@ private:
 		ROUND_ACTIVE,			// playing; check for a winner every frame
 		ROUND_ENDING,			// someone won
 		ROUND_GAME_OVER,		// time limit reached, change level after the chat time
+		ROUND_SURVIVAL_START,	// OverRun: the last marine was found; tell everyone
+		ROUND_SURVIVAL,			// OverRun: playing, with the survivor's countdown
+		ROUND_TUTORIAL_CONFIG,	// tutorials: exec tutorial.cfg, then the intermission
+		ROUND_TUTORIAL,			// tutorials: playing; the round never ends
 	};
 
 	void FireSimpleEvent( const char *pszName );
 	bool HasTimeLimitPassed( void ) const;
+	int GetRoundTimerRemain( void ) const;
+	void GameThink( void );
 	bool IsRoundTimeUp( void );
 	bool IRISWins( void );
 	bool HiddenWins( void );
+
+	// OverRun (docs/spec/game-modes.md)
+	void OverRunPlayerKilled( CHidden_Player *pVictim, CBasePlayer *pScorer );
+	void SurvivalThink( void );
+	void RespawnHiddens( void );
 
 	CHiddenSelector m_Selector;
 	RoundState_t m_nRoundState;
@@ -101,6 +114,10 @@ private:
 	bool m_bLevelChanged;
 	CRC32_t m_nMaterialCRC;
 	CRC32_t m_nMaterialDX7CRC;
+
+	CUtlVector< CHandle<CHidden_Player> > m_SpawnQueue;	// OverRun: killed players waiting to come back as the Hidden
+	CHandle<CHidden_Player> m_hSurvivor;					// OverRun: the last marine
+	int m_iSurvivalLeft;									// OverRun: the survivor's countdown as last announced
 #endif
 
 protected:

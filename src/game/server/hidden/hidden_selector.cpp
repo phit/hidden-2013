@@ -49,6 +49,8 @@ void CHiddenSelector::FillPlayerVectors( void )
 	}
 }
 
+extern CHidden_Player *HiddenTutorialBotPutInServer( void );
+
 CHidden_Player *CHiddenSelector::SelectHidden( HiddenGameType_t nGameType, int iHiddenRounds )
 {
 	FillPlayerVectors();
@@ -88,7 +90,12 @@ CHidden_Player *CHiddenSelector::SelectHidden( HiddenGameType_t nGameType, int i
 		pCurrent = NULL;
 
 	const int iMethod = hdn_selectmethod.GetInt();
-	if ( iMethod == SELECT_RANDOM )
+	if ( nGameType == HIDDEN_GAMETYPE_MARINE_TUTORIAL && !m_hCurrentHidden.Get() )
+	{
+		// The marine tutorial's Hidden is a bot.
+		pCurrent = HiddenTutorialBotPutInServer();
+	}
+	else if ( iMethod == SELECT_RANDOM )
 	{
 		UTIL_ClientPrintAll( HUD_PRINTNOTIFY, "Hidden Selected Randomly\n" );
 		pCurrent = NULL;

@@ -98,6 +98,13 @@ public:
 	// Put a player who isn't playing this round into observer mode, keeping their team.
 	void BecomeObserver( void );
 
+	// OverRun respawns (docs/spec/game-modes.md): the round timer value at which the player comes
+	// back, and whether they're queued at all (only with more than 9 s of the round left by then).
+	void SetSpawnTimer( int iRoundRemain, int iDelay ) { m_iSpawnTime = iRoundRemain - iDelay; m_bSpawnQueued = ( m_iSpawnTime > 9 ); }
+	int GetSpawnTime( void ) const { return m_iSpawnTime; }
+	bool IsSpawnQueued( void ) const { return m_bSpawnQueued; }
+	void SetSpawnQueued( bool bQueued ) { m_bSpawnQueued = bQueued; }
+
 	// Stun and blur (docs/spec/hidden-abilities.md): FN303 hits stun, explosions and the boost
 	// send a shockwave. Only the Hidden takes stun damage; anyone's view blurs.
 	bool IsStunned( void ) const { return m_bStunned; }
@@ -148,6 +155,8 @@ private:
 	float m_flNextStunUpdate;
 
 	bool m_bReadyToPlay;
+	int m_iSpawnTime;
+	bool m_bSpawnQueued;
 	bool m_bHadHidden;
 };
 

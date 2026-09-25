@@ -171,9 +171,20 @@ CHiddenRules::CHiddenRules()
 	m_nMaterialCRC = MaterialCRC( "materials/models/manor/mn_tapestry.vmt" );
 	m_nMaterialDX7CRC = MaterialCRC( "materials/models/manor/mn_tapestry_dx7.vmt" );
 
-	// The first round starts hdn_jointime seconds after the map loads.
-	GoToIntermission();
-	m_flIntermissionEnd = gpGlobals->curtime + hdn_jointime.GetFloat();
+	m_iSurvivalLeft = 0;
+
+	if ( IsTutorial() )
+	{
+		// Beta 4b also limited tutorials to one player (gpGlobals->maxClients = 1); we leave the
+		// engine's count alone.
+		m_nRoundState = ROUND_TUTORIAL_CONFIG;
+	}
+	else
+	{
+		// The first round starts hdn_jointime seconds after the map loads.
+		GoToIntermission();
+		m_flIntermissionEnd = gpGlobals->curtime + hdn_jointime.GetFloat();
+	}
 #endif
 }
 
@@ -255,6 +266,15 @@ void CHiddenRules::ClientDisconnected( edict_t *pClient )
 
 	BaseClass::ClientDisconnected( pClient );
 }
+
+bool CHiddenRules::ClientCommand( CBaseEntity *pEdict, const CCommand &args )
+{
+	// In a tutorial, joining ends the intermission at once.
+	if ( IsTutorial() && pEdict->IsPlayer() && FStrEq( args[0], "enter" ) )
+		m_flIntermissionEnd = gpGlobals->curtime;
+
+	return BaseClass::ClientCommand( pEdict, args );
+}
 #endif
 
 #ifndef CLIENT_DLL
@@ -269,6 +289,26 @@ bool CHiddenRules::HasTimeLimitPassed( void ) const
 {
 	const float flTimeLimit = mp_timelimit.GetFloat() * 60.0f;
 	return flTimeLimit != 0.0f && gpGlobals->curtime >= flTimeLimit;
+}
+
+// Whole seconds left in the round, as Beta 4b counts them for OverRun's timers.
+int CHiddenRules::GetRoundTimerRemain( void ) const
+{
+	if ( m_flRoundStart < 0.0f )
+		return 0;
+
+	return m_iRoundDuration - RoundFloatToInt( gpGlobals->curtime - m_flRoundStart );
+}
+
+void CHiddenRules::GameThink( void )
+{
+	if ( !m_bLastRoundAnnounced && HasTimeLimitPassed() )
+	{
+		UTIL_ClientPrintAll( HUD_PRINTCENTER, "Last Round" );
+		m_bLastRoundAnnounced = true;
+	}
+	if ( IRISWins() || HiddenWins() )
+		m_nRoundState = ROUND_ENDING;
 }
 
 void CHiddenRules::Think( void )
@@ -307,14 +347,41 @@ void CHiddenRules::Think( void )
 	}
 
 	case ROUND_ACTIVE:
-		if ( !m_bLastRoundAnnounced && HasTimeLimitPassed() )
-		{
-			UTIL_ClientPrintAll( HUD_PRINTCENTER, "Last Round" );
-			m_bLastRoundAnnounced = true;
-		}
-		if ( IRISWins() || HiddenWins() )
-			m_nRoundState = ROUND_ENDING;
+		GameThink();
 		break;
+
+	case ROUND_SURVIVAL_START:
+		// Tell the living who they are now; the countdown starts next frame.
+		for ( int i = 1; i <= gpGlobals->maxClients; i++ )
+		{
+			CBasePlayer *pPlayer = UTIL_PlayerByIndex( i );
+			if ( !pPlayer || !pPlayer->IsAlive() )
+				continue;
+
+			if ( pPlayer->GetTeamNumber() == TEAM_IRIS )
+				ClientPrint( pPlayer, HUD_PRINTCENTER, "Survive" );
+			else if ( pPlayer->GetTeamNumber() == TEAM_HIDDEN )
+				ClientPrint( pPlayer, HUD_PRINTCENTER, "Eliminate" );
+		}
+		m_nRoundState = ROUND_SURVIVAL;
+		break;
+
+	case ROUND_SURVIVAL:
+		GameThink();
+		SurvivalThink();
+		break;
+
+	case ROUND_TUTORIAL_CONFIG:
+	{
+		CBasePlayer *pPlayer = UTIL_PlayerByIndex( 1 );
+		if ( pPlayer )
+			engine->ClientCommand( pPlayer->edict(), "exec tutorial.cfg" );
+		GoToIntermission();
+		break;
+	}
+
+	case ROUND_TUTORIAL:
+		break;	// no win checks: a tutorial round never ends
 
 	case ROUND_ENDING:
 		FireSimpleEvent( "game_round_end" );
@@ -374,6 +441,7 @@ void CHiddenRules::RestartRound( void )
 			continue;
 
 		pPlayer->ChangeTeam( pPlayer == pHidden ? TEAM_HIDDEN : TEAM_IRIS );
+		pPlayer->SetSpawnQueued( false );
 		pPlayer->RemoveAllItems( true );
 		pPlayer->ShowViewPortPanel( PANEL_SCOREBOARD, false );
 	}
@@ -417,7 +485,10 @@ void CHiddenRules::RestartRound( void )
 	DevMsg( 1, "Fired roundrestart event\n" );
 	FireSimpleEvent( "game_round_restart" );
 
-	m_nRoundState = ROUND_STARTING;
+	// OverRun starts without a respawn queue or a survivor; a tutorial round just plays.
+	m_SpawnQueue.Purge();
+	m_hSurvivor = NULL;
+	m_nRoundState = IsTutorial() ? ROUND_TUTORIAL : ROUND_STARTING;
 	m_iRoundDuration = mp_roundtime.GetInt();
 	m_flRoundStart = gpGlobals->curtime;
 }
@@ -501,6 +572,26 @@ bool CHiddenRules::IsRoundTimeUp( void )
 
 bool CHiddenRules::IRISWins( void )
 {
+	if ( m_nGameType == HIDDEN_GAMETYPE_OVERRUN )
+	{
+		CHidden_Player *pSurvivor = m_hSurvivor.Get();
+		if ( !pSurvivor )
+		{
+			RespawnHiddens();
+		}
+		else if ( pSurvivor->IsAlive() && m_iSurvivalLeft < 1 )
+		{
+			// The survivor made it, and becomes the next Hidden.
+			char szMessage[128];
+			Q_snprintf( szMessage, sizeof( szMessage ), "%s Survives!", pSurvivor->GetPlayerName() );
+			UTIL_ClientPrintAll( HUD_PRINTCENTER, szMessage );
+			m_Selector.NewHidden( pSurvivor );
+			pSurvivor->IncrementFragCount( 2 );
+			pSurvivor->AddWeighting( 4900 );
+			return true;
+		}
+	}
+
 	if ( m_iHiddenCount > 0 && !IsRoundTimeUp() )
 		return false;
 
@@ -513,8 +604,103 @@ bool CHiddenRules::HiddenWins( void )
 	if ( m_iMarineCount > 0 )
 		return false;
 
-	UTIL_ClientPrintAll( HUD_PRINTCENTER, "Hidden Wins" );
+	UTIL_ClientPrintAll( HUD_PRINTCENTER, m_nGameType == HIDDEN_GAMETYPE_OVERRUN ? "I.R.I.S. Eliminated" : "Hidden Wins" );
 	return true;
+}
+
+// Killed players come back as the Hidden, until one marine is left: then that marine has to
+// survive hdn_survivaltime seconds.
+void CHiddenRules::OverRunPlayerKilled( CHidden_Player *pVictim, CBasePlayer *pScorer )
+{
+	const int iTeam = pVictim->GetTeamNumber();
+	if ( iTeam == TEAM_HIDDEN )
+		m_iHiddenCount++;	// they come back
+
+	if ( m_hSurvivor.Get() )
+		return;
+
+	int iDelay = hdn_deathwait.GetInt();
+	if ( pScorer == pVictim && iTeam == TEAM_IRIS )
+		iDelay *= 4;	// marines who kill themselves wait longer
+
+	pVictim->SetSpawnTimer( GetRoundTimerRemain(), iDelay );
+	m_SpawnQueue.AddToTail( pVictim );
+
+	if ( m_iMarineCount != 1 )
+		return;
+
+	for ( int i = 1; i <= gpGlobals->maxClients; i++ )
+	{
+		CHidden_Player *pPlayer = ToHiddenPlayer( UTIL_PlayerByIndex( i ) );
+		if ( pPlayer && pPlayer->IsAlive() && pPlayer->GetTeamNumber() == TEAM_IRIS && !pPlayer->IsSpawnQueued() )
+		{
+			m_hSurvivor = pPlayer;
+			break;
+		}
+	}
+
+	CHidden_Player *pSurvivor = m_hSurvivor.Get();
+	if ( !pSurvivor )
+		return;
+
+	const int iSurvivalTime = hdn_survivaltime.GetInt();
+	m_iSurvivalLeft = GetRoundTimerRemain() - iSurvivalTime;
+	pSurvivor->SetSpawnTimer( GetRoundTimerRemain(), iSurvivalTime );
+	pSurvivor->IncrementFragCount( 1 );
+	pSurvivor->AddWeighting( 100 );
+	m_nRoundState = ROUND_SURVIVAL_START;
+}
+
+void CHiddenRules::SurvivalThink( void )
+{
+	CHidden_Player *pSurvivor = m_hSurvivor.Get();
+	if ( !pSurvivor || !pSurvivor->IsAlive() )
+		return;
+
+	const int iLeft = GetRoundTimerRemain() - pSurvivor->GetSpawnTime();
+	if ( iLeft == m_iSurvivalLeft )
+		return;
+
+	m_iSurvivalLeft = iLeft;
+	if ( iLeft < 6 || iLeft % 5 == 0 )
+	{
+		char szMessage[128];
+		Q_snprintf( szMessage, sizeof( szMessage ), "Survival/Hunt Time : %d Seconds(s)", iLeft );
+		UTIL_ClientPrintAll( HUD_PRINTTALK, szMessage );
+	}
+}
+
+void CHiddenRules::RespawnHiddens( void )
+{
+	bool bWaiting = false;
+	for ( int i = 0; i < m_SpawnQueue.Count(); i++ )
+	{
+		CHidden_Player *pPlayer = m_SpawnQueue[i].Get();
+		if ( !pPlayer || !pPlayer->IsSpawnQueued() )
+			continue;
+
+		const int iLeft = MAX( 0, GetRoundTimerRemain() - pPlayer->GetSpawnTime() );
+
+		char szMessage[128];
+		Q_snprintf( szMessage, sizeof( szMessage ), "Spawning In : %d Second(s)", iLeft );
+		ClientPrint( pPlayer, HUD_PRINTCENTER, szMessage );
+
+		if ( iLeft > 0 )
+		{
+			bWaiting = true;
+			continue;
+		}
+
+		pPlayer->SetSpawnQueued( false );
+		pPlayer->ChangeTeam( TEAM_HIDDEN );
+		if ( pPlayer->IsObserver() )
+			pPlayer->StopObserverMode();
+		pPlayer->State_Transition( STATE_ACTIVE );
+		pPlayer->Spawn();
+	}
+
+	if ( !bWaiting )
+		m_SpawnQueue.Purge();
 }
 
 void CHiddenRules::PlayerKilled( CBasePlayer *pVictim, const CTakeDamageInfo &info )
@@ -566,6 +752,9 @@ void CHiddenRules::PlayerKilled( CBasePlayer *pVictim, const CTakeDamageInfo &in
 		pScorer->AllowImmediateDecalPainting();
 		FireTargets( "game_playerkill", pScorer, pScorer, USE_TOGGLE, 0 );
 	}
+
+	if ( m_nGameType == HIDDEN_GAMETYPE_OVERRUN && pVictimHidden )
+		OverRunPlayerKilled( pVictimHidden, pScorer );
 
 	DevMsg( 1, "Marines Left:%i\n", m_iMarineCount );
 	DevMsg( 1, "Hiddens Left:%i\n", m_iHiddenCount );

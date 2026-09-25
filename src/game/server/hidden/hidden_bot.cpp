@@ -51,3 +51,21 @@ CON_COMMAND_F( bot_add, "Add a test bot that joins the marines.", FCVAR_GAMEDLL 
 	BotCommand( pBot, "equip %d", HIDDEN_LOADOUT_RANDOM );
 	BotCommand( pBot, "enter" );
 }
+
+// The marine tutorial's Hidden (TutorialBotPutInServer): a fake client with no AI yet.
+CHidden_Player *HiddenTutorialBotPutInServer( void )
+{
+	edict_t *pEdict = engine->CreateFakeClientEx( "Subject 617", false );
+	CHidden_Player *pBot = pEdict ? ToHiddenPlayer( CBaseEntity::Instance( pEdict ) ) : NULL;
+	if ( !pBot )
+	{
+		Msg( "Failed to create Bot.\n" );
+		return NULL;
+	}
+
+	pBot->ClearFlags();
+	pBot->AddFlag( FL_CLIENT | FL_FAKECLIENT );
+	pBot->SetReadyToPlay( true );
+	pBot->ChangeTeam( TEAM_HIDDEN );
+	return pBot;
+}

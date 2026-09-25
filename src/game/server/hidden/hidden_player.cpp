@@ -118,6 +118,8 @@ CHidden_Player::CHidden_Player()
 	m_flBoostTimer = 0.0f;
 	m_bBoosted = false;
 	m_iThrowGrenadeCounter = 0;
+	m_iSpawnTime = 0;
+	m_bSpawnQueued = false;
 	m_szCurrentLocation.GetForModify()[0] = '\0';
 	ResetStun();
 
