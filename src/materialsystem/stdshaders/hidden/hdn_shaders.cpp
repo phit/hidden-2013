@@ -2,8 +2,8 @@
 //
 // Purpose: Beta 4b's screen effect shaders, under the names its materials use
 //			(vgui/hud/blur, hdn_nightvision, svision, helmetcam, hdn_invert and
-//			the FN2000 scope mask). Each draws the frame buffer copy in
-//			_rt_FullFrameFB over the screen. See docs/spec/client.md.
+//			the FN2000 scope mask). Each draws the frame buffer copy
+//			(_rt_FullFrameFB) over the screen. See docs/spec/client.md.
 //
 //=============================================================================//
 
@@ -70,13 +70,16 @@ static void SetFloat( IShaderDynamicAPI *pShaderAPI, float flValue, int iRegiste
 //-----------------------------------------------------------------------------
 BEGIN_VS_SHADER_FLAGS( HDN_PostBlur, "Hidden: stun blur", SHADER_NOT_EDITABLE )
 	BEGIN_SHADER_PARAMS
-		SHADER_PARAM( FBTEXTURE, SHADER_PARAM_TYPE_TEXTURE, "_rt_FullFrameFB", "" )
 		SHADER_PARAM( BLUROFFSET, SHADER_PARAM_TYPE_FLOAT, "2.5", "blur distance in pixels" )
 	END_SHADER_PARAMS
 
+	SHADER_INIT_PARAMS()
+	{
+		SET_FLAGS2( MATERIAL_VAR2_NEEDS_FULL_FRAME_BUFFER_TEXTURE );
+	}
+
 	SHADER_INIT
 	{
-		LoadTexture( FBTEXTURE );
 	}
 
 	HIDDEN_SCREEN_FALLBACK
@@ -93,7 +96,7 @@ BEGIN_VS_SHADER_FLAGS( HDN_PostBlur, "Hidden: stun blur", SHADER_NOT_EDITABLE )
 		}
 		DYNAMIC_STATE
 		{
-			BindTexture( SHADER_SAMPLER0, FBTEXTURE, -1 );
+			pShaderAPI->BindStandardTexture( SHADER_SAMPLER0, TEXTURE_FRAME_BUFFER_FULL_TEXTURE_0 );
 			SetBlurOffset( pShaderAPI, params[BLUROFFSET]->GetFloatValue(), 0 );
 			DECLARE_DYNAMIC_VERTEX_SHADER( hdn_screenspace_vs20 );
 			SET_DYNAMIC_VERTEX_SHADER( hdn_screenspace_vs20 );
@@ -107,14 +110,17 @@ END_SHADER
 //-----------------------------------------------------------------------------
 BEGIN_VS_SHADER_FLAGS( HDN_Scope, "Hidden: FN2000 scope", SHADER_NOT_EDITABLE )
 	BEGIN_SHADER_PARAMS
-		SHADER_PARAM( FBTEXTURE, SHADER_PARAM_TYPE_TEXTURE, "_rt_FullFrameFB", "" )
 		SHADER_PARAM( SCOPEMASK, SHADER_PARAM_TYPE_TEXTURE, "", "scope mask" )
 		SHADER_PARAM( BLUROFFSET, SHADER_PARAM_TYPE_FLOAT, "6", "blur distance in pixels" )
 	END_SHADER_PARAMS
 
+	SHADER_INIT_PARAMS()
+	{
+		SET_FLAGS2( MATERIAL_VAR2_NEEDS_FULL_FRAME_BUFFER_TEXTURE );
+	}
+
 	SHADER_INIT
 	{
-		LoadTexture( FBTEXTURE );
 		if ( params[SCOPEMASK]->IsDefined() )
 			LoadTexture( SCOPEMASK );
 	}
@@ -133,7 +139,7 @@ BEGIN_VS_SHADER_FLAGS( HDN_Scope, "Hidden: FN2000 scope", SHADER_NOT_EDITABLE )
 		}
 		DYNAMIC_STATE
 		{
-			BindTexture( SHADER_SAMPLER0, FBTEXTURE, -1 );
+			pShaderAPI->BindStandardTexture( SHADER_SAMPLER0, TEXTURE_FRAME_BUFFER_FULL_TEXTURE_0 );
 			BindTexture( SHADER_SAMPLER1, SCOPEMASK, -1 );
 			SetBlurOffset( pShaderAPI, params[BLUROFFSET]->GetFloatValue(), 0 );
 			DECLARE_DYNAMIC_VERTEX_SHADER( hdn_screenspace_vs20 );
@@ -148,14 +154,17 @@ END_SHADER
 //-----------------------------------------------------------------------------
 BEGIN_VS_SHADER_FLAGS( HDN_Nightvision, "Hidden: night vision", SHADER_NOT_EDITABLE )
 	BEGIN_SHADER_PARAMS
-		SHADER_PARAM( FBTEXTURE, SHADER_PARAM_TYPE_TEXTURE, "_rt_FullFrameFB", "" )
 		SHADER_PARAM( NOISETEXTURE, SHADER_PARAM_TYPE_TEXTURE, "", "noise" )
 		SHADER_PARAM( UVOFFSET, SHADER_PARAM_TYPE_MATRIX, "center .5 .5 scale 1 1 rotate 0 translate 0 0", "noise scroll (TextureScroll)" )
 	END_SHADER_PARAMS
 
+	SHADER_INIT_PARAMS()
+	{
+		SET_FLAGS2( MATERIAL_VAR2_NEEDS_FULL_FRAME_BUFFER_TEXTURE );
+	}
+
 	SHADER_INIT
 	{
-		LoadTexture( FBTEXTURE );
 		if ( params[NOISETEXTURE]->IsDefined() )
 			LoadTexture( NOISETEXTURE );
 	}
@@ -174,7 +183,7 @@ BEGIN_VS_SHADER_FLAGS( HDN_Nightvision, "Hidden: night vision", SHADER_NOT_EDITA
 		}
 		DYNAMIC_STATE
 		{
-			BindTexture( SHADER_SAMPLER0, FBTEXTURE, -1 );
+			pShaderAPI->BindStandardTexture( SHADER_SAMPLER0, TEXTURE_FRAME_BUFFER_FULL_TEXTURE_0 );
 			BindTexture( SHADER_SAMPLER1, NOISETEXTURE, -1 );
 			SetUVOffset( pShaderAPI, params[UVOFFSET], 0 );
 			DECLARE_DYNAMIC_VERTEX_SHADER( hdn_screenspace_vs20 );
@@ -189,14 +198,17 @@ END_SHADER
 //-----------------------------------------------------------------------------
 BEGIN_VS_SHADER_FLAGS( HDN_Desaturate, "Hidden: death cam", SHADER_NOT_EDITABLE )
 	BEGIN_SHADER_PARAMS
-		SHADER_PARAM( FBTEXTURE, SHADER_PARAM_TYPE_TEXTURE, "_rt_FullFrameFB", "" )
 		SHADER_PARAM( INTERLACETEX, SHADER_PARAM_TYPE_TEXTURE, "", "interlace lines" )
 		SHADER_PARAM( SATURATION, SHADER_PARAM_TYPE_FLOAT, "0.7", "0 keeps the colour, 1 is grey" )
 	END_SHADER_PARAMS
 
+	SHADER_INIT_PARAMS()
+	{
+		SET_FLAGS2( MATERIAL_VAR2_NEEDS_FULL_FRAME_BUFFER_TEXTURE );
+	}
+
 	SHADER_INIT
 	{
-		LoadTexture( FBTEXTURE );
 		if ( params[INTERLACETEX]->IsDefined() )
 			LoadTexture( INTERLACETEX );
 	}
@@ -215,7 +227,7 @@ BEGIN_VS_SHADER_FLAGS( HDN_Desaturate, "Hidden: death cam", SHADER_NOT_EDITABLE 
 		}
 		DYNAMIC_STATE
 		{
-			BindTexture( SHADER_SAMPLER0, FBTEXTURE, -1 );
+			pShaderAPI->BindStandardTexture( SHADER_SAMPLER0, TEXTURE_FRAME_BUFFER_FULL_TEXTURE_0 );
 			BindTexture( SHADER_SAMPLER1, INTERLACETEX, -1 );
 			SetFloat( pShaderAPI, params[SATURATION]->GetFloatValue(), 0 );
 			DECLARE_DYNAMIC_VERTEX_SHADER( hdn_screenspace_vs20 );
@@ -230,16 +242,19 @@ END_SHADER
 //-----------------------------------------------------------------------------
 BEGIN_VS_SHADER_FLAGS( HDN_HelmetCam, "Hidden: spectator cameras", SHADER_NOT_EDITABLE )
 	BEGIN_SHADER_PARAMS
-		SHADER_PARAM( FBTEXTURE, SHADER_PARAM_TYPE_TEXTURE, "_rt_FullFrameFB", "" )
 		SHADER_PARAM( INTERLACETEX, SHADER_PARAM_TYPE_TEXTURE, "", "interlace lines" )
 		SHADER_PARAM( NOISETEXTURE, SHADER_PARAM_TYPE_TEXTURE, "", "noise" )
 		SHADER_PARAM( SATURATION, SHADER_PARAM_TYPE_FLOAT, "0.7", "0 keeps the colour, 1 is grey" )
 		SHADER_PARAM( UVOFFSET, SHADER_PARAM_TYPE_MATRIX, "center .5 .5 scale 1 1 rotate 0 translate 0 0", "noise scroll (TextureScroll)" )
 	END_SHADER_PARAMS
 
+	SHADER_INIT_PARAMS()
+	{
+		SET_FLAGS2( MATERIAL_VAR2_NEEDS_FULL_FRAME_BUFFER_TEXTURE );
+	}
+
 	SHADER_INIT
 	{
-		LoadTexture( FBTEXTURE );
 		if ( params[INTERLACETEX]->IsDefined() )
 			LoadTexture( INTERLACETEX );
 		if ( params[NOISETEXTURE]->IsDefined() )
@@ -260,7 +275,7 @@ BEGIN_VS_SHADER_FLAGS( HDN_HelmetCam, "Hidden: spectator cameras", SHADER_NOT_ED
 		}
 		DYNAMIC_STATE
 		{
-			BindTexture( SHADER_SAMPLER0, FBTEXTURE, -1 );
+			pShaderAPI->BindStandardTexture( SHADER_SAMPLER0, TEXTURE_FRAME_BUFFER_FULL_TEXTURE_0 );
 			BindTexture( SHADER_SAMPLER1, INTERLACETEX, -1 );
 			BindTexture( SHADER_SAMPLER2, NOISETEXTURE, -1 );
 			SetFloat( pShaderAPI, params[SATURATION]->GetFloatValue(), 0 );
@@ -277,12 +292,15 @@ END_SHADER
 //-----------------------------------------------------------------------------
 BEGIN_VS_SHADER_FLAGS( HDN_Invert, "Hidden: aura view", SHADER_NOT_EDITABLE )
 	BEGIN_SHADER_PARAMS
-		SHADER_PARAM( FBTEXTURE, SHADER_PARAM_TYPE_TEXTURE, "_rt_FullFrameFB", "" )
 	END_SHADER_PARAMS
+
+	SHADER_INIT_PARAMS()
+	{
+		SET_FLAGS2( MATERIAL_VAR2_NEEDS_FULL_FRAME_BUFFER_TEXTURE );
+	}
 
 	SHADER_INIT
 	{
-		LoadTexture( FBTEXTURE );
 	}
 
 	HIDDEN_SCREEN_FALLBACK
@@ -299,7 +317,7 @@ BEGIN_VS_SHADER_FLAGS( HDN_Invert, "Hidden: aura view", SHADER_NOT_EDITABLE )
 		}
 		DYNAMIC_STATE
 		{
-			BindTexture( SHADER_SAMPLER0, FBTEXTURE, -1 );
+			pShaderAPI->BindStandardTexture( SHADER_SAMPLER0, TEXTURE_FRAME_BUFFER_FULL_TEXTURE_0 );
 			SetFloat( pShaderAPI, params[ALPHA]->GetFloatValue(), 0 );
 			DECLARE_DYNAMIC_VERTEX_SHADER( hdn_screenspace_vs20 );
 			SET_DYNAMIC_VERTEX_SHADER( hdn_screenspace_vs20 );

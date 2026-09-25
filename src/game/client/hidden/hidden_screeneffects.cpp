@@ -19,13 +19,37 @@ ConVar cl_hvision( "cl_hvision", "1", FCVAR_ARCHIVE, "toggles the hiddens view s
 
 #define HIDDEN_BLUR_TRAIL_INTERVAL	0.05f	// how often the stun trail takes a frame
 
+enum HiddenOverlay_t
+{
+	OVERLAY_SCOPE,
+	OVERLAY_NIGHTVISION,
+	OVERLAY_BLUR,
+	OVERLAY_DEATHCAM,
+	OVERLAY_HELMETCAM,
+	OVERLAY_HVISION,
+	OVERLAY_FRONTBUFFER,	// the stun trail's copy material
+
+	OVERLAY_COUNT
+};
+
+static const char *s_pszOverlayMaterials[OVERLAY_COUNT] =
+{
+	"models/weapons/v_fn2000/scopemask",
+	"vgui/hud/hdn_nightvision",
+	"vgui/hud/blur",
+	"vgui/hud/svision",
+	"vgui/hud/helmetcam",
+	"vgui/hud/hvision",
+	"frontbuffer",
+};
+
 class CHiddenScreenEffects : public IScreenSpaceEffect
 {
 public:
 	CHiddenScreenEffects() : m_flNextTrailFrame( 0.0f ) {}
 
 	virtual void Init( void ) {}
-	virtual void Shutdown( void ) {}
+	virtual void Shutdown( void );
 	virtual void SetParameters( KeyValues *params ) {}
 	virtual void Enable( bool bEnable ) {}
 	virtual bool IsEnabled( void ) { return true; }
@@ -33,13 +57,30 @@ public:
 	virtual void Render( int x, int y, int w, int h );
 
 private:
-	void DrawOverlay( const char *pszMaterial, int x, int y, int w, int h );
+	IMaterial *GetMaterial( HiddenOverlay_t nOverlay );
+	void DrawOverlay( HiddenOverlay_t nOverlay, int x, int y, int w, int h );
 	void DrawBlurTrail( float flAlpha );
 
+	CMaterialReference m_Materials[OVERLAY_COUNT];	// held, so they stay loaded between frames
 	float m_flNextTrailFrame;
 };
 
 ADD_SCREENSPACE_EFFECT( CHiddenScreenEffects, hidden_screen_effects );
+
+void CHiddenScreenEffects::Shutdown( void )
+{
+	for ( int i = 0; i < OVERLAY_COUNT; i++ )
+		m_Materials[i].Shutdown();
+}
+
+IMaterial *CHiddenScreenEffects::GetMaterial( HiddenOverlay_t nOverlay )
+{
+	if ( !m_Materials[nOverlay].IsValid() )
+		m_Materials[nOverlay].Init( s_pszOverlayMaterials[nOverlay], TEXTURE_GROUP_CLIENT_EFFECTS );
+
+	IMaterial *pMaterial = m_Materials[nOverlay];
+	return ( pMaterial && !pMaterial->IsErrorMaterial() ) ? pMaterial : NULL;
+}
 
 void CHiddenScreenEffects::Render( int x, int y, int w, int h )
 {
@@ -50,42 +91,45 @@ void CHiddenScreenEffects::Render( int x, int y, int w, int h )
 	if ( pPlayer->IsAlive() )
 	{
 		if ( pPlayer->GetZoom() )
-			DrawOverlay( "models/weapons/v_fn2000/scopemask", x, y, w, h );
+			DrawOverlay( OVERLAY_SCOPE, x, y, w, h );
 
 		if ( pPlayer->NightVisionEnabled() )
-			DrawOverlay( "vgui/hud/hdn_nightvision", x, y, w, h );
+			DrawOverlay( OVERLAY_NIGHTVISION, x, y, w, h );
 
 		if ( pPlayer->IsStunned() && pPlayer->GetBlur() > 0.0f )
 		{
-			IMaterial *pBlur = materials->FindMaterial( "vgui/hud/blur", TEXTURE_GROUP_CLIENT_EFFECTS, true );
-			bool bFound = false;
-			IMaterialVar *pOffset = pBlur->FindVar( "$bluroffset", &bFound, false );
-			if ( bFound )
-				pOffset->SetFloatValue( pPlayer->GetBlur() );
+			IMaterial *pBlur = GetMaterial( OVERLAY_BLUR );
+			if ( pBlur )
+			{
+				bool bFound = false;
+				IMaterialVar *pOffset = pBlur->FindVar( "$bluroffset", &bFound, false );
+				if ( bFound )
+					pOffset->SetFloatValue( pPlayer->GetBlur() );
+			}
 
-			DrawOverlay( "vgui/hud/blur", x, y, w, h );
+			DrawOverlay( OVERLAY_BLUR, x, y, w, h );
 			DrawBlurTrail( 0.7f / pPlayer->GetBlur() );
 		}
 	}
 	else if ( pPlayer->GetObserverMode() == OBS_MODE_DEATHCAM )
 	{
-		DrawOverlay( "vgui/hud/svision", x, y, w, h );
+		DrawOverlay( OVERLAY_DEATHCAM, x, y, w, h );
 	}
 	else if ( pPlayer->GetObserverMode() == OBS_MODE_FIXED )
 	{
-		DrawOverlay( "vgui/hud/helmetcam", x, y, w, h );
+		DrawOverlay( OVERLAY_HELMETCAM, x, y, w, h );
 	}
 
 	// The Hidden's aura (HDN_Invert while standing still) comes with the aura itself; without it
 	// the Hidden always sees through vgui/hud/hvision.
 	if ( pPlayer->IsAlive() && pPlayer->GetTeamNumber() == TEAM_HIDDEN && cl_hvision.GetBool() )
-		DrawOverlay( "vgui/hud/hvision", x, y, w, h );
+		DrawOverlay( OVERLAY_HVISION, x, y, w, h );
 }
 
-void CHiddenScreenEffects::DrawOverlay( const char *pszMaterial, int x, int y, int w, int h )
+void CHiddenScreenEffects::DrawOverlay( HiddenOverlay_t nOverlay, int x, int y, int w, int h )
 {
-	IMaterial *pMaterial = materials->FindMaterial( pszMaterial, TEXTURE_GROUP_CLIENT_EFFECTS, true );
-	if ( !pMaterial || pMaterial->IsErrorMaterial() )
+	IMaterial *pMaterial = GetMaterial( nOverlay );
+	if ( !pMaterial )
 		return;
 
 	if ( pMaterial->NeedsPowerOfTwoFrameBufferTexture() )
@@ -108,8 +152,8 @@ void CHiddenScreenEffects::DrawOverlay( const char *pszMaterial, int x, int y, i
 // at flAlpha, and that target covers the screen every frame, so a strong blur leaves long trails.
 void CHiddenScreenEffects::DrawBlurTrail( float flAlpha )
 {
-	IMaterial *pFrontBuffer = materials->FindMaterial( "frontbuffer", TEXTURE_GROUP_OTHER, true );
-	if ( !pFrontBuffer || pFrontBuffer->IsErrorMaterial() )
+	IMaterial *pFrontBuffer = GetMaterial( OVERLAY_FRONTBUFFER );
+	if ( !pFrontBuffer )
 		return;
 
 	bool bFound = false;
