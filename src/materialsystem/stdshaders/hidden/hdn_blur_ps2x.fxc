@@ -1,0 +1,15 @@
+//========= Hidden: Source =====================================================//
+//
+// Purpose: HDN_PostBlur, the stun blur.
+//
+//=============================================================================//
+
+#include "hdn_common_ps.h"
+
+sampler FrameSampler		: register( s0 );
+const float2 g_BlurOffset	: register( c0 );	// $bluroffset / screen size
+
+float4 main( PS_INPUT i ) : COLOR
+{
+	return HiddenBoxBlur( FrameSampler, i.uv, g_BlurOffset );
+}

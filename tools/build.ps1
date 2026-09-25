@@ -16,10 +16,13 @@ $msbuild = Join-Path $vs 'MSBuild\Current\Bin\MSBuild.exe'
 $py = (& py -3.13 -c 'import sys; print(sys.executable)' 2>$null)
 if ($py) { $env:Path = (Split-Path $py) + ';' + $env:Path }
 
+# The shader DLL compiles against the generated shader headers.
+& (Join-Path $PSScriptRoot 'build_shaders.ps1')
+
 Push-Location $src
 try {
 	if ($Regen -or -not (Test-Path 'hidden.sln')) {
-		& .\devtools\bin\vpc.exe /hidden /define:SOURCESDK +game /mksln hidden.sln
+		& .\devtools\bin\vpc.exe /hidden /define:SOURCESDK +game +game_shader_generic_hidden /mksln hidden.sln
 		if ($LASTEXITCODE) { throw "vpc failed ($LASTEXITCODE)" }
 	}
 	& $msbuild hidden.sln /m /nologo /v:minimal "/p:Configuration=$Configuration" /p:Platform=win64

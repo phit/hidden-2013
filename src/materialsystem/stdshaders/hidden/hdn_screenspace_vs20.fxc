@@ -1,0 +1,29 @@
+//========= Hidden: Source =====================================================//
+//
+// Purpose: Full-screen quad for Beta 4b's screen effects: the corners' signs give
+//			the clip position and the frame buffer UVs, whatever rectangle is drawn.
+//
+//=============================================================================//
+
+#include "common_vs_fxc.h"
+
+struct VS_INPUT
+{
+	float3 vPos					: POSITION;
+};
+
+struct VS_OUTPUT
+{
+	float4 projPos				: POSITION;
+	float2 uv					: TEXCOORD0;
+};
+
+VS_OUTPUT main( const VS_INPUT v )
+{
+	VS_OUTPUT o = ( VS_OUTPUT )0;
+
+	const float2 corner = sign( v.vPos.xy );
+	o.projPos = float4( corner, 0.0f, 1.0f );
+	o.uv = float2( corner.x + 1.0f, 1.0f - corner.y ) * 0.5f;
+	return o;
+}

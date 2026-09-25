@@ -1,0 +1,21 @@
+//========= Hidden: Source =====================================================//
+//
+// Purpose: HDN_HelmetCam, the info_spectator cameras: noisy, desaturated, interlaced.
+//
+//=============================================================================//
+
+#include "hdn_common_ps.h"
+
+sampler FrameSampler		: register( s0 );
+sampler InterlaceSampler	: register( s1 );
+sampler NoiseSampler		: register( s2 );
+const float g_Saturation	: register( c0 );
+const float2 g_UVOffset		: register( c1 );	// $uvoffset's translation
+
+float4 main( PS_INPUT i ) : COLOR
+{
+	const float4 noise = tex2D( NoiseSampler, i.uv + g_UVOffset );
+	const float4 frame = tex2D( FrameSampler, i.uv ) * noise;
+	const float4 interlace = tex2D( InterlaceSampler, i.uv );
+	return interlace * lerp( frame, HiddenLuminance( frame.rgb ), g_Saturation );
+}

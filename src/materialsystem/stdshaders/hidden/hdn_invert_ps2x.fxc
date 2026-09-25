@@ -1,0 +1,15 @@
+//========= Hidden: Source =====================================================//
+//
+// Purpose: HDN_Invert, the Hidden's aura view.
+//
+//=============================================================================//
+
+#include "hdn_common_ps.h"
+
+sampler FrameSampler		: register( s0 );
+const float g_Alpha			: register( c0 );
+
+float4 main( PS_INPUT i ) : COLOR
+{
+	return float4( 1.0f - tex2D( FrameSampler, i.uv ).rgb, g_Alpha );
+}

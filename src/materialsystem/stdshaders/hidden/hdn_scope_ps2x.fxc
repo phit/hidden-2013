@@ -1,0 +1,19 @@
+//========= Hidden: Source =====================================================//
+//
+// Purpose: HDN_Scope, the FN2000 scope: sharp where the mask is opaque, blurred
+//			elsewhere, tinted by the mask.
+//
+//=============================================================================//
+
+#include "hdn_common_ps.h"
+
+sampler FrameSampler		: register( s0 );
+sampler MaskSampler			: register( s1 );
+const float2 g_BlurOffset	: register( c0 );	// $bluroffset / screen size
+
+float4 main( PS_INPUT i ) : COLOR
+{
+	const float4 mask = tex2D( MaskSampler, i.uv );
+	const float4 frame = ( mask.a >= 0.8f ) ? tex2D( FrameSampler, i.uv ) : HiddenBoxBlur( FrameSampler, i.uv, g_BlurOffset );
+	return frame * mask;
+}

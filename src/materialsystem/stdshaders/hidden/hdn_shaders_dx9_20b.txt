@@ -1,0 +1,11 @@
+//
+// Hidden: Source screen effect shaders, compiled as _ps20b and _vs20.
+//
+
+hdn_screenspace_vs20.fxc
+hdn_blur_ps2x.fxc
+hdn_scope_ps2x.fxc
+hdn_nightvision_ps2x.fxc
+hdn_desaturate_ps2x.fxc
+hdn_helmetcam_ps2x.fxc
+hdn_invert_ps2x.fxc

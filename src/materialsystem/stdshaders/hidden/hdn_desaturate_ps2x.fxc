@@ -1,0 +1,18 @@
+//========= Hidden: Source =====================================================//
+//
+// Purpose: HDN_Desaturate, the death cam: desaturated and interlaced.
+//
+//=============================================================================//
+
+#include "hdn_common_ps.h"
+
+sampler FrameSampler		: register( s0 );
+sampler InterlaceSampler	: register( s1 );
+const float g_Saturation	: register( c0 );
+
+float4 main( PS_INPUT i ) : COLOR
+{
+	const float4 frame = tex2D( FrameSampler, i.uv );
+	const float4 interlace = tex2D( InterlaceSampler, i.uv );
+	return interlace * lerp( frame, HiddenLuminance( frame.rgb ), g_Saturation );
+}

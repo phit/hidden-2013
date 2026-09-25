@@ -1,0 +1,85 @@
+//-----------------------------------------------------------------------------
+//	GAME_SHADER_GENERIC_HIDDEN.VPC
+//
+//	Hidden: Source's screen effect shaders (HDN_*). Compile the .fxc files with
+//	tools\build_shaders.ps1 first; it writes hidden\include and the mod's shaders\fxc.
+//-----------------------------------------------------------------------------
+
+$Macro SRCDIR		"..\.."
+$Macro OUTBINNAME	"game_shader_generic_hidden"
+$Macro GAMENAME		"mod_hidden"
+$Macro OUTBINDIR	"$SRCDIR\..\game\$GAMENAME\bin"
+
+$Include "$SRCDIR\vpc_scripts\source_dll_base.vpc"
+
+$Configuration	"Debug"
+{
+	$General
+	{
+		$OutputDirectory		"Debug_dx9_$GAMENAME"			[$WINDOWS]
+		$IntermediateDirectory	"Debug_dx9_$GAMENAME"			[$WINDOWS]
+	}
+}
+
+$Configuration	"Release"
+{
+	$General
+	{
+		$OutputDirectory		"Release_dx9_$GAMENAME"		[$WINDOWS]
+		$IntermediateDirectory	"Release_dx9_$GAMENAME"		[$WINDOWS]
+	}
+}
+
+$Configuration
+{
+	$Compiler
+	{
+		$AdditionalIncludeDirectories	"$BASE;.;include;hidden;hidden\include"
+		$PreprocessorDefinitions		"$BASE;STDSHADER_DX9_DLL_EXPORT;FAST_MATERIALVAR_ACCESS;GAME_SHADER_DLL"
+		$PreprocessorDefinitions		"$BASE;USE_ACTUAL_DX" [$WINDOWS && !$GL]
+	}
+
+	$Linker
+	{
+		$AdditionalDependencies			"$BASE version.lib winmm.lib"	[$WINDOWS]
+	}
+}
+
+$Project "Game Shaders (Hidden)"
+{
+	$Folder	"Source Files"
+	{
+		$File	"BaseVSShader.cpp"
+		$File	"hidden\hdn_shaders.cpp"
+	}
+
+	$Folder	"Header Files"
+	{
+		$File	"BaseVSShader.h"
+		$File	"common_fxc.h"
+		$File	"common_hlsl_cpp_consts.h"
+		$File	"common_ps_fxc.h"
+		$File	"common_vs_fxc.h"
+		$File	"shader_constant_register_map.h"
+	}
+
+	$Folder	"Shader Files"
+	{
+		$File	"hidden\hdn_shaders_dx9_20b.txt"
+		$File	"hidden\hdn_common_ps.h"
+		$File	"hidden\hdn_screenspace_vs20.fxc"
+		$File	"hidden\hdn_blur_ps2x.fxc"
+		$File	"hidden\hdn_scope_ps2x.fxc"
+		$File	"hidden\hdn_nightvision_ps2x.fxc"
+		$File	"hidden\hdn_desaturate_ps2x.fxc"
+		$File	"hidden\hdn_helmetcam_ps2x.fxc"
+		$File	"hidden\hdn_invert_ps2x.fxc"
+	}
+
+	$Folder "Link Libraries"
+	{
+		$Lib	mathlib
+		$Lib	shaderlib
+		$Lib	tier2
+	}
+}

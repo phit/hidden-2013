@@ -1,0 +1,23 @@
+//========= Hidden: Source =====================================================//
+//
+// Purpose: HDN_Nightvision: noisy green luminance, brightened where it's already light.
+//
+//=============================================================================//
+
+#include "hdn_common_ps.h"
+
+sampler FrameSampler		: register( s0 );
+sampler NoiseSampler		: register( s1 );
+const float2 g_UVOffset		: register( c0 );	// $uvoffset's translation
+
+float4 main( PS_INPUT i ) : COLOR
+{
+	const float4 noise = tex2D( NoiseSampler, i.uv + g_UVOffset );
+	const float4 frame = tex2D( FrameSampler, i.uv );
+
+	float l = HiddenLuminance( frame.rgb * noise.rgb ) + 0.07f;
+	if ( l > 0.4f )
+		l *= 2.0f;
+
+	return l * float4( 1.0f, 2.5f, 1.0f, 1.0f );
+}

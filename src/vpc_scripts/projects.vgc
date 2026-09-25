@@ -31,6 +31,11 @@ $Project "game_shader_generic_example"
 	"materialsystem\stdshaders\game_shader_generic_example_tf.vpc" [$TF]
 }
 
+$Project "game_shader_generic_hidden"
+{
+	"materialsystem\stdshaders\game_shader_generic_hidden.vpc" [$HIDDEN]
+}
+
 // Use this project if you want to override all std shaders with your own.
 // By default it will override ALL of them. So feel free to cut it down if you want :)
 $Project "game_shader_generic_std"
