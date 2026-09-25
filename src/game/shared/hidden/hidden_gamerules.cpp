@@ -186,6 +186,21 @@ const char *CHiddenRules::GetGameDescription( void )
 	return "Hidden : Source";
 }
 
+bool CHiddenRules::ShouldCollide( int collisionGroup0, int collisionGroup1 )
+{
+	if ( collisionGroup0 > collisionGroup1 )
+		V_swap( collisionGroup0, collisionGroup1 );
+
+	// The Hidden walks over weapons, and traces without a group go through marine_clip.
+	// HL2MP already keeps players' movement off weapons.
+	if ( collisionGroup0 == COLLISION_GROUP_WEAPON && collisionGroup1 == HIDDEN_COLLISION_GROUP_HIDDEN )
+		return false;
+	if ( collisionGroup0 == COLLISION_GROUP_NONE && collisionGroup1 == HIDDEN_COLLISION_GROUP_MARINE_CLIP )
+		return false;
+
+	return BaseClass::ShouldCollide( collisionGroup0, collisionGroup1 );
+}
+
 float CHiddenRules::GetRoundTimeRemaining( void ) const
 {
 	if ( m_flRoundStart < 0.0f )

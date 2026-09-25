@@ -20,6 +20,10 @@
 #include "KeyValues.h"
 #include "time.h"
 
+#ifdef HIDDEN
+	#include "hidden_shareddefs.h"
+#endif
+
 #ifdef USES_ECON_ITEMS
 	#include "econ_item_constants.h"
 	#include "econ_holidays.h"
@@ -230,6 +234,11 @@ bool PassServerEntityFilter( const IHandleEntity *pTouch, const IHandleEntity *p
 	if ( pEntPass->GetOwnerEntity() == pEntTouch )
 		return false;	
 
+#ifdef HIDDEN
+	// marine_clip only stops marines, as in Beta 4b
+	if ( pEntTouch->GetCollisionGroup() == HIDDEN_COLLISION_GROUP_MARINE_CLIP && pEntPass->GetCollisionGroup() != HIDDEN_COLLISION_GROUP_MARINE )
+		return false;
+#endif
 
 	return true;
 }

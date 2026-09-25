@@ -53,6 +53,8 @@ public:
 
 	// Class, character and loadout
 	int GetPlayerClass( void ) const { return m_iPlayerClass; }
+	int GetPrimary( void ) const { return m_iPrimary; }
+	int GetSecondary( void ) const { return m_iSecondary; }
 	int GetEquipment( void ) const { return m_iEquipment; }
 	int GetCharacter( void ) const { return m_iCharacter; }
 	bool HasValidCharacter( void ) const { return m_iCharacter >= 0; }

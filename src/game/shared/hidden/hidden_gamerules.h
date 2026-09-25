@@ -44,6 +44,7 @@ public:
 
 	virtual const char *GetGameDescription( void );
 	virtual bool IsTeamplay( void ) { return true; }
+	virtual bool ShouldCollide( int collisionGroup0, int collisionGroup1 );
 
 	HiddenGameType_t GetGameType( void ) const { return m_nGameType; }
 	float GetRoundTimeRemaining( void ) const;

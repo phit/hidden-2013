@@ -8,6 +8,8 @@
 #define HIDDEN_SHAREDDEFS_H
 #pragma once
 
+#include "hl2_shareddefs.h"
+
 // Teams. The numbers match Beta 4b and HL2MP's TEAM_COMBINE/TEAM_REBELS slots.
 enum
 {
@@ -22,6 +24,15 @@ enum HiddenGameType_t
 	HIDDEN_GAMETYPE_OVERRUN,			// ovr_
 	HIDDEN_GAMETYPE_MARINE_TUTORIAL,	// mtr_
 	HIDDEN_GAMETYPE_HIDDEN_TUTORIAL,	// htr_
+};
+
+// Collision groups (docs/spec/map-entities.md#marine_clip). Beta 4b put marines in PLAYER_MOVEMENT
+// and the Hidden in NPC_ACTOR; marine_clip had the first mod group, which is taken by HL2's here.
+enum
+{
+	HIDDEN_COLLISION_GROUP_MARINE = COLLISION_GROUP_PLAYER_MOVEMENT,
+	HIDDEN_COLLISION_GROUP_HIDDEN = COLLISION_GROUP_NPC_ACTOR,
+	HIDDEN_COLLISION_GROUP_MARINE_CLIP = HL2COLLISION_GROUP_COMBINE_BALL_NPC + 1,
 };
 
 #define HIDDEN_LOCATION_LENGTH	25	// Beta 4b's location names are at most this long

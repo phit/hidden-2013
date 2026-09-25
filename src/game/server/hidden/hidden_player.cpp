@@ -205,6 +205,7 @@ void CHidden_Player::SetupMarine( void )
 	SetBodygroup( 2, 2 );
 	SetMaxSpeed( HIDDEN_MARINE_SPEED );
 	SetFOV( this, 0 );
+	SetCollisionGroup( HIDDEN_COLLISION_GROUP_MARINE );
 
 	GiveMarineLoadout();
 }
@@ -215,6 +216,7 @@ void CHidden_Player::SetupHidden( void )
 	m_nBody = 1;
 	SetMaxSpeed( HIDDEN_HIDDEN_SPEED );
 	SetFOV( this, HIDDEN_HIDDEN_FOV );
+	SetCollisionGroup( HIDDEN_COLLISION_GROUP_HIDDEN );
 
 	GiveHiddenLoadout();
 }
