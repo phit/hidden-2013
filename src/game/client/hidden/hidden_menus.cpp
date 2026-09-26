@@ -306,10 +306,12 @@ protected:
 	}
 
 private:
-	// CROSS turns into a tick once both a class and a character are picked.
+	// CROSS turns into a tick once both a class and a character are picked. Beta 4b only swaps its
+	// image: the .res file hides it, so it's never seen.
 	void UpdateReady( void )
 	{
-		ShowImage( m_pReady, ( m_iClass >= 0 && m_iCharacter >= 0 ) ? "selection/tick" : "selection/cross" );
+		if ( m_pReady )
+			m_pReady->SetImage( ( m_iClass >= 0 && m_iCharacter >= 0 ) ? "selection/tick" : "selection/cross" );
 	}
 
 	// The tick goes just left of the picked button.
