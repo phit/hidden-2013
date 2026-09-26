@@ -178,7 +178,9 @@ DECLARE_HUDELEMENT( CHudHealth );
 
 //-----------------------------------------------------------------------------
 // The location name from the last location_brush the local player entered. The
-// Hidden never sees it.
+// Hidden never sees it. Read from the player's networked location rather than the
+// player_location event, which is missed when the player spawns inside the brush
+// they were last in (no change, no event) or before the HUD is listening.
 //-----------------------------------------------------------------------------
 class CHudLocation : public CHudElement, public Panel
 {
@@ -193,43 +195,23 @@ public:
 		// Centred: HudLayout.res's box (x 239, 160 wide) and its HudILocation frame (x 263, 115 wide)
 		// share a centre, so the name sits in the middle of the frame.
 		m_pLabel->SetContentAlignment( Label::a_center );
-		m_szLocation[0] = '\0';
-	}
-
-	virtual void Init( void )
-	{
-		ListenForGameEvent( "player_location" );
-	}
-
-	virtual void LevelInit( void )
-	{
-		m_szLocation[0] = '\0';
-	}
-
-	virtual void FireGameEvent( IGameEvent *event )
-	{
-		C_BasePlayer *pPlayer = UTIL_PlayerByUserId( event->GetInt( "userid" ) );
-		if ( !pPlayer || pPlayer != C_BasePlayer::GetLocalPlayer() )
-			return;
-
-		Q_strncpy( m_szLocation, event->GetString( "location" ), sizeof( m_szLocation ) );
-		DevMsg( 1, "location is : %s\n", m_szLocation );
 	}
 
 protected:
 	virtual void OnThink( void )
 	{
+		C_Hidden_Player *pPlayer = C_Hidden_Player::GetLocalHiddenPlayer();
+
 		SetBgColor( Color( 0, 0, 0, 0 ) );
 		m_pLabel->SetBgColor( Color( 0, 0, 0, 0 ) );
 		m_pLabel->SetFgColor( Color( 184, 224, 232, 255 ) );
-		m_pLabel->SetText( m_szLocation );
+		m_pLabel->SetText( pPlayer ? pPlayer->GetCurrentLocation() : "" );
 		m_pLabel->SetVisible( GetLocalTeam() != TEAM_HIDDEN );
 		m_pLabel->SetSize( GetWide(), GetTall() );
 	}
 
 private:
 	Label *m_pLabel;
-	char m_szLocation[HIDDEN_LOCATION_LENGTH];
 };
 
 DECLARE_HUDELEMENT( CHudLocation );
