@@ -49,6 +49,8 @@ public:
 	HiddenGameType_t GetGameType( void ) const { return m_nGameType; }
 	bool IsTutorial( void ) const { return m_nGameType == HIDDEN_GAMETYPE_MARINE_TUTORIAL || m_nGameType == HIDDEN_GAMETYPE_HIDDEN_TUTORIAL; }
 	float GetRoundTimeRemaining( void ) const;
+	int GetRoundTimerRemain( void ) const;
+	float GetRoundStart( void ) const { return m_flRoundStart; }
 	bool IsCharacterTaken( int iCharacter ) const;
 
 #ifndef CLIENT_DLL
@@ -94,7 +96,6 @@ private:
 
 	void FireSimpleEvent( const char *pszName );
 	bool HasTimeLimitPassed( void ) const;
-	int GetRoundTimerRemain( void ) const;
 	void GameThink( void );
 	bool IsRoundTimeUp( void );
 	bool IRISWins( void );

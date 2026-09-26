@@ -88,6 +88,118 @@ def import_zip(src, stats):
             write(Path("maps", Path(name).name.lower()), zf.read(info), stats)
 
 
+# HUD elements SDK 2013 added since Beta 4b, positioned as in SDK 2013's HL2MP HudLayout.res. They
+# go into the imported Beta 4b layout, which is the mod's layout (the game repo carries no copy).
+HUDLAYOUT_MARKER = "// Added by import_legacy.py: SDK 2013 elements"
+HUDLAYOUT_SDK2013 = HUDLAYOUT_MARKER + """
+	AchievementNotificationPanel
+	{
+		"fieldName"		"AchievementNotificationPanel"
+		"visible"		"1"
+		"enabled"		"1"
+		"xpos"			"0"
+		"ypos"			"180"
+		"wide"			"f10"
+		"tall"			"100"
+	}
+	CHudVote
+	{
+		"fieldName"		"CHudVote"
+		"xpos"			"0"
+		"ypos"			"0"
+		"wide"			"640"
+		"tall"			"480"
+		"visible"		"1"
+		"enabled"		"1"
+		"bgcolor_override"	"0 0 0 0"
+		"PaintBackgroundType"	"0"
+	}
+	HUDAutoAim
+	{
+		"fieldName"	"HUDAutoAim"
+		"visible"	"1"
+		"enabled"	"1"
+		"wide"		"640"
+		"tall"		"480"
+	}
+	HudCommentary
+	{
+		"fieldName"	"HudCommentary"
+		"xpos"		"c-190"
+		"ypos"		"350"
+		"wide"		"380"
+		"tall"		"40"
+		"visible"	"1"
+		"enabled"	"1"
+		"PaintBackgroundType"	"2"
+		"bar_xpos"		"50"
+		"bar_ypos"		"20"
+		"bar_height"	"8"
+		"bar_width"		"320"
+		"speaker_xpos"	"50"
+		"speaker_ypos"	"8"
+		"count_xpos_from_right"	"10"
+		"count_ypos"	"8"
+		"icon_texture"	"vgui/hud/icon_commentary"
+		"icon_xpos"		"0"
+		"icon_ypos"		"0"
+		"icon_width"	"40"
+		"icon_height"	"40"
+	}
+	HudHDRDemo
+	{
+		"fieldName"	"HudHDRDemo"
+		"xpos"		"0"
+		"ypos"		"0"
+		"wide"		"640"
+		"tall"		"480"
+		"visible"	"1"
+		"enabled"	"1"
+		"Alpha"		"255"
+		"PaintBackgroundType"	"2"
+		"BorderColor"	"0 0 0 255"
+		"BorderLeft"	"16"
+		"BorderRight"	"16"
+		"BorderTop"		"16"
+		"BorderBottom"	"64"
+		"BorderCenter"	"0"
+		"TextColor"		"255 255 255 255"
+		"LeftTitleY"	"422"
+		"RightTitleY"	"422"
+	}
+	HudHintKeyDisplay
+	{
+		"fieldName"	"HudHintKeyDisplay"
+		"visible"	"0"
+		"enabled"	"1"
+		"xpos"		"r120"
+		"ypos"		"r340"
+		"wide"		"100"
+		"tall"		"200"
+		"text_xpos"	"8"
+		"text_ypos"	"8"
+		"text_xgap"	"8"
+		"text_ygap"	"8"
+		"TextColor"	"255 170 0 220"
+		"PaintBackgroundType"	"2"
+	}
+"""
+
+
+def patch_hudlayout():
+    path = DEST / "scripts" / "HudLayout.res"
+    if not path.exists():
+        return
+    text = path.read_bytes().decode("latin-1")
+    if HUDLAYOUT_MARKER in text:
+        return
+    end = text.rstrip().rfind("}")
+    eol = "\r\n" if "\r\n" in text else "\n"
+    text = text[:end] + HUDLAYOUT_SDK2013.replace("\n", eol) + text[end:]
+    path.write_bytes(text.encode("latin-1"))
+    print(f"{path.relative_to(DEST)}: added the SDK 2013 HUD elements")
+
+
 def main():
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("sources", nargs="+", type=Path)
@@ -112,6 +224,7 @@ def main():
         summary = ", ".join(f"{k} {v}" for k, v in sorted(stats.items())) or "nothing"
         print(f"{src}: {summary}")
 
+    patch_hudlayout()
     print(f"-> {DEST}")
 
 

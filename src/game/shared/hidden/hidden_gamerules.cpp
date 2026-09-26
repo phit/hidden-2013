@@ -220,6 +220,15 @@ float CHiddenRules::GetRoundTimeRemaining( void ) const
 	return MAX( 0.0f, m_iRoundDuration - ( gpGlobals->curtime - m_flRoundStart ) );
 }
 
+// Whole seconds left in the round, as Beta 4b counts them for OverRun's timers and the HUD.
+int CHiddenRules::GetRoundTimerRemain( void ) const
+{
+	if ( m_flRoundStart < 0.0f )
+		return 0;
+
+	return m_iRoundDuration - RoundFloatToInt( gpGlobals->curtime - m_flRoundStart );
+}
+
 bool CHiddenRules::IsCharacterTaken( int iCharacter ) const
 {
 	if ( iCharacter < 0 || iCharacter >= HIDDEN_NUM_CHARACTERS )
@@ -289,15 +298,6 @@ bool CHiddenRules::HasTimeLimitPassed( void ) const
 {
 	const float flTimeLimit = mp_timelimit.GetFloat() * 60.0f;
 	return flTimeLimit != 0.0f && gpGlobals->curtime >= flTimeLimit;
-}
-
-// Whole seconds left in the round, as Beta 4b counts them for OverRun's timers.
-int CHiddenRules::GetRoundTimerRemain( void ) const
-{
-	if ( m_flRoundStart < 0.0f )
-		return 0;
-
-	return m_iRoundDuration - RoundFloatToInt( gpGlobals->curtime - m_flRoundStart );
 }
 
 void CHiddenRules::GameThink( void )
