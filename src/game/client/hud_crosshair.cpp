@@ -93,6 +93,12 @@ bool CHudCrosshair::ShouldDraw( void )
 	if ( pWeapon && !pWeapon->ShouldDrawCrosshair() )
 		return false;
 
+#ifdef HIDDEN
+	// Beta 4b's crosshair never drew for the marines (team 2, TEAM_IRIS); the Hidden has one.
+	if ( pPlayer->GetTeamNumber() == 2 )
+		return false;
+#endif
+
 #ifdef PORTAL
 	C_Portal_Player *portalPlayer = ToPortalPlayer(pPlayer);
 	if ( portalPlayer && portalPlayer->IsSuppressingCrosshair() )
