@@ -1,7 +1,7 @@
 //-----------------------------------------------------------------------------
 //	GAME_SHADER_GENERIC_HIDDEN.VPC
 //
-//	Hidden: Source's screen effect shaders (HDN_*). Compile the .fxc files with
+//	Hidden: Source's screen effect shaders (HDN_*) and the UnlitTwoTexture fix. Compile the .fxc files with
 //	tools\build_shaders.ps1 first; it writes hidden\include and the mod's shaders\fxc.
 //-----------------------------------------------------------------------------
 
@@ -51,6 +51,7 @@ $Project "Game Shaders (Hidden)"
 	{
 		$File	"BaseVSShader.cpp"
 		$File	"hidden\hdn_shaders.cpp"
+		$File	"hidden\hdn_unlittwotexture.cpp"
 	}
 
 	$Folder	"Header Files"
@@ -74,6 +75,7 @@ $Project "Game Shaders (Hidden)"
 		$File	"hidden\hdn_desaturate_ps2x.fxc"
 		$File	"hidden\hdn_helmetcam_ps2x.fxc"
 		$File	"hidden\hdn_invert_ps2x.fxc"
+		$File	"hidden\hdn_unlittwotexture_ps2x.fxc"
 	}
 
 	$Folder "Link Libraries"
