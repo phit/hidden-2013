@@ -29,6 +29,8 @@ using namespace vgui;
 #define HIDDEN_SB_POINTS_WIDTH		70
 #define HIDDEN_SB_DEATHS_WIDTH		65
 #define HIDDEN_SB_PING_WIDTH		75
+#define HIDDEN_SB_VOICE_WIDTH		29		// the rest of the 444 wide list; Beta 4b's was 0, which
+											// SDK 2013's list clips the speaker icon to
 
 // Beta 4b's voice icons, by its speaker status.
 enum HiddenVoiceStatus_t
@@ -199,7 +201,7 @@ void CHiddenScoreBoardDialog::AddTeamSection( int iSection, int iNameWidth, bool
 	m_pPlayerList->AddColumnToSection( m_iSectionId, "points", "", 0, scheme()->GetProportionalScaledValueEx( hScheme, HIDDEN_SB_POINTS_WIDTH ) );
 	m_pPlayerList->AddColumnToSection( m_iSectionId, "deaths", "", 0, scheme()->GetProportionalScaledValueEx( hScheme, HIDDEN_SB_DEATHS_WIDTH ) );
 	m_pPlayerList->AddColumnToSection( m_iSectionId, "ping", "", 0, scheme()->GetProportionalScaledValueEx( hScheme, HIDDEN_SB_PING_WIDTH ) );
-	m_pPlayerList->AddColumnToSection( m_iSectionId, "voice", "", SectionedListPanel::COLUMN_IMAGE | SectionedListPanel::COLUMN_CENTER, 0 );
+	m_pPlayerList->AddColumnToSection( m_iSectionId, "voice", "", SectionedListPanel::COLUMN_IMAGE | SectionedListPanel::COLUMN_CENTER, scheme()->GetProportionalScaledValueEx( hScheme, HIDDEN_SB_VOICE_WIDTH ) );
 }
 
 // The background draws the headings, so the sections have none: an empty
