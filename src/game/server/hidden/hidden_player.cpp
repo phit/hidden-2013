@@ -18,6 +18,7 @@
 #include "hidden_spectator.h"
 #include "soundent.h"
 #include "world.h"
+#include "inetchannelinfo.h"
 
 // memdbgon must be the last include file in a .cpp file!!!
 #include "tier0/memdbgon.h"
@@ -26,8 +27,18 @@
 // lift that for one player, from the server console or rcon (or a listen server's host for anyone).
 CON_COMMAND_F( hdn_spec_unrestricted, "hdn_spec_unrestricted <name|#userid> [0|1]: let a player also watch the Hidden and use the chase and free cameras", FCVAR_GAMEDLL )
 {
-	if ( !UTIL_IsCommandIssuedByServerAdmin() )
-		return;
+	// The server console or rcon, or a listen server's own player (UTIL_IsCommandIssuedByServerAdmin
+	// assumes slot 1, which bots added before the host joins can take).
+	CBasePlayer *pCaller = UTIL_GetCommandClient();
+	if ( pCaller )
+	{
+		INetChannelInfo *pNetInfo = engine->GetPlayerNetInfo( pCaller->entindex() );
+		if ( engine->IsDedicatedServer() || !pNetInfo || !pNetInfo->IsLoopback() )
+		{
+			ClientPrint( pCaller, HUD_PRINTCONSOLE, "hdn_spec_unrestricted: only the server can use this\n" );
+			return;
+		}
+	}
 
 	CHidden_Player *pTarget = NULL;
 	if ( args.ArgC() >= 2 )
@@ -806,9 +817,10 @@ CBaseEntity *CHidden_Player::FindNextObserverTarget( bool bReverse )
 {
 	if ( GetObserverMode() == OBS_MODE_IN_EYE || GetObserverMode() == OBS_MODE_CHASE )
 	{
-		const int iStart = m_hObserverTarget ? m_hObserverTarget->entindex() : entindex();
-		int i = iStart;
-		do
+		// Start from the watched player, or from ourselves when watching a camera (whose index is
+		// past the players', so it must not be the loop's end marker).
+		int i = ( m_hObserverTarget && m_hObserverTarget->IsPlayer() ) ? m_hObserverTarget->entindex() : entindex();
+		for ( int iTries = 0; iTries < gpGlobals->maxClients; iTries++ )
 		{
 			i += bReverse ? -1 : 1;
 			if ( i > gpGlobals->maxClients )
@@ -820,7 +832,6 @@ CBaseEntity *CHidden_Player::FindNextObserverTarget( bool bReverse )
 			if ( IsValidObserverTarget( pPlayer ) )
 				return pPlayer;
 		}
-		while ( i != iStart );
 
 		ForceObserverMode( OBS_MODE_FIXED );
 	}
