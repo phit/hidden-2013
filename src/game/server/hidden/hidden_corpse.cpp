@@ -13,6 +13,8 @@
 #include "gib.h"
 #include "studio.h"
 #include "bone_setup.h"
+#include "physics.h"
+#include "vphysics/constraints.h"
 
 // memdbgon must be the last include file in a .cpp file!!!
 #include "tier0/memdbgon.h"
@@ -84,6 +86,53 @@ void CHiddenCorpse::TearApart( const Vector &vecForce, const Vector &vecDir )
 	UTIL_BloodSpray( vecOrigin, -vecDir, BLOOD_COLOR_RED, 10, FX_BLOODSPRAY_ALL );
 
 	UTIL_Remove( this );
+}
+
+void CHiddenCorpse::Pin( IPhysicsConstraint *pConstraint )
+{
+	if ( m_pPinConstraint )
+		physenv->DestroyConstraint( m_pPinConstraint );
+
+	m_pPinConstraint = pConstraint;
+}
+
+void CHiddenCorpse::UpdateOnRemove( void )
+{
+	Pin( NULL );
+	BaseClass::UpdateOnRemove();
+}
+
+void HiddenPinHeldRagdoll( CBasePlayer *pPlayer, CBaseEntity *pHeld )
+{
+	// Beta 4b pinned any ragdoll; only corpses can hold on to the weld here.
+	CHiddenCorpse *pCorpse = dynamic_cast<CHiddenCorpse *>( pHeld );
+	IPhysicsObject *pPhys = pCorpse ? pCorpse->VPhysicsGetObject() : NULL;
+	if ( !pPhys )
+		return;
+
+	DevMsg( "pin meh!\n" );
+
+	Vector vecForward;
+	pPlayer->EyeVectors( &vecForward );
+	const Vector vecEyes = pPlayer->EyePosition();
+
+	trace_t tr;
+	UTIL_TraceLine( vecEyes, vecEyes + vecForward * 24.0f, MASK_SOLID_BRUSHONLY, NULL, COLLISION_GROUP_NONE, &tr );
+	if ( tr.fraction >= 1.0f )
+		return;
+
+	DevMsg( "pinned!\n" );
+
+	// 4 units off the wall, as it's turned now, and welded to the world.
+	QAngle angles;
+	pPhys->GetPosition( NULL, &angles );
+	pPhys->SetPosition( tr.endpos + tr.plane.normal * 4.0f, angles, true );
+
+	constraint_fixedparams_t fixed;
+	fixed.Defaults();
+	fixed.InitWithCurrentObjectState( g_PhysWorldObject, pPhys );
+	pCorpse->Pin( physenv->CreateFixedConstraint( g_PhysWorldObject, pPhys, NULL, fixed ) );
+	pPhys->Wake();
 }
 
 // The torsos have their own, smaller skeletons; pose each bone as the player's bone of the same

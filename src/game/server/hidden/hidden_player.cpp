@@ -9,6 +9,7 @@
 #include "in_buttons.h"
 #include "hidden_corpse.h"
 #include "gib.h"
+#include "player_pickup.h"
 #include "hidden_player.h"
 #include "hidden_gamerules.h"
 #include "hidden_cvars.h"
@@ -177,6 +178,7 @@ void CHidden_Player::Spawn( void )
 	m_bClinging = false;
 	m_bAura = false;
 	m_bWalking = false;
+	m_bUseDroppedObject = false;
 	ResetStun();
 
 	const int iTeam = GetTeamNumber();
@@ -391,6 +393,57 @@ void CHidden_Player::CreateRagdollEntity( void )
 	}
 
 	CreateHiddenCorpse( this, m_nForceBone, m_KillInfo, COLLISION_GROUP_DEBRIS );
+}
+
+// Beta 4b made ragdolls usable (and players, for the support marine's ammo hand-out).
+bool CHidden_Player::IsUseableEntity( CBaseEntity *pEntity, unsigned int requiredCaps )
+{
+	if ( BaseClass::IsUseableEntity( pEntity, requiredCaps ) )
+		return true;
+
+	CBaseAnimating *pAnimating = pEntity ? pEntity->GetBaseAnimating() : NULL;
+	return pAnimating && pAnimating->IsRagdoll();
+}
+
+void CHidden_Player::PlayerUse( void )
+{
+	// HL2's +use lets go of a held object on the press; the release mustn't pick it straight up again.
+	if ( m_afButtonPressed & IN_USE )
+		m_bUseDroppedObject = ( m_hUseEntity != NULL );
+
+	BaseClass::PlayerUse();
+
+	// Letting go of +use on a ragdoll picks it up (CRagdollProp::Use in Beta 4b).
+	if ( ( m_afButtonReleased & IN_USE ) && !m_bUseDroppedObject && m_hUseEntity == NULL )
+	{
+		CBaseEntity *pEntity = FindUseEntity();
+		CBaseAnimating *pAnimating = pEntity ? pEntity->GetBaseAnimating() : NULL;
+		if ( pAnimating && pAnimating->IsRagdoll() )
+			PickupObject( pAnimating );
+	}
+}
+
+// Only the Hidden carries things (with HL2's pickup controller): ragdolls of any weight, other
+// models up to 45 kg and 192 units (HL2: 35 and 128), brushes unlimited.
+void CHidden_Player::PickupObject( CBaseEntity *pObject, bool bLimitMassAndSize )
+{
+	if ( GetTeamNumber() != TEAM_HIDDEN || GetGroundEntity() == pObject )
+		return;
+
+	CBaseAnimating *pAnimating = pObject->GetBaseAnimating();
+	if ( bLimitMassAndSize && pAnimating && !pAnimating->IsRagdoll() && !CBasePlayer::CanPickupObject( pObject, 45.0f, 192.0f ) )
+		return;
+
+	if ( IsHoldingEntity( pObject ) )
+	{
+		ClearUseEntity();
+		return;
+	}
+
+	if ( pObject->HasNPCsOnIt() )
+		return;
+
+	PlayerPickupObject( this, pObject );
 }
 
 void CHidden_Player::PlayerDeathThink( void )

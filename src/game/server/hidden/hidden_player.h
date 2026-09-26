@@ -37,6 +37,11 @@ public:
 	virtual void PlayerDeathThink( void );
 	virtual void Event_Killed( const CTakeDamageInfo &info );
 	virtual void CreateRagdollEntity( void );
+
+	// Only the Hidden picks things up: corpses (+use, on release) and light props.
+	virtual bool IsUseableEntity( CBaseEntity *pEntity, unsigned int requiredCaps );
+	virtual void PlayerUse( void );
+	virtual void PickupObject( CBaseEntity *pObject, bool bLimitMassAndSize = true );
 	virtual void PreThink( void );
 	virtual void PostThink( void );
 	virtual void ItemPostFrame( void );
@@ -175,6 +180,7 @@ private:
 	bool m_bBoosted;
 	bool m_bWalking;
 	CTakeDamageInfo m_KillInfo;	// for the corpse
+	bool m_bUseDroppedObject;	// this +use press let go of what we held
 
 	CUtlVector<StunTracker_t> m_Stunners;
 	float m_flStunTime;

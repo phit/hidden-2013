@@ -21,7 +21,7 @@ public:
 	DECLARE_CLASS( CHiddenCorpse, CRagdollProp );
 	DECLARE_DATADESC();
 
-	CHiddenCorpse() : m_iFeedHealth( HIDDEN_CORPSE_HEALTH ) {}
+	CHiddenCorpse() : m_iFeedHealth( HIDDEN_CORPSE_HEALTH ), m_pPinConstraint( NULL ) {}
 
 	int GetFeedHealth( void ) const { return m_iFeedHealth; }
 	void AddFeedHealth( int iDelta ) { m_iFeedHealth += iDelta; }
@@ -30,11 +30,20 @@ public:
 	// vecDir is the stab's direction.
 	void TearApart( const Vector &vecForce, const Vector &vecDir );
 
+	// Welds the corpse to the world where it is (see HiddenPinHeldRagdoll).
+	void Pin( IPhysicsConstraint *pConstraint );
+	virtual void UpdateOnRemove( void );
+
 private:
 	int m_iFeedHealth;
+	IPhysicsConstraint *m_pPinConstraint;
 };
 
 void PrecacheHiddenCorpses( void );
+
+// The Hidden's secondary attack while carrying a corpse: pin it to the wall in front, if any
+// (called from CPlayerPickupController::Use just before it drops the corpse).
+void HiddenPinHeldRagdoll( CBasePlayer *pPlayer, CBaseEntity *pHeld );
 
 // A dying player's corpse (Beta 4b's CreateServerCorpseRagdoll).
 CHiddenCorpse *CreateHiddenCorpse( CBaseAnimating *pAnimating, int nForceBone, const CTakeDamageInfo &info, int nCollisionGroup );

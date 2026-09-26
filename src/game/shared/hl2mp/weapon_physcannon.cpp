@@ -71,6 +71,9 @@ ConVar player_throwforce( "player_throwforce", "1000", FCVAR_REPLICATED | FCVAR_
 #ifndef CLIENT_DLL
 extern ConVar hl2_normspeed;
 extern ConVar hl2_walkspeed;
+#ifdef HIDDEN
+extern void HiddenPinHeldRagdoll( CBasePlayer *pPlayer, CBaseEntity *pHeld );
+#endif
 #endif
 
 #ifdef CLIENT_DLL
@@ -790,6 +793,11 @@ void CPlayerPickupController::Use( CBaseEntity *pActivator, CBaseEntity *pCaller
 		// UNDONE: Must fix case of forcing objects into the ground you're standing on (causes stress) before that will work
 		if ( !pAttached || useType == USE_OFF || (m_pPlayer->m_nButtons & IN_ATTACK2) || m_grabController.ComputeError() > 12 )
 		{
+#if defined( HIDDEN ) && !defined( CLIENT_DLL )
+			// Hidden: Source: the secondary attack pins a held corpse to the wall in front.
+			if ( pAttached && ( m_pPlayer->m_nButtons & IN_ATTACK2 ) )
+				HiddenPinHeldRagdoll( m_pPlayer, pAttached );
+#endif
 			Shutdown();
 			return;
 		}
