@@ -112,7 +112,8 @@ DECLARE_HUDELEMENT( CHudHStaminabar );
 //-----------------------------------------------------------------------------
 // Beta 4b's health: HL2's number without the label, placed each frame by team
 // in 640x480 units stretched to the screen (the Hidden at 40,445 in its tan,
-// marines at 25,447 in the scheme colour), with HL2's health animations.
+// marines at 25,447 in the scheme colour), with HL2's health animations and
+// its Damage message flash.
 //-----------------------------------------------------------------------------
 class CHudHealth : public CHudElement, public CHudNumericDisplay
 {
@@ -124,7 +125,7 @@ public:
 		SetHiddenBits( HIDDEN_HUD_HIDDEN_BITS );
 	}
 
-	virtual void Init( void ) { Reset(); }
+	virtual void Init( void );
 	virtual void VidInit( void ) { Reset(); }
 
 	virtual void Reset( void )
@@ -132,6 +133,15 @@ public:
 		m_iHealth = -1;
 		SetLabelText( L"" );
 		SetDisplayValue( 100 );
+	}
+
+	void MsgFunc_Damage( bf_read &msg )
+	{
+		msg.ReadByte();	// armor
+		const int iDamageTaken = msg.ReadByte();
+
+		if ( iDamageTaken > 0 )
+			g_pClientMode->GetViewportAnimationController()->StartAnimationSequence( "HealthDamageTaken" );
 	}
 
 protected:
@@ -175,6 +185,13 @@ private:
 };
 
 DECLARE_HUDELEMENT( CHudHealth );
+DECLARE_HUD_MESSAGE( CHudHealth, Damage );
+
+void CHudHealth::Init( void )
+{
+	HOOK_HUD_MESSAGE( CHudHealth, Damage );
+	Reset();
+}
 
 //-----------------------------------------------------------------------------
 // The location name from the last location_brush the local player entered. The
