@@ -1,16 +1,18 @@
 //========= Hidden: Source =====================================================//
 //
-// Purpose: Hides controls in Beta 4b's GameUI dialog layouts that SDK 2013's
-//			GameUI no longer fills or handles, so they'd show up empty or dead.
-//			The layouts are Beta 4b's own files, mounted from the player's
-//			install, so this finds the controls at runtime instead of patching
-//			them.
+// Purpose: Tidies GameUI dialogs laid out by Beta 4b's files, which are
+//			mounted from the player's install, so this works at runtime instead
+//			of patching them: hides controls SDK 2013's GameUI no longer fills
+//			or handles, and the ones it added to the options tabs that Beta 4b's
+//			layouts never place (they'd pile up in the top left corner).
 //
 //=============================================================================//
 
 #include "cbase.h"
 #include "igamesystem.h"
 #include "ienginevgui.h"
+#include "filesystem.h"
+#include "tier1/utldict.h"
 #include <vgui/IPanel.h>
 #include <vgui/IVGui.h>
 #include <vgui_controls/Panel.h>
@@ -46,6 +48,15 @@ public:
 		ivgui()->AddTickSignal( GetVPanel(), 250 );
 	}
 
+	virtual ~CHiddenGameUIFixups()
+	{
+		for ( int i = m_Layouts.First(); i != m_Layouts.InvalidIndex(); i = m_Layouts.Next( i ) )
+		{
+			if ( m_Layouts[i] )
+				m_Layouts[i]->deleteThis();
+		}
+	}
+
 	virtual void OnTick( void )
 	{
 		VPANEL root = enginevgui->GetPanel( PANEL_GAMEUIDLL );
@@ -56,7 +67,9 @@ public:
 private:
 	void HideControls( VPANEL panel )
 	{
-		const char *pszName = ipanel()->GetName( panel );
+		// GameUI leaves most dialogs unnamed; their class (COptionsSubMouse) names their layout file.
+		const char *pszClass = ipanel()->GetClassName( panel );
+		const char *pszName = ( pszClass && pszClass[0] == 'C' ) ? pszClass + 1 : "";
 		for ( int i = 0; i < ARRAYSIZE( s_HiddenControls ); i++ )
 		{
 			if ( Q_stricmp( pszName, s_HiddenControls[i].pszDialog ) )
@@ -70,6 +83,19 @@ private:
 			}
 		}
 
+		// An options tab: hide the controls its layout file doesn't mention.
+		if ( !Q_strnicmp( pszName, "OptionsSub", 10 ) )
+		{
+			KeyValues *pLayout = GetLayout( pszName );
+			for ( int j = 0; pLayout && j < ipanel()->GetChildCount( panel ); j++ )
+			{
+				VPANEL child = ipanel()->GetChild( panel, j );
+				const char *pszChild = ipanel()->GetName( child );
+				if ( pszChild[0] && !pLayout->FindKey( pszChild ) && ipanel()->IsVisible( child ) )
+					ipanel()->SetVisible( child, false );
+			}
+		}
+
 		// Only open dialogs matter.
 		for ( int i = 0; i < ipanel()->GetChildCount( panel ); i++ )
 		{
@@ -78,6 +104,25 @@ private:
 				HideControls( child );
 		}
 	}
+
+	// The layout file GameUI loaded for a dialog (resource/<name>.res), or NULL if there's none.
+	KeyValues *GetLayout( const char *pszDialog )
+	{
+		int i = m_Layouts.Find( pszDialog );
+		if ( i == m_Layouts.InvalidIndex() )
+		{
+			KeyValues *pLayout = new KeyValues( pszDialog );
+			if ( !pLayout->LoadFromFile( g_pFullFileSystem, VarArgs( "resource/%s.res", pszDialog ), "GAME" ) )
+			{
+				pLayout->deleteThis();
+				pLayout = NULL;
+			}
+			i = m_Layouts.Insert( pszDialog, pLayout );
+		}
+		return m_Layouts[i];
+	}
+
+	CUtlDict< KeyValues *, int > m_Layouts;
 };
 
 class CHiddenGameUISystem : public CAutoGameSystem

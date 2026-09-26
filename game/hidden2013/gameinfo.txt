@@ -1,6 +1,6 @@
 "GameInfo"
 {
-	game		"Hidden: Source"
+	game		"Hidden: Rebuild"
 	title		"< HIDDEN SOURCE >"
 	title2		""
 	type		multiplayer_only

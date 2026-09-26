@@ -28,7 +28,7 @@ both teams (`bot_add`). The goal is to match Beta 4b first; differences are list
      hidden2013/    this mod
    ```
 
-4. Restart Steam and start **Hidden: Source** from the library.
+4. Restart Steam and start **Hidden: Rebuild** from the library.
 
 The Windows and Linux builds are 64-bit only. The `-symbols` archives hold debug information for
 crash reports; players don't need them.
