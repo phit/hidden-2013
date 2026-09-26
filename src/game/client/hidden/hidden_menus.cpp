@@ -9,17 +9,35 @@
 #include "cbase.h"
 #include <game/client/iviewport.h>
 #include <vgui/ISurface.h>
+#include <vgui/ILocalize.h>
 #include <vgui_controls/Frame.h>
 #include <vgui_controls/Button.h>
 #include <vgui_controls/ImagePanel.h>
 #include "baseviewport.h"
 #include "c_hidden_player.h"
 #include "hidden_gamerules.h"
+#include "filesystem.h"
 
 // memdbgon must be the last include file in a .cpp file!!!
 #include "tier0/memdbgon.h"
 
 using namespace vgui;
+
+// The engine only loads resource/<game dir>_<language>.txt (mod_hidden_english.txt, HL2MP's strings);
+// Beta 4b's own strings (#HDN_*: the keyboard options, menus) are in hidden_<language>.txt.
+class CHiddenLocalization : public CAutoGameSystem
+{
+public:
+	CHiddenLocalization() : CAutoGameSystem( "CHiddenLocalization" ) {}
+
+	virtual bool Init( void )
+	{
+		g_pVGuiLocalize->AddFile( "resource/hidden_%language%.txt", "GAME", true );
+		return true;
+	}
+};
+
+static CHiddenLocalization s_HiddenLocalization;
 
 #define PANEL_HIDDEN_TEAM		"team_menu"
 #define PANEL_HIDDEN_WEAPON		"weapon_menu"
@@ -27,25 +45,49 @@ using namespace vgui;
 
 //-----------------------------------------------------------------------------
 // A full-screen menu from a .res file (laid out for 640x480) whose buttons
-// talk to the menu itself.
+// talk to the menu itself. The frame is named after its own entry in the .res
+// file ("team", "radio"); the viewport knows it by its panel name.
 //-----------------------------------------------------------------------------
 class CHiddenMenu : public Frame, public IViewPortPanel
 {
 	DECLARE_CLASS_SIMPLE( CHiddenMenu, Frame );
 
 public:
-	CHiddenMenu( IViewPort *pViewPort, const char *pszName, const char *pszResFile ) : Frame( NULL, pszName ), m_pViewPort( pViewPort )
+	CHiddenMenu( IViewPort *pViewPort, const char *pszName, const char *pszResName, const char *pszResFile ) :
+		Frame( NULL, pszResName ), m_pViewPort( pViewPort ), m_pszPanelName( pszName ),
+		m_iResX( 0 ), m_iResY( 0 ), m_iResWide( 640 ), m_iResTall( 480 )
 	{
 		SetScheme( "ClientScheme" );
 		SetMoveable( false );
 		SetSizeable( false );
 		SetTitleBarVisible( false );
 		SetProportional( true );
+
+		// The build group lays out the children but leaves the frame itself at Frame's default size
+		// (a scrap in the corner). Size the frame from its own entry first: children pinned to a
+		// corner (pinCorner) are placed relative to it, and resizing it afterwards would push them
+		// off-screen. PerformLayout keeps it at that size.
+		KeyValues *pResource = new KeyValues( pszResFile );
+		if ( pResource->LoadFromFile( g_pFullFileSystem, pszResFile, "GAME" ) )
+		{
+			KeyValues *pFrame = pResource->FindKey( pszResName );
+			if ( pFrame )
+			{
+				m_iResX = pFrame->GetInt( "xpos" );
+				m_iResY = pFrame->GetInt( "ypos" );
+				m_iResWide = pFrame->GetInt( "wide", 640 );
+				m_iResTall = pFrame->GetInt( "tall", 480 );
+			}
+		}
+		pResource->deleteThis();
+
+		ApplyResBounds();
 		LoadControlSettings( pszResFile );
+
 		InvalidateLayout();
 	}
 
-	virtual const char *GetName( void ) { return BaseClass::GetName(); }
+	virtual const char *GetName( void ) { return m_pszPanelName; }
 	virtual void SetData( KeyValues *data ) {}
 	virtual void Reset( void ) {}
 	virtual void Update( void ) {}
@@ -79,6 +121,19 @@ public:
 protected:
 	virtual void OnShow( void ) {}
 
+	virtual void PerformLayout( void )
+	{
+		ApplyResBounds();
+		BaseClass::PerformLayout();
+	}
+
+	void ApplyResBounds( void )
+	{
+		HScheme hScheme = GetScheme();
+		SetBounds( scheme()->GetProportionalScaledValueEx( hScheme, m_iResX ), scheme()->GetProportionalScaledValueEx( hScheme, m_iResY ),
+			scheme()->GetProportionalScaledValueEx( hScheme, m_iResWide ), scheme()->GetProportionalScaledValueEx( hScheme, m_iResTall ) );
+	}
+
 	void Close( void ) { m_pViewPort->ShowPanel( this, false ); }
 
 	// Moves a tick image to a spot given in the .res file's 640x480 layout.
@@ -101,6 +156,8 @@ protected:
 	}
 
 	IViewPort *m_pViewPort;
+	const char *m_pszPanelName;
+	int m_iResX, m_iResY, m_iResWide, m_iResTall;	// the frame's own .res entry, in 640x480 units
 };
 
 //-----------------------------------------------------------------------------
@@ -131,7 +188,7 @@ class CHiddenTeamMenu : public CHiddenMenu
 	DECLARE_CLASS_SIMPLE( CHiddenTeamMenu, CHiddenMenu );
 
 public:
-	CHiddenTeamMenu( IViewPort *pViewPort ) : CHiddenMenu( pViewPort, PANEL_HIDDEN_TEAM, "Resource/UI/Teammenu.res" ),
+	CHiddenTeamMenu( IViewPort *pViewPort ) : CHiddenMenu( pViewPort, PANEL_HIDDEN_TEAM, "team", "Resource/UI/Teammenu.res" ),
 		m_iClass( -2 ), m_iCharacter( -2 )
 	{
 		m_pAssault = FindControl<Button>( "AssaultButton" );
@@ -298,7 +355,7 @@ class CHiddenWeaponMenu : public CHiddenMenu
 	DECLARE_CLASS_SIMPLE( CHiddenWeaponMenu, CHiddenMenu );
 
 public:
-	CHiddenWeaponMenu( IViewPort *pViewPort ) : CHiddenMenu( pViewPort, PANEL_HIDDEN_WEAPON, "Resource/UI/Weaponmenu.res" )
+	CHiddenWeaponMenu( IViewPort *pViewPort ) : CHiddenMenu( pViewPort, PANEL_HIDDEN_WEAPON, "team", "Resource/UI/Weaponmenu.res" )
 	{
 		for ( int i = 0; i < ARRAYSIZE( s_Loadout ); i++ )
 			m_pButtons[i] = FindControl<Button>( s_Loadout[i].pszButton );
@@ -373,7 +430,7 @@ class CHiddenRadioMenu : public CHiddenMenu
 	DECLARE_CLASS_SIMPLE( CHiddenRadioMenu, CHiddenMenu );
 
 public:
-	CHiddenRadioMenu( IViewPort *pViewPort ) : CHiddenMenu( pViewPort, PANEL_HIDDEN_RADIO, "Resource/UI/Radiomenu_marine.res" ) {}
+	CHiddenRadioMenu( IViewPort *pViewPort ) : CHiddenMenu( pViewPort, PANEL_HIDDEN_RADIO, "radio", "Resource/UI/Radiomenu_marine.res" ) {}
 
 protected:
 	virtual void OnCommand( const char *command )
