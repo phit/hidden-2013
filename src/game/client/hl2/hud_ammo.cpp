@@ -21,6 +21,17 @@
 
 using namespace vgui;
 
+#ifdef HIDDEN
+#include "hidden_shareddefs.h"
+
+// Hidden: Source: the Hidden's ammo is laid out by its own HudAnimations.txt events (Beta 4b).
+static bool IsLocalPlayerHidden( void )
+{
+	C_BasePlayer *pPlayer = C_BasePlayer::GetLocalPlayer();
+	return pPlayer && pPlayer->GetTeamNumber() == TEAM_HIDDEN;
+}
+#endif
+
 //-----------------------------------------------------------------------------
 // Purpose: Displays current ammunition level
 //-----------------------------------------------------------------------------
@@ -178,7 +189,11 @@ void CHudAmmo::UpdatePlayerAmmo( C_BasePlayer *player )
 		}
 		else
 		{
+#ifdef HIDDEN
+			g_pClientMode->GetViewportAnimationController()->StartAnimationSequence( IsLocalPlayerHidden() ? "WeaponDoesNotUseClipsHidden" : "WeaponDoesNotUseClips" );
+#else
 			g_pClientMode->GetViewportAnimationController()->StartAnimationSequence("WeaponDoesNotUseClips");
+#endif
 			SetShouldDisplaySecondaryValue(false);
 		}
 
@@ -237,7 +252,11 @@ void CHudAmmo::UpdateVehicleAmmo( C_BasePlayer *player, IClientVehicle *pVehicle
 		}
 		else
 		{
+#ifdef HIDDEN
+			g_pClientMode->GetViewportAnimationController()->StartAnimationSequence( IsLocalPlayerHidden() ? "WeaponDoesNotUseClipsHidden" : "WeaponDoesNotUseClips" );
+#else
 			g_pClientMode->GetViewportAnimationController()->StartAnimationSequence("WeaponDoesNotUseClips");
+#endif
 			SetShouldDisplaySecondaryValue(false);
 		}
 
@@ -472,7 +491,11 @@ protected:
 			if ( wpn->UsesSecondaryAmmo() )
 			{
 				// we've changed to a weapon that uses secondary ammo
+#ifdef HIDDEN
+				g_pClientMode->GetViewportAnimationController()->StartAnimationSequence( IsLocalPlayerHidden() ? "WeaponUsesSecondaryAmmoHidden" : "WeaponUsesSecondaryAmmo" );
+#else
 				g_pClientMode->GetViewportAnimationController()->StartAnimationSequence("WeaponUsesSecondaryAmmo");
+#endif
 			}
 			else 
 			{

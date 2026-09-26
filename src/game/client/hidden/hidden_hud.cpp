@@ -15,6 +15,7 @@
 #include "c_hidden_player.h"
 #include "hidden_gamerules.h"
 #include <vgui/ISurface.h>
+#include <vgui/ILocalize.h>
 #include <vgui_controls/Panel.h>
 #include <vgui_controls/Label.h>
 #include <vgui_controls/AnimationController.h>
@@ -236,3 +237,251 @@ private:
 };
 
 DECLARE_HUDELEMENT( CHudRoundTimer );
+
+//-----------------------------------------------------------------------------
+// The player under the crosshair: the Hidden sees anyone within 256 units as
+// "Enemy", marines see other marines as "Friend" and nothing on the Hidden.
+//-----------------------------------------------------------------------------
+class CHudName : public CHudElement, public Panel
+{
+	DECLARE_CLASS_SIMPLE( CHudName, Panel );
+
+public:
+	CHudName( const char *pElementName ) : CHudElement( pElementName ), BaseClass( NULL, "HudName" )
+	{
+		SetParent( g_pClientMode->GetViewport() );
+		SetHiddenBits( HIDDEN_HUD_HIDDEN_BITS );
+		m_pLabel = new Label( this, "NameLabel", "" );
+	}
+
+	virtual void Reset( void )
+	{
+		m_hTarget = NULL;
+	}
+
+protected:
+	virtual void OnThink( void )
+	{
+		C_BasePlayer *pLocal = C_BasePlayer::GetLocalPlayer();
+		if ( !pLocal )
+			return;
+
+		// What's under the crosshair.
+		Vector vecForward;
+		AngleVectors( pLocal->EyeAngles(), &vecForward );
+		const float flRange = ( pLocal->GetTeamNumber() == TEAM_HIDDEN ) ? 256.0f : 8192.0f;
+		const Vector vecEyes = pLocal->EyePosition();
+
+		trace_t tr;
+		UTIL_TraceLine( vecEyes, vecEyes + vecForward * flRange, MASK_SHOT, pLocal, COLLISION_GROUP_NONE, &tr );
+		if ( tr.m_pEnt && tr.m_pEnt->IsPlayer() && tr.m_pEnt != pLocal )
+			m_hTarget = static_cast<C_BasePlayer *>( tr.m_pEnt );
+		else
+			Reset();
+
+		SetBgColor( Color( 0, 0, 0, 0 ) );
+		m_pLabel->SetBgColor( Color( 0, 0, 0, 0 ) );
+
+		C_BasePlayer *pTarget = m_hTarget;
+		wchar_t wszText[128] = L"";
+		if ( pTarget )
+		{
+			const char *pszFormat = NULL;
+			if ( pLocal->GetTeamNumber() == TEAM_HIDDEN )
+				pszFormat = "Enemy: %s - %i";
+			else if ( pTarget->GetTeamNumber() != TEAM_HIDDEN )
+				pszFormat = "Friend: %s - %i";
+
+			if ( pszFormat )
+			{
+				char szText[128];
+				Q_snprintf( szText, sizeof( szText ), pszFormat, pTarget->GetPlayerName(), pTarget->GetHealth() );
+				g_pVGuiLocalize->ConvertANSIToUnicode( szText, wszText, sizeof( wszText ) );
+			}
+		}
+
+		m_pLabel->SetFgColor( Color( 227, 189, 0, 255 ) );
+		m_pLabel->SetText( wszText );
+		m_pLabel->SetVisible( pTarget != NULL );
+		m_pLabel->SetSize( GetWide(), GetTall() );
+	}
+
+private:
+	Label *m_pLabel;
+	CHandle<C_BasePlayer> m_hTarget;
+};
+
+DECLARE_HUDELEMENT( CHudName );
+
+//-----------------------------------------------------------------------------
+// The marines' radar: the other living marines (highlighted for 5 s after they
+// use the radio) and sonic alarms that went off, around the lower middle of
+// the panel, turned with the view.
+//-----------------------------------------------------------------------------
+#define RADAR_REFRESH		0.1f	// how often the marine list is rebuilt
+#define RADAR_SCALE			0.15f	// pixels per unit
+#define RADAR_RANGE			130.0f	// pixels; the distance includes height
+#define RADAR_ICON_SIZE		20
+#define RADAR_FLASH_TIME	5.0f	// radio highlight and alarm lifetime
+
+class CHudRadar : public CHudElement, public Panel
+{
+	DECLARE_CLASS_SIMPLE( CHudRadar, Panel );
+
+public:
+	CHudRadar( const char *pElementName ) : CHudElement( pElementName ), BaseClass( NULL, "HudRadar" ),
+		m_flNextRefresh( 0.0f )
+	{
+		SetParent( g_pClientMode->GetViewport() );
+		SetHiddenBits( HIDDEN_HUD_HIDDEN_BITS );
+
+		for ( int i = 0; i < ARRAYSIZE( m_pIcons ); i++ )
+			m_pIcons[i] = NULL;
+		m_pSonicIcon = NULL;
+		Reset();
+	}
+
+	virtual void Init( void )
+	{
+		ListenForGameEvent( "iris_radio" );
+		ListenForGameEvent( "alarm_trigger" );
+	}
+
+	virtual void Reset( void )
+	{
+		m_Marines.RemoveAll();
+		m_Alarms.RemoveAll();
+		m_flNextRefresh = 0.0f;
+		for ( int i = 0; i < ARRAYSIZE( m_flRadioTime ); i++ )
+			m_flRadioTime[i] = 0.0f;
+	}
+
+	virtual void FireGameEvent( IGameEvent *event )
+	{
+		if ( FStrEq( event->GetName(), "iris_radio" ) )
+		{
+			C_BasePlayer *pPlayer = UTIL_PlayerByUserId( event->GetInt( "userid" ) );
+			if ( pPlayer )
+				m_flRadioTime[pPlayer->entindex()] = gpGlobals->curtime + RADAR_FLASH_TIME;
+			return;
+		}
+
+		// A sonic alarm: a new icon, or the one already there shows for another 5 s.
+		const Vector vecPos( event->GetFloat( "posx" ), event->GetFloat( "posy" ), event->GetFloat( "posz" ) );
+		for ( int i = 0; i < m_Alarms.Count(); i++ )
+		{
+			if ( m_Alarms[i].vecPos == vecPos )
+			{
+				m_Alarms[i].flExpires = gpGlobals->curtime + RADAR_FLASH_TIME;
+				return;
+			}
+		}
+
+		RadarAlarm_t alarm;
+		alarm.vecPos = vecPos;
+		alarm.flExpires = gpGlobals->curtime + RADAR_FLASH_TIME;
+		m_Alarms.AddToTail( alarm );
+	}
+
+protected:
+	virtual void ApplySchemeSettings( IScheme *pScheme )
+	{
+		BaseClass::ApplySchemeSettings( pScheme );
+		m_pIcons[0] = gHUD.GetIcon( "AMarineIcon" );
+		m_pIcons[1] = gHUD.GetIcon( "SMarineIcon" );
+		m_pIcons[2] = gHUD.GetIcon( "AMarineEIcon" );
+		m_pIcons[3] = gHUD.GetIcon( "SMarineEIcon" );
+		m_pSonicIcon = gHUD.GetIcon( "SonicIcon" );
+		SetPaintBackgroundEnabled( false );
+	}
+
+	virtual void OnThink( void )
+	{
+		if ( gpGlobals->curtime < m_flNextRefresh )
+			return;
+
+		m_flNextRefresh = gpGlobals->curtime + RADAR_REFRESH;
+		m_Marines.RemoveAll();
+
+		C_BasePlayer *pLocal = C_BasePlayer::GetLocalPlayer();
+		for ( int i = 1; i <= gpGlobals->maxClients; i++ )
+		{
+			C_Hidden_Player *pPlayer = ToHiddenPlayer( UTIL_PlayerByIndex( i ) );
+			if ( !pPlayer || pPlayer == pLocal || !pPlayer->IsAlive() || pPlayer->GetTeamNumber() == TEAM_HIDDEN )
+				continue;
+
+			RadarMarine_t marine;
+			marine.vecPos = pPlayer->GetAbsOrigin();
+			marine.iClass = pPlayer->GetPlayerClass();
+			marine.iIndex = i;
+			m_Marines.AddToTail( marine );
+		}
+	}
+
+	virtual void Paint( void )
+	{
+		C_BasePlayer *pLocal = C_BasePlayer::GetLocalPlayer();
+		if ( !pLocal || pLocal->GetTeamNumber() != TEAM_IRIS )
+			return;
+
+		for ( int i = 0; i < m_Marines.Count(); i++ )
+		{
+			const RadarMarine_t &marine = m_Marines[i];
+			const bool bRadio = m_flRadioTime[marine.iIndex] > gpGlobals->curtime;
+			const int iIcon = ( marine.iClass == HIDDEN_CLASS_SUPPORT ? 1 : 0 ) + ( bRadio ? 2 : 0 );
+			DrawBlip( pLocal, marine.vecPos, m_pIcons[iIcon], gHUD.m_clrNormal );
+		}
+
+		for ( int i = m_Alarms.Count() - 1; i >= 0; i-- )
+		{
+			if ( m_Alarms[i].flExpires <= gpGlobals->curtime )
+				m_Alarms.Remove( i );
+			else
+				DrawBlip( pLocal, m_Alarms[i].vecPos, m_pSonicIcon, Color( 255, 255, 255, 255 ) );
+		}
+	}
+
+private:
+	struct RadarMarine_t
+	{
+		Vector vecPos;
+		int iClass;
+		int iIndex;
+	};
+
+	struct RadarAlarm_t
+	{
+		Vector vecPos;
+		float flExpires;
+	};
+
+	// Forward is up, centred at half the width and 80 % of the height.
+	void DrawBlip( C_BasePlayer *pLocal, const Vector &vecPos, CHudTexture *pIcon, const Color &clr )
+	{
+		if ( !pIcon )
+			return;
+
+		const Vector vecDelta = ( vecPos - pLocal->GetAbsOrigin() ) * RADAR_SCALE;
+		if ( vecDelta.Length() > RADAR_RANGE )
+			return;
+
+		float flSin, flCos;
+		SinCos( DEG2RAD( pLocal->EyeAngles()[YAW] - 90.0f ), &flSin, &flCos );
+		const float flX = vecDelta.x * flCos + vecDelta.y * flSin;
+		const float flY = vecDelta.x * flSin - vecDelta.y * flCos;
+
+		const int x = (int)( GetWide() * 0.5f + flX ) - RADAR_ICON_SIZE / 2;
+		const int y = (int)( GetTall() * 0.8f + flY ) - RADAR_ICON_SIZE / 2;
+		pIcon->DrawSelf( x, y, RADAR_ICON_SIZE, RADAR_ICON_SIZE, clr );
+	}
+
+	CUtlVector<RadarMarine_t> m_Marines;
+	CUtlVector<RadarAlarm_t> m_Alarms;
+	float m_flRadioTime[MAX_PLAYERS + 1];
+	float m_flNextRefresh;
+
+	CHudTexture *m_pIcons[4];	// assault, support, and both highlighted
+	CHudTexture *m_pSonicIcon;
+};
+
+DECLARE_HUDELEMENT( CHudRadar );
