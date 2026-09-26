@@ -504,6 +504,7 @@ FodyWeavers.xsd
 *.sln.iml
 # Hidden: Source
 game/hidden2013/legacy/
+/game/hidden
 game/hidden2013/custom/
 game/hidden2013/download/
 game/hidden2013/cfg/config.cfg
@@ -514,3 +515,13 @@ game/hidden2013/shaders/
 
 # Bot navigation meshes, generated per map (nav_generate or hdn_bot_auto_nav)
 game/hidden2013/maps/*.nav
+
+# Linux builds (src/buildhidden)
+/game/hidden2013_linux64
+src/.ninja_deps
+src/.ninja_log
+src/lib/public/linux64/mathlib.a
+src/lib/public/linux64/matsys_controls.a
+src/lib/public/linux64/raytrace.a
+src/lib/public/linux64/tier1.a
+src/lib/public/linux64/vgui_controls.a
