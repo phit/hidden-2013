@@ -525,3 +525,6 @@ src/lib/public/linux64/matsys_controls.a
 src/lib/public/linux64/raytrace.a
 src/lib/public/linux64/tier1.a
 src/lib/public/linux64/vgui_controls.a
+
+# tools/package.py output
+/dist/
