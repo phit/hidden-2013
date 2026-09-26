@@ -10,6 +10,7 @@
 #include "ScreenSpaceEffects.h"
 #include "view_scene.h"
 #include "materialsystem/imaterialvar.h"
+#include "tier1/callqueue.h"
 #include "c_hidden_player.h"
 
 // memdbgon must be the last include file in a .cpp file!!!
@@ -61,7 +62,9 @@ public:
 private:
 	IMaterial *GetMaterial( HiddenOverlay_t nOverlay );
 	void DrawOverlay( HiddenOverlay_t nOverlay, int x, int y, int w, int h );
-	void DrawBlurTrail( float flAlpha );
+	void DrawBlurTrail( float flAlpha, int x, int y, int w, int h );
+	static void SetBlurOffset( IMaterial *pBlur, float flOffset );
+	static void RenderBlurTrail( IMaterial *pFrontBuffer, ITexture *pFrame, ITexture *pAccum, float flCaptureAlpha, int x, int y, int w, int h );
 
 	CMaterialReference m_Materials[OVERLAY_COUNT];	// held, so they stay loaded between frames
 	float m_flNextTrailFrame;
@@ -103,14 +106,16 @@ void CHiddenScreenEffects::Render( int x, int y, int w, int h )
 			IMaterial *pBlur = GetMaterial( OVERLAY_BLUR );
 			if ( pBlur )
 			{
-				bool bFound = false;
-				IMaterialVar *pOffset = pBlur->FindVar( "$bluroffset", &bFound, false );
-				if ( bFound )
-					pOffset->SetFloatValue( pPlayer->GetBlur() );
+				CMatRenderContextPtr pRenderContext( materials );
+				ICallQueue *pCallQueue = pRenderContext->GetCallQueue();
+				if ( pCallQueue )
+					pCallQueue->QueueCall( SetBlurOffset, pBlur, pPlayer->GetBlur() );
+				else
+					SetBlurOffset( pBlur, pPlayer->GetBlur() );
 			}
 
 			DrawOverlay( OVERLAY_BLUR, x, y, w, h );
-			DrawBlurTrail( 0.7f / pPlayer->GetBlur() );
+			DrawBlurTrail( 0.7f / pPlayer->GetBlur(), x, y, w, h );
 		}
 	}
 	// Beta 4b's observer mode 1 (the value of SDK's deathcam) watched the map's cameras, which is
@@ -159,21 +164,13 @@ void CHiddenScreenEffects::DrawOverlay( HiddenOverlay_t nOverlay, int x, int y, 
 
 // The stun's motion trail: every 0.05 s the current frame is blended into an accumulation target
 // at flAlpha, and that target covers the screen every frame, so a strong blur leaves long trails.
-void CHiddenScreenEffects::DrawBlurTrail( float flAlpha )
+// The timing is decided here; the drawing changes the shared frontbuffer material's variables
+// between draws, so like the engine's post-processing it runs on the render thread when queued.
+void CHiddenScreenEffects::DrawBlurTrail( float flAlpha, int x, int y, int w, int h )
 {
 	IMaterial *pFrontBuffer = GetMaterial( OVERLAY_FRONTBUFFER );
 	if ( !pFrontBuffer )
 		return;
-
-	bool bFound = false;
-	IMaterialVar *pAlpha = pFrontBuffer->FindVar( "$alpha", &bFound, false );
-	IMaterialVar *pBaseTexture = pFrontBuffer->FindVar( "$basetexture", NULL, false );
-	if ( !bFound || !pBaseTexture )
-		return;
-
-	CMatRenderContextPtr pRenderContext( materials );
-	ITexture *pAccum = GetFullFrameFrameBufferTexture( 1 );
-	ITexture *pFrame = GetFullFrameFrameBufferTexture( 0 );
 
 	// A clock jump (a new map, a demo seek) starts the trail over.
 	if ( fabs( gpGlobals->curtime - m_flNextTrailFrame ) > 0.5f )
@@ -181,21 +178,61 @@ void CHiddenScreenEffects::DrawBlurTrail( float flAlpha )
 
 	DevMsg( 2, "bluralpha : %f\n", flAlpha );
 
+	float flCaptureAlpha = 0.0f;	// no new frame for the trail this time
 	if ( gpGlobals->curtime >= m_flNextTrailFrame )
 	{
+		flCaptureAlpha = ( m_flNextTrailFrame == 0.0f ) ? 1.0f : flAlpha;
+		m_flNextTrailFrame = gpGlobals->curtime + HIDDEN_BLUR_TRAIL_INTERVAL;
+	}
+
+	ITexture *pFrame = GetFullFrameFrameBufferTexture( 0 );
+	ITexture *pAccum = GetFullFrameFrameBufferTexture( 1 );
+
+	CMatRenderContextPtr pRenderContext( materials );
+	ICallQueue *pCallQueue = pRenderContext->GetCallQueue();
+	if ( pCallQueue )
+		pCallQueue->QueueCall( RenderBlurTrail, pFrontBuffer, pFrame, pAccum, flCaptureAlpha, x, y, w, h );
+	else
+		RenderBlurTrail( pFrontBuffer, pFrame, pAccum, flCaptureAlpha, x, y, w, h );
+}
+
+void CHiddenScreenEffects::SetBlurOffset( IMaterial *pBlur, float flOffset )
+{
+	bool bFound = false;
+	IMaterialVar *pOffset = pBlur->FindVar( "$bluroffset", &bFound, false );
+	if ( bFound )
+		pOffset->SetFloatValue( flOffset );
+}
+
+void CHiddenScreenEffects::RenderBlurTrail( IMaterial *pFrontBuffer, ITexture *pFrame, ITexture *pAccum, float flCaptureAlpha, int x, int y, int w, int h )
+{
+	bool bFound = false;
+	IMaterialVar *pAlpha = pFrontBuffer->FindVar( "$alpha", &bFound, false );
+	IMaterialVar *pBaseTexture = pFrontBuffer->FindVar( "$basetexture", NULL, false );
+	if ( !bFound || !pBaseTexture )
+		return;
+
+	CMatRenderContextPtr pRenderContext( materials );
+	const int nFrameW = pFrame->GetActualWidth();
+	const int nFrameH = pFrame->GetActualHeight();
+	const int nAccumW = pAccum->GetActualWidth();
+	const int nAccumH = pAccum->GetActualHeight();
+
+	// Explicit sizes rather than DrawScreenSpaceQuad, which reads the current render target when the
+	// queue runs; flushed while jpeg switched the queued material system off, that crashed.
+	if ( flCaptureAlpha > 0.0f )
+	{
 		pRenderContext->CopyRenderTargetToTexture( pFrame );
-		pAlpha->SetFloatValue( m_flNextTrailFrame == 0.0f ? 1.0f : flAlpha );
+		pAlpha->SetFloatValue( flCaptureAlpha );
 		pBaseTexture->SetTextureValue( pFrame );
 
 		pRenderContext->PushRenderTargetAndViewport( pAccum );
-		pRenderContext->DrawScreenSpaceQuad( pFrontBuffer );
+		pRenderContext->DrawScreenSpaceRectangle( pFrontBuffer, 0, 0, nAccumW, nAccumH, 0, 0, nFrameW - 1, nFrameH - 1, nFrameW, nFrameH );
 		pRenderContext->PopRenderTargetAndViewport();
-
-		m_flNextTrailFrame = gpGlobals->curtime + HIDDEN_BLUR_TRAIL_INTERVAL;
 	}
 
 	pAlpha->SetFloatValue( 1.0f );
 	pBaseTexture->SetTextureValue( pAccum );
-	pRenderContext->DrawScreenSpaceQuad( pFrontBuffer );
+	pRenderContext->DrawScreenSpaceRectangle( pFrontBuffer, x, y, w, h, 0, 0, nAccumW - 1, nAccumH - 1, nAccumW, nAccumH );
 	pBaseTexture->SetTextureValue( pFrame );
 }
