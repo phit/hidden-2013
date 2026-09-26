@@ -110,6 +110,73 @@ protected:
 DECLARE_HUDELEMENT( CHudHStaminabar );
 
 //-----------------------------------------------------------------------------
+// Beta 4b's health: HL2's number without the label, placed each frame by team
+// in 640x480 units stretched to the screen (the Hidden at 40,445 in its tan,
+// marines at 25,447 in the scheme colour), with HL2's health animations.
+//-----------------------------------------------------------------------------
+class CHudHealth : public CHudElement, public CHudNumericDisplay
+{
+	DECLARE_CLASS_SIMPLE( CHudHealth, CHudNumericDisplay );
+
+public:
+	CHudHealth( const char *pElementName ) : CHudElement( pElementName ), CHudNumericDisplay( NULL, "HudHealth" ), m_iHealth( -1 )
+	{
+		SetHiddenBits( HIDDEN_HUD_HIDDEN_BITS );
+	}
+
+	virtual void Init( void ) { Reset(); }
+	virtual void VidInit( void ) { Reset(); }
+
+	virtual void Reset( void )
+	{
+		m_iHealth = -1;
+		SetLabelText( L"" );
+		SetDisplayValue( 100 );
+	}
+
+protected:
+	virtual void OnThink( void )
+	{
+		int iWide, iTall;
+		g_pClientMode->GetViewport()->GetSize( iWide, iTall );
+
+		if ( GetLocalTeam() == TEAM_HIDDEN )
+		{
+			SetPos( (int)( iWide * ( 40.0f / 640.0f ) ), (int)( iTall * ( 445.0f / 480.0f ) ) );
+			SetFgColor( Color( 228, 207, 154, 200 ) );
+		}
+		else
+		{
+			SetPos( (int)( iWide * ( 25.0f / 640.0f ) ), (int)( iTall * ( 447.0f / 480.0f ) ) );
+		}
+
+		C_BasePlayer *pPlayer = C_BasePlayer::GetLocalPlayer();
+		const int iHealth = pPlayer ? MAX( pPlayer->GetHealth(), 0 ) : 0;
+		if ( iHealth == m_iHealth )
+			return;
+
+		m_iHealth = iHealth;
+
+		if ( iHealth >= 20 )
+		{
+			g_pClientMode->GetViewportAnimationController()->StartAnimationSequence( "HealthIncreasedAbove20" );
+		}
+		else if ( iHealth > 0 )
+		{
+			g_pClientMode->GetViewportAnimationController()->StartAnimationSequence( "HealthIncreasedBelow20" );
+			g_pClientMode->GetViewportAnimationController()->StartAnimationSequence( "HealthLow" );
+		}
+
+		SetDisplayValue( iHealth );
+	}
+
+private:
+	int m_iHealth;
+};
+
+DECLARE_HUDELEMENT( CHudHealth );
+
+//-----------------------------------------------------------------------------
 // The location name from the last location_brush the local player entered. The
 // Hidden never sees it.
 //-----------------------------------------------------------------------------

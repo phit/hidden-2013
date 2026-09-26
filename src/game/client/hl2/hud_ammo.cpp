@@ -89,6 +89,9 @@ void CHudAmmo::Init( void )
 	
 	m_iconPrimaryAmmo = NULL;
 
+#ifdef HIDDEN
+	SetLabelText(L"");	// Beta 4b showed the numbers only
+#else
 	wchar_t *tempString = g_pVGuiLocalize->Find("#Valve_Hud_AMMO");
 	if (tempString)
 	{
@@ -98,6 +101,7 @@ void CHudAmmo::Init( void )
 	{
 		SetLabelText(L"AMMO");
 	}
+#endif
 }
 
 //-----------------------------------------------------------------------------
@@ -385,6 +389,9 @@ public:
 
 	void Init( void )
 	{
+#ifdef HIDDEN
+		SetLabelText(L"");	// Beta 4b showed the numbers only
+#else
 		wchar_t *tempString = g_pVGuiLocalize->Find("#Valve_Hud_AMMO_ALT");
 		if (tempString)
 		{
@@ -394,6 +401,7 @@ public:
 		{
 			SetLabelText(L"ALT");
 		}
+#endif
 	}
 
 	void VidInit( void )
