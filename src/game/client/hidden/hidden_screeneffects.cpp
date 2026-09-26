@@ -27,6 +27,7 @@ enum HiddenOverlay_t
 	OVERLAY_DEATHCAM,
 	OVERLAY_HELMETCAM,
 	OVERLAY_HVISION,
+	OVERLAY_INVERT,			// the Hidden's aura
 	OVERLAY_FRONTBUFFER,	// the stun trail's copy material
 
 	OVERLAY_COUNT
@@ -40,6 +41,7 @@ static const char *s_pszOverlayMaterials[OVERLAY_COUNT] =
 	"vgui/hud/svision",
 	"vgui/hud/helmetcam",
 	"vgui/hud/hvision",
+	"vgui/hud/hdn_invert",
 	"frontbuffer",
 };
 
@@ -120,10 +122,15 @@ void CHiddenScreenEffects::Render( int x, int y, int w, int h )
 		DrawOverlay( OVERLAY_HELMETCAM, x, y, w, h );
 	}
 
-	// The Hidden's aura (HDN_Invert while standing still) comes with the aura itself; without it
-	// the Hidden always sees through vgui/hud/hvision.
-	if ( pPlayer->IsAlive() && pPlayer->GetTeamNumber() == TEAM_HIDDEN && cl_hvision.GetBool() )
-		DrawOverlay( OVERLAY_HVISION, x, y, w, h );
+	// The Hidden sees the world inverted while the aura works (standing still), which turns the
+	// marines' aura trails green, orange or red; otherwise through vgui/hud/hvision.
+	if ( pPlayer->IsAlive() && pPlayer->GetTeamNumber() == TEAM_HIDDEN )
+	{
+		if ( pPlayer->IsAuraActive() )
+			DrawOverlay( OVERLAY_INVERT, x, y, w, h );
+		else if ( cl_hvision.GetBool() )
+			DrawOverlay( OVERLAY_HVISION, x, y, w, h );
+	}
 }
 
 void CHiddenScreenEffects::DrawOverlay( HiddenOverlay_t nOverlay, int x, int y, int w, int h )

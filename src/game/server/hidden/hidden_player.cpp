@@ -96,6 +96,7 @@ IMPLEMENT_SERVERCLASS_ST( CHidden_Player, DT_Hidden_Player )
 	SendPropBool( SENDINFO( m_bNightVision ) ),
 	SendPropFloat( SENDINFO( m_flStamina ), 0, SPROP_NOSCALE ),
 	SendPropBool( SENDINFO( m_bClinging ) ),
+	SendPropBool( SENDINFO( m_bAura ) ),
 	SendPropInt( SENDINFO( m_iThrowGrenadeCounter ), HIDDEN_THROWGRENADE_COUNTER_BITS, SPROP_UNSIGNED ),
 	SendPropString( SENDINFO( m_szCurrentLocation ) ),
 END_SEND_TABLE()
@@ -171,6 +172,7 @@ void CHidden_Player::Spawn( void )
 	m_iBoostCount = 0;
 	m_flStamina = 0.0f;
 	m_bClinging = false;
+	m_bAura = false;
 	m_bWalking = false;
 	ResetStun();
 
@@ -401,6 +403,10 @@ void CHidden_Player::PreThink( void )
 			StartWalking();
 	}
 
+	// The Hidden's aura follows the vision key.
+	if ( GetTeamNumber() == TEAM_HIDDEN && ( ( m_afButtonPressed | m_afButtonReleased ) & IN_GRENADE1 ) )
+		m_bAura = ( m_afButtonPressed & IN_GRENADE1 ) != 0;
+
 	BaseClass::PreThink();
 }
 
@@ -419,10 +425,17 @@ void CHidden_Player::StopWalking( void )
 
 void CHidden_Player::ItemPostFrame( void )
 {
-	// The Hidden gets stamina back on the ground (Beta 4b also stops it while the aura is on; that
-	// comes with the aura).
-	if ( GetTeamNumber() == TEAM_HIDDEN && m_flStamina < HIDDEN_STAMINA_MAX && GetGroundEntity() != NULL )
+	// The Hidden gets stamina back on the ground unless the aura is on, which drains it instead
+	// (Beta 4b drains in PostThink, just after this).
+	if ( GetTeamNumber() == TEAM_HIDDEN && m_flStamina < HIDDEN_STAMINA_MAX && GetGroundEntity() != NULL && !m_bAura )
 		SetStamina( HIDDEN_STAMINA_REGEN );
+
+	if ( m_bAura )
+	{
+		SetStamina( -HIDDEN_AURA_STAMINA );
+		if ( m_flStamina < 1.0f )
+			m_bAura = false;
+	}
 
 	BaseClass::ItemPostFrame();
 }

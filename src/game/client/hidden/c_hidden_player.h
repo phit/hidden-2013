@@ -11,6 +11,9 @@
 #include "c_hl2mp_player.h"
 #include "hidden_shareddefs.h"
 #include "hidden_playeranimstate.h"
+#include "tier1/smartptr.h"
+
+class CHiddenAuraEmitter;
 
 class C_Hidden_Player : public C_HL2MP_Player, public IHiddenPlayerAnimStateHelpers
 {
@@ -49,6 +52,13 @@ public:
 	bool IsClinging( void ) const { return m_bClinging; }
 	void SetClinging( bool bClinging ) { m_bClinging = bClinging; }
 	virtual void ItemPostFrame( void );
+	virtual void PreThink( void );
+
+	// The aura: on while the vision key is held; it only shows anything while standing still.
+	bool IsViewing( void ) const { return m_bAura; }
+	bool IsAuraActive( void );
+
+	virtual void ClientThink( void );
 
 	virtual ShadowType_t ShadowCastType( void );
 
@@ -79,6 +89,9 @@ private:
 	bool m_bNightVision;
 	float m_flStamina;
 	bool m_bClinging;
+	bool m_bAura;
+
+	CSmartPtr<CHiddenAuraEmitter> m_pAuraEmitter;
 	int m_iThrowGrenadeCounter;
 	char m_szCurrentLocation[HIDDEN_LOCATION_LENGTH];
 

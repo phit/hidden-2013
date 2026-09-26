@@ -113,6 +113,10 @@ public:
 	float GetStamina( void ) const { return m_flStamina; }
 	void SetStamina( float flDelta ) { const float flNew = m_flStamina + flDelta; if ( flNew >= 0.0f && flNew <= HIDDEN_STAMINA_MAX ) m_flStamina = flNew; }
 
+	// The aura (vision key, +aura): on while held, drains stamina (docs/spec/hidden-abilities.md).
+	bool IsViewing( void ) const { return m_bAura; }
+	void SetAura( bool bAura ) { m_bAura = bAura; }
+
 	// Wall cling, Beta 4b's movetype 12 (see hidden_gamemovement.cpp).
 	bool IsClinging( void ) const { return m_bClinging; }
 	void SetClinging( bool bClinging ) { m_bClinging = bClinging; }
@@ -159,6 +163,7 @@ private:
 	CNetworkVar( bool, m_bNightVision );
 	CNetworkVar( float, m_flStamina );
 	CNetworkVar( bool, m_bClinging );
+	CNetworkVar( bool, m_bAura );
 	CNetworkVar( int, m_iThrowGrenadeCounter );
 	CNetworkString( m_szCurrentLocation, HIDDEN_LOCATION_LENGTH );
 

@@ -8,6 +8,8 @@
 #include "c_hidden_player.h"
 #include "c_basetempentity.h"
 #include "weapon_hiddenbase.h"
+#include "hidden_auratrail.h"
+#include "in_buttons.h"
 
 // hidden_player_shared.h maps CHidden_Player to this class, but the network class name below must
 // stay the server's.
@@ -62,6 +64,7 @@ IMPLEMENT_CLIENTCLASS_DT( C_Hidden_Player, DT_Hidden_Player, CHidden_Player )
 	RecvPropBool( RECVINFO( m_bNightVision ) ),
 	RecvPropFloat( RECVINFO( m_flStamina ) ),
 	RecvPropBool( RECVINFO( m_bClinging ) ),
+	RecvPropBool( RECVINFO( m_bAura ) ),
 	RecvPropInt( RECVINFO( m_iThrowGrenadeCounter ) ),
 	RecvPropString( RECVINFO( m_szCurrentLocation ) ),
 END_RECV_TABLE()
@@ -72,6 +75,7 @@ BEGIN_PREDICTION_DATA( C_Hidden_Player )
 	DEFINE_PRED_FIELD( m_iShotsFired, FIELD_INTEGER, FTYPEDESC_INSENDTABLE ),
 	DEFINE_PRED_FIELD( m_flStamina, FIELD_FLOAT, FTYPEDESC_INSENDTABLE ),
 	DEFINE_PRED_FIELD( m_bClinging, FIELD_BOOLEAN, FTYPEDESC_INSENDTABLE ),
+	DEFINE_PRED_FIELD( m_bAura, FIELD_BOOLEAN, FTYPEDESC_INSENDTABLE ),
 END_PREDICTION_DATA()
 
 C_Hidden_Player::C_Hidden_Player()
@@ -92,6 +96,7 @@ C_Hidden_Player::C_Hidden_Player()
 	m_bNightVision = false;
 	m_flStamina = 0.0f;
 	m_bClinging = false;
+	m_bAura = false;
 	m_iThrowGrenadeCounter = 0;
 	m_szCurrentLocation[0] = '\0';
 
@@ -115,11 +120,48 @@ void C_Hidden_Player::UpdateClientSideAnimation( void )
 
 void C_Hidden_Player::ItemPostFrame( void )
 {
-	// Predict the Hidden's stamina regeneration, as CHidden_Player::ItemPostFrame does.
-	if ( GetTeamNumber() == TEAM_HIDDEN && m_flStamina < HIDDEN_STAMINA_MAX && GetGroundEntity() != NULL )
+	// Predict the Hidden's stamina, as CHidden_Player::ItemPostFrame does.
+	if ( GetTeamNumber() == TEAM_HIDDEN && m_flStamina < HIDDEN_STAMINA_MAX && GetGroundEntity() != NULL && !m_bAura )
 		SetStamina( HIDDEN_STAMINA_REGEN );
 
+	if ( m_bAura )
+	{
+		SetStamina( -HIDDEN_AURA_STAMINA );
+		if ( m_flStamina < 1.0f )
+			m_bAura = false;
+	}
+
 	BaseClass::ItemPostFrame();
+}
+
+void C_Hidden_Player::PreThink( void )
+{
+	// Predict the aura, as CHidden_Player::PreThink does.
+	if ( GetTeamNumber() == TEAM_HIDDEN && ( ( m_afButtonPressed | m_afButtonReleased ) & IN_GRENADE1 ) )
+		m_bAura = ( m_afButtonPressed & IN_GRENADE1 ) != 0;
+
+	BaseClass::PreThink();
+}
+
+bool C_Hidden_Player::IsAuraActive( void )
+{
+	return m_bAura && GetLocalVelocity().Length() <= HIDDEN_AURA_MAX_SPEED;
+}
+
+void C_Hidden_Player::ClientThink( void )
+{
+	BaseClass::ClientThink();
+
+	// Everyone leaves an aura trail, which only the Hidden ever sees, so only a living Hidden's
+	// client makes them.
+	C_Hidden_Player *pLocal = GetLocalHiddenPlayer();
+	if ( pLocal && pLocal != this && pLocal->IsAlive() && pLocal->GetTeamNumber() == TEAM_HIDDEN && !IsDormant() )
+	{
+		if ( !m_pAuraEmitter )
+			m_pAuraEmitter = CHiddenAuraEmitter::Create( this );
+
+		m_pAuraEmitter->Emit( gpGlobals->frametime );
+	}
 }
 
 // The Hidden casts no shadow.

@@ -45,6 +45,8 @@ enum
 #define HIDDEN_POUNCE_STAMINA		20.0f	// needed and used by a pounce
 #define HIDDEN_POUNCE_SPEED			615.0f	// along the aim
 #define HIDDEN_CLING_JUMP_STAMINA	10.0f	// per tick jump is held on a wall
+#define HIDDEN_AURA_STAMINA			0.1f	// per tick while the aura is on; it goes off below 1
+#define HIDDEN_AURA_MAX_SPEED		0.5f	// the aura only shows anything this still
 #define HIDDEN_CLING_DISTANCE		24.0f	// from the eyes to the wall
 #define HIDDEN_BACK_SPEED_SCALE		0.8f	// marines walking backwards
 #define HIDDEN_NUM_CHARACTERS	9	// marine characters, one per player
