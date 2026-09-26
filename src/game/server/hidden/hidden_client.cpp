@@ -70,6 +70,7 @@ void FinishClientPutInServer( CHL2MP_Player *pPlayer )
 	data->SetString( "title", title );		// info panel title
 	data->SetString( "type", "1" );			// show userdata from stringtable entry
 	data->SetString( "msg",	"motd" );		// use this stringtable entry
+	data->SetInt( "cmd", TEXTWINDOW_CMD_CHOOSETEAM );	// then the team menu, as Beta 4b's "classmenu"
 	data->SetBool( "unload", sv_motd_unload_on_dismissal.GetBool() );
 
 	pPlayer->ShowViewPortPanel( PANEL_INFO, true, data );

@@ -44,6 +44,10 @@ ClientModeHL2MPNormal* GetClientModeHL2MPNormal()
 //-----------------------------------------------------------------------------
 // Purpose: this is the viewport that contains all the hud elements
 //-----------------------------------------------------------------------------
+#ifdef HIDDEN
+extern void CreateHiddenViewportPanels( CBaseViewport *pViewport );
+#endif
+
 class CHudViewport : public CBaseViewport
 {
 private:
@@ -60,6 +64,15 @@ protected:
 	}
 
 	virtual IViewPortPanel *CreatePanelByName( const char *szPanelName );
+
+#ifdef HIDDEN
+	// Hidden: Source's team, loadout and radio menus.
+	virtual void CreateDefaultPanels( void )
+	{
+		BaseClass::CreateDefaultPanels();
+		CreateHiddenViewportPanels( this );
+	}
+#endif
 };
 
 int ClientModeHL2MPNormal::GetDeathMessageStartHeight( void )
