@@ -312,6 +312,8 @@ $Project "Server (Hidden)"
 		{
 			$File	"hidden\hidden_bot.cpp"
 			$File	"hidden\hidden_client.cpp"
+			$File	"hidden\hidden_corpse.cpp"
+			$File	"hidden\hidden_corpse.h"
 			$File	"hidden\hidden_gameinterface.cpp"
 			$File	"$SRCDIR\game\shared\hidden\hidden_gamerules.cpp"
 			$File	"$SRCDIR\game\shared\hidden\hidden_gamerules.h"

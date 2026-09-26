@@ -1092,12 +1092,6 @@ void C_HL2MPRagdoll::CreateHL2MPRagdoll( void )
 	// then we can make ourselves start out exactly where the player is.
 	C_HL2MP_Player *pPlayer = dynamic_cast< C_HL2MP_Player* >( m_hPlayer.Get() );
 	
-#ifdef HIDDEN
-	// The Hidden's corpse is a different model; a player still on the cloaked one can't pose it.
-	if ( pPlayer && pPlayer->GetModelIndex() != m_nModelIndex )
-		pPlayer = NULL;
-#endif
-
 	if ( pPlayer && !pPlayer->IsDormant() )
 	{
 		// move my current model instance to the ragdoll's so decals are preserved.

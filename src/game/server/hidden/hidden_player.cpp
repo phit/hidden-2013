@@ -7,6 +7,8 @@
 
 #include "cbase.h"
 #include "in_buttons.h"
+#include "hidden_corpse.h"
+#include "gib.h"
 #include "hidden_player.h"
 #include "hidden_gamerules.h"
 #include "hidden_cvars.h"
@@ -147,6 +149,7 @@ void CHidden_Player::Precache( void )
 	PrecacheModel( HIDDEN_MODEL_MARINE_SUPPORT );
 	PrecacheModel( HIDDEN_MODEL_HIDDEN );
 	PrecacheModel( HIDDEN_MODEL_HIDDEN_RAGDOLL );
+	PrecacheHiddenCorpses();
 
 	PrecacheScriptSound( "IRIS.DeployNV" );
 	PrecacheScriptSound( "IRIS.UnDeployNV" );
@@ -359,28 +362,35 @@ void CHidden_Player::ChangeTeam( int iTeam )
 
 void CHidden_Player::Event_Killed( const CTakeDamageInfo &info )
 {
-	// The Hidden dies as the visible hidden.mdl instead of the cloaked mn_fixture1. As in Beta 4b the
-	// player takes the model too, so the client poses the ragdoll from the same skeleton (hidden.mdl
-	// has 21 bones, mn_fixture1 42).
+	// The Hidden dies as the visible hidden.mdl instead of the cloaked mn_fixture1; the corpse copies
+	// the player's model, so the player takes it first, as in Beta 4b.
 	m_bClinging = false;
 
-	const bool bHidden = ( GetTeamNumber() == TEAM_HIDDEN );
-	if ( bHidden )
+	if ( GetTeamNumber() == TEAM_HIDDEN )
 	{
 		SetModel( HIDDEN_MODEL_HIDDEN_RAGDOLL );
 		m_nSkin = 0;
 		m_nBody = 0;
 	}
 
+	m_KillInfo = info;
 	BaseClass::Event_Killed( info );
+}
 
-	// The corpse keeps the marine's skin and body groups; the Hidden's shows skin 2, body 1.
-	CBaseAnimating *pRagdoll = m_hRagdoll ? m_hRagdoll->GetBaseAnimating() : NULL;
-	if ( pRagdoll )
+// Corpses are server ragdolls the Hidden can feed on (HL2MP's are client-side). In OverRun the dead
+// leave only gibs.
+void CHidden_Player::CreateRagdollEntity( void )
+{
+	if ( HiddenRules()->GetGameType() == HIDDEN_GAMETYPE_OVERRUN )
 	{
-		pRagdoll->m_nSkin = bHidden ? 2 : m_nSkin.Get();
-		pRagdoll->m_nBody = bHidden ? 1 : m_nBody.Get();
+		static const char *s_pszGibs[] = { "models/gibs/iris_gibs1.mdl", "models/gibs/iris_gibs2.mdl", "models/gibs/iris_gibs3.mdl",
+			"models/gibs/iris_gibs4.mdl", "models/gibs/iris_gibs6.mdl", "models/gibs/iris_gibs7.mdl" };
+		for ( int i = 0; i < ARRAYSIZE( s_pszGibs ); i++ )
+			CGib::SpawnSpecificGibs( this, 1, 750.0f, 1500.0f, s_pszGibs[i], 5.0f );
+		return;
 	}
+
+	CreateHiddenCorpse( this, m_nForceBone, m_KillInfo, COLLISION_GROUP_DEBRIS );
 }
 
 void CHidden_Player::PlayerDeathThink( void )

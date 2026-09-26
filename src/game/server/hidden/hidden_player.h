@@ -36,6 +36,7 @@ public:
 	virtual bool ClientCommand( const CCommand &args );
 	virtual void PlayerDeathThink( void );
 	virtual void Event_Killed( const CTakeDamageInfo &info );
+	virtual void CreateRagdollEntity( void );
 	virtual void PreThink( void );
 	virtual void PostThink( void );
 	virtual void ItemPostFrame( void );
@@ -173,6 +174,7 @@ private:
 	float m_flBoostTimer;
 	bool m_bBoosted;
 	bool m_bWalking;
+	CTakeDamageInfo m_KillInfo;	// for the corpse
 
 	CUtlVector<StunTracker_t> m_Stunners;
 	float m_flStunTime;

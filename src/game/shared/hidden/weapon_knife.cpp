@@ -18,6 +18,8 @@
 #else
 	#include "te_effect_dispatch.h"
 	#include "ilagcompensationmanager.h"
+	#include "hidden_corpse.h"
+	#include "RagdollBoogie.h"
 #endif
 
 // memdbgon must be the last include file in a .cpp file!!!
@@ -35,6 +37,8 @@
 #define KNIFE_SLASH_DAMAGE		37.0f
 #define KNIFE_PIGSTICK_DAMAGE	925.0f
 #define KNIFE_TRIGGER_DAMAGE	25.0f
+#define KNIFE_FEED_HEALTH		5		// taken from a corpse per slash
+#define KNIFE_FEED_MAX_HEALTH	100
 
 // The pigstick lands 1.3 s after the key press; the knife is busy for longer.
 #define PIGSTICK_HIT_DELAY		1.3f
@@ -274,8 +278,29 @@ void CWeaponKnife::Hit( trace_t &tr, Activity nHitActivity )
 		pHit->DispatchTraceAttack( info, vecForward, &tr );
 		ApplyMultiDamage();
 
-		// TODO: marine corpses (corpse_ragdoll): a slash feeds the Hidden 5 health from the corpse,
-		// a pigstick gibs it. Needs the server-side corpse ragdolls (docs/spec/hidden-abilities.md).
+		// Corpses: the pigstick tears one apart; a slash feeds the Hidden 5 health while the corpse
+		// has any left, and makes it twitch.
+		if ( FClassnameIs( pHit, "corpse_ragdoll" ) )
+		{
+			CHiddenCorpse *pCorpse = static_cast<CHiddenCorpse *>( pHit );
+			if ( nHitActivity == ACT_VM_HITCENTER2 )
+			{
+				pCorpse->TearApart( info.GetDamageForce(), vecForward );
+			}
+			else
+			{
+				if ( pCorpse->GetFeedHealth() > 0 )
+				{
+					pPlayer->SetHealth( MIN( pPlayer->GetHealth() + KNIFE_FEED_HEALTH, KNIFE_FEED_MAX_HEALTH ) );
+					pCorpse->AddFeedHealth( -KNIFE_FEED_HEALTH );
+				}
+
+				UTIL_BloodSpray( pCorpse->GetAbsOrigin(), -vecForward, BLOOD_COLOR_RED, random->RandomInt( 4, 8 ), FX_BLOODSPRAY_ALL );
+
+				if ( pCorpse->GetFeedHealth() > 0 )
+					CRagdollBoogie::Create( pCorpse, 250.0f, gpGlobals->curtime, 0.5f );
+			}
+		}
 
 		TraceAttackToTriggers( info, tr.startpos, tr.endpos, vecForward );
 #endif
