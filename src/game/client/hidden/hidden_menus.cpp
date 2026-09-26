@@ -183,6 +183,10 @@ static const struct
 	{ "MEM9BUTTON", "selection/kasim", "selection/kasiminfo" },
 };
 
+// The class just picked in the team menu (-2 to keep the current one), for the weapon menu that
+// opens straight after, before the server has the new class.
+static int s_iPickedClass = -2;
+
 class CHiddenTeamMenu : public CHiddenMenu
 {
 	DECLARE_CLASS_SIMPLE( CHiddenTeamMenu, CHiddenMenu );
@@ -296,6 +300,7 @@ protected:
 		{
 			engine->ClientCmd( VarArgs( "changeclass %d", m_iClass ) );
 			engine->ClientCmd( VarArgs( "changemarine %d", m_iCharacter ) );
+			s_iPickedClass = m_iClass;
 			Close();
 			m_pViewPort->ShowPanel( PANEL_HIDDEN_WEAPON, true );
 		}
@@ -381,6 +386,16 @@ public:
 		m_pTicks[0] = FindControl<ImagePanel>( "PrimaryTick" );
 		m_pTicks[1] = FindControl<ImagePanel>( "SecondaryTick" );
 		m_pTicks[2] = FindControl<ImagePanel>( "EquipmentTick" );
+
+		// Crossings-out over the FN2000 (STRIKE1) and the shotgun (STRIKE), which support marines
+		// can't carry. They mustn't take the buttons' clicks.
+		m_pStrikes[0] = FindControl<ImagePanel>( "STRIKE1" );
+		m_pStrikes[1] = FindControl<ImagePanel>( "STRIKE" );
+		for ( int i = 0; i < ARRAYSIZE( m_pStrikes ); i++ )
+		{
+			if ( m_pStrikes[i] )
+				m_pStrikes[i]->SetMouseInputEnabled( false );
+		}
 	}
 
 protected:
@@ -393,6 +408,23 @@ protected:
 		{
 			if ( m_pTicks[i] )
 				m_pTicks[i]->SetVisible( false );
+		}
+
+		int iClass = s_iPickedClass;
+		C_Hidden_Player *pPlayer = C_Hidden_Player::GetLocalHiddenPlayer();
+		if ( iClass < 0 && pPlayer )
+			iClass = pPlayer->GetPlayerClass();
+
+		const bool bSupport = ( iClass == HIDDEN_CLASS_SUPPORT );
+		for ( int i = 0; i < ARRAYSIZE( m_pStrikes ); i++ )
+		{
+			if ( m_pStrikes[i] )
+				m_pStrikes[i]->SetVisible( bSupport );
+		}
+		for ( int i = 0; i < ARRAYSIZE( s_Loadout ); i++ )
+		{
+			if ( m_pButtons[i] && ( !Q_stricmp( s_Loadout[i].pszCommand, "primary 0" ) || !Q_stricmp( s_Loadout[i].pszCommand, "primary 2" ) ) )
+				m_pButtons[i]->SetEnabled( !bSupport );
 		}
 	}
 
@@ -436,6 +468,7 @@ private:
 	Button *m_pButtons[ARRAYSIZE( s_Loadout )];
 	ImagePanel *m_pInfo;
 	ImagePanel *m_pTicks[3];	// primary, secondary, equipment
+	ImagePanel *m_pStrikes[2];	// FN2000, shotgun
 	char m_szPicks[3][16];
 };
 
