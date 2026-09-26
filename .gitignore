@@ -503,14 +503,14 @@ FodyWeavers.xsd
 # JetBrains Rider
 *.sln.iml
 # Hidden: Source
-game/mod_hidden/legacy/
-game/mod_hidden/custom/
-game/mod_hidden/download/
-game/mod_hidden/cfg/config.cfg
+game/hidden2013/legacy/
+game/hidden2013/custom/
+game/hidden2013/download/
+game/hidden2013/cfg/config.cfg
 
-game/mod_hidden/downloadlists/
-/game/mod_hidden/maps/graphs/
-game/mod_hidden/shaders/
+game/hidden2013/downloadlists/
+/game/hidden2013/maps/graphs/
+game/hidden2013/shaders/
 
 # Bot navigation meshes, generated per map (nav_generate or hdn_bot_auto_nav)
-game/mod_hidden/maps/*.nav
+game/hidden2013/maps/*.nav

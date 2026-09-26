@@ -23,7 +23,7 @@
 
 using namespace vgui;
 
-// The engine only loads resource/<game dir>_<language>.txt (mod_hidden_english.txt, HL2MP's strings);
+// The engine only loads resource/<game dir>_<language>.txt (hidden2013_english.txt, HL2MP's strings);
 // Beta 4b's own strings (#HDN_*: the keyboard options, menus) are in hidden_<language>.txt.
 class CHiddenLocalization : public CAutoGameSystem
 {

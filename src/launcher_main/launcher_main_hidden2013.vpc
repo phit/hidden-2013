@@ -1,4 +1,4 @@
-$Macro OUTBINNAME "mod_hidden"
+$Macro OUTBINNAME "hidden2013"
 
 $Conditional "MOD_LAUNCHER" "1"
 
@@ -16,7 +16,7 @@ $Project "Launcher Main (Mod Hidden)"
 {
     $Folder "Resource Files" [$WINDOWS]
     {
-        $File   "launcher_main_mod_hidden.rc"
-        $File   "res\mod_hidden.ico"
+        $File   "launcher_main_hidden2013.rc"
+        $File   "res\hidden2013.ico"
     }
 }

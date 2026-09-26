@@ -64,7 +64,7 @@ $Project "server"
 $Project "launcher_main"
 {
 	"launcher_main\launcher_main_mod_hl2mp.vpc" [$HL2MP]
-	"launcher_main\launcher_main_mod_hidden.vpc" [$HIDDEN]
+	"launcher_main\launcher_main_hidden2013.vpc" [$HIDDEN]
 	"launcher_main\launcher_main_mod_tf.vpc" [$TF]
 }
 

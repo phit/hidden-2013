@@ -25,7 +25,7 @@
 		SearchPaths
 		{
 			// User customizations: VPKs and subfolders, mounted alphabetically at boot.
-			game+mod			mod_hidden/custom/*
+			game+mod			hidden2013/custom/*
 
 			// New mod files. Anything here overrides the legacy Beta 4b content below.
 			mod+mod_write		|gameinfo_path|.
@@ -53,7 +53,7 @@
 			platform			|all_source_engine_paths|platform
 
 			// Files downloaded from servers, searched last.
-			game+download		mod_hidden/download
+			game+download		hidden2013/download
 		}
 	}
 }

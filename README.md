@@ -21,8 +21,8 @@ the server.
 |---|---|
 | `src/game/client/client_hidden.vpc`, `src/game/server/server_hidden.vpc` | Client and server projects (HL2MP plus `HIDDEN` define) |
 | `src/game/{client,server,shared}/hidden/` | Hidden game code (to come) |
-| `game/mod_hidden/` | The mod folder the game runs from |
-| `game/mod_hidden/legacy/` | Beta 4b content, imported locally and **not in git** |
+| `game/hidden2013/` | The mod folder the game runs from |
+| `game/hidden2013/legacy/` | Beta 4b content, imported locally and **not in git** |
 | `tools/` | Build and asset scripts |
 
 ## Getting the content
@@ -47,18 +47,18 @@ Tools) with MSVC v143 and a Windows 10/11 SDK, and Python 3.13+.
 tools\build.ps1            # Release; add -Regen after changing .vpc files, -Configuration Debug for debug
 ```
 
-This writes `client.dll` and `server.dll` to `game/mod_hidden/bin/x64` and the launcher to
-`game/mod_hidden_win64.exe`.
+This writes `client.dll` and `server.dll` to `game/hidden2013/bin/x64` and the launcher to
+`game/hidden2013_win64.exe`.
 
 ## Running
 
-- **Client:** run `game\mod_hidden_win64.exe` (Steam must be running).
+- **Client:** run `game\hidden2013_win64.exe` (Steam must be running).
 - **Dedicated server (Windows):** use the 64-bit `srcds_win64.exe` from the Source SDK Base 2013
   Multiplayer install. The `srcds.exe` in the dedicated-server app (244310) is 32-bit and can't load
   64-bit game DLLs.
 
   ```powershell
-  & "<SDK Base 2013 MP>\srcds_win64.exe" -console -game "<repo>\game\mod_hidden" +maxplayers 12 +map hdn_docks
+  & "<SDK Base 2013 MP>\srcds_win64.exe" -console -game "<repo>\game\hidden2013" +maxplayers 12 +map hdn_docks
   ```
 
 - **Dedicated server (Linux):** to come. Build with `src/buildallprojects` against the Steam Runtime and

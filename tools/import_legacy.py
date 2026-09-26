@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Import Hidden: Source Beta 4b content into game/mod_hidden/legacy.
+"""Import Hidden: Source Beta 4b content into game/hidden2013/legacy.
 
 The new mod reuses the old mod's assets but none of its code, so only content
 folders are copied, plus the stock defaults in cfg/ (default binds, server
@@ -25,7 +25,7 @@ import zipfile
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
-DEST = ROOT / "game" / "mod_hidden" / "legacy"
+DEST = ROOT / "game" / "hidden2013" / "legacy"
 
 CONTENT_DIRS = {"materials", "models", "sound", "maps", "scripts", "resource", "media"}
 
