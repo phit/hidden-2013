@@ -15,6 +15,7 @@
 #include "hidden_cvars.h"
 #include "team.h"
 #include "weapon_hiddenbase.h"
+#include "hidden_spectator.h"
 
 // memdbgon must be the last include file in a .cpp file!!!
 #include "tier0/memdbgon.h"
@@ -160,6 +161,19 @@ void CHidden_Player::Precache( void )
 void CHidden_Player::InitialSpawn( void )
 {
 	BaseClass::InitialSpawn();
+
+	// The cameras spectators cycle through; without any, the first Hidden spawn.
+	m_Cameras.RemoveAll();
+	for ( CBaseEntity *pCamera = gEntList.FindEntityByClassname( NULL, "info_spectator" ); pCamera; pCamera = gEntList.FindEntityByClassname( pCamera, "info_spectator" ) )
+		m_Cameras.AddToTail( pCamera );
+
+	DevMsg( 1, "Camera Count : %i\n", m_Cameras.Count() );
+	if ( !m_Cameras.Count() )
+	{
+		CBaseEntity *pSpawn = gEntList.FindEntityByClassname( NULL, "info_hidden_spawn" );
+		if ( pSpawn )
+			m_Cameras.AddToTail( pSpawn );
+	}
 
 	// New players watch until they pick a class and character and the next round starts.
 	// Setting the team first also stops CHL2MP_Player::Spawn from picking one.
@@ -541,6 +555,120 @@ void CHidden_Player::PickupObject( CBaseEntity *pObject, bool bLimitMassAndSize 
 	PlayerPickupObject( this, pObject );
 }
 
+// Beta 4b had only its two spectator modes; anything else (roaming, chase, the last mode HL2MP
+// remembers) becomes the cameras.
+bool CHidden_Player::SetObserverMode( int mode )
+{
+	if ( mode != OBS_MODE_NONE && mode != OBS_MODE_DEATHCAM && mode != OBS_MODE_IN_EYE )
+		mode = OBS_MODE_FIXED;
+
+	if ( !BaseClass::SetObserverMode( mode ) )
+		return false;
+
+	// The cameras don't follow anyone; SDK 2013 would leave the view where the player died.
+	if ( mode == OBS_MODE_FIXED && !IsValidObserverTarget( m_hObserverTarget ) )
+	{
+		CBaseEntity *pCamera = FindNextObserverTarget( false );
+		if ( pCamera )
+			SetObserverTarget( pCamera );
+	}
+
+	return true;
+}
+
+// On a camera, the view is the camera's "position" attachment, as it's turned, with its FOV.
+bool CHidden_Player::SetObserverTarget( CBaseEntity *target )
+{
+	if ( !BaseClass::SetObserverTarget( target ) )
+		return false;
+
+	if ( GetObserverMode() == OBS_MODE_FIXED )
+	{
+		Vector vecOrigin = target->GetAbsOrigin();
+		QAngle angles = target->GetAbsAngles();
+
+		CBaseAnimating *pAnimating = target->GetBaseAnimating();
+		if ( pAnimating && pAnimating->LookupAttachment( "position" ) > 0 )
+			pAnimating->GetAttachment( "position", vecOrigin, angles );
+
+		JumptoPosition( vecOrigin, angles );
+
+		CHiddenSpectatorPoint *pCamera = dynamic_cast<CHiddenSpectatorPoint *>( target );
+		if ( pCamera && pCamera->GetFOV() > 0.0f )
+			SetFOV( this, (int)pCamera->GetFOV() );
+	}
+	else
+	{
+		// Beta 4b moves the observer to whoever it watches (which keeps them in its PVS).
+		SetAbsOrigin( target->GetAbsOrigin() );
+	}
+
+	return true;
+}
+
+// The cameras, or the marines; with no marine left to watch, back to the cameras.
+CBaseEntity *CHidden_Player::FindNextObserverTarget( bool bReverse )
+{
+	if ( GetObserverMode() == OBS_MODE_IN_EYE )
+	{
+		const int iStart = m_hObserverTarget ? m_hObserverTarget->entindex() : entindex();
+		int i = iStart;
+		do
+		{
+			i += bReverse ? -1 : 1;
+			if ( i > gpGlobals->maxClients )
+				i = 1;
+			else if ( i < 1 )
+				i = gpGlobals->maxClients;
+
+			CBasePlayer *pPlayer = UTIL_PlayerByIndex( i );
+			if ( IsValidObserverTarget( pPlayer ) )
+				return pPlayer;
+		}
+		while ( i != iStart );
+
+		ForceObserverMode( OBS_MODE_FIXED );
+	}
+
+	if ( !m_Cameras.Count() )
+		return NULL;
+
+	int iCurrent = -1;
+	for ( int i = 0; i < m_Cameras.Count(); i++ )
+	{
+		if ( m_Cameras[i] == m_hObserverTarget )
+		{
+			iCurrent = i;
+			break;
+		}
+	}
+
+	if ( iCurrent < 0 )
+		return m_Cameras[0];
+
+	const int iCount = m_Cameras.Count();
+	return m_Cameras[( iCurrent + ( bReverse ? iCount - 1 : 1 ) ) % iCount];
+}
+
+// The cameras, and living marines who aren't observers or hidden from view.
+bool CHidden_Player::IsValidObserverTarget( CBaseEntity *target )
+{
+	if ( !target )
+		return false;
+
+	for ( int i = 0; i < m_Cameras.Count(); i++ )
+	{
+		if ( m_Cameras[i] == target )
+			return true;
+	}
+
+	if ( !target->IsPlayer() )
+		return false;
+
+	CBasePlayer *pPlayer = ToBasePlayer( target );
+	return pPlayer->GetTeamNumber() != TEAM_HIDDEN && !pPlayer->IsObserver() && !pPlayer->IsEffectActive( EF_NODRAW ) && pPlayer->IsAlive();
+}
+
 void CHidden_Player::PlayerDeathThink( void )
 {
 	BaseClass::PlayerDeathThink();
@@ -859,7 +987,38 @@ bool CHidden_Player::ClientCommand( const CCommand &args )
 	const int iArg = ( args.ArgC() > 1 ) ? atoi( args[1] ) : 0;
 
 	if ( FStrEq( pszCmd, "radio" ) )
+	{
 		return Radio( iArg );
+	}
+	else if ( FStrEq( pszCmd, "spec_next" ) || FStrEq( pszCmd, "spec_prev" ) )
+	{
+		// The cameras cycle too (SDK 2013 only cycles the modes that follow players).
+		if ( IsObserver() )
+		{
+			CBaseEntity *pTarget = FindNextObserverTarget( FStrEq( pszCmd, "spec_prev" ) );
+			if ( pTarget )
+				SetObserverTarget( pTarget );
+		}
+		return true;
+	}
+	else if ( FStrEq( pszCmd, "spec_mode" ) )
+	{
+		// Beta 4b's two modes: toggle, or 1 for the cameras and 2 for the marines.
+		int iMode = ( GetObserverMode() == OBS_MODE_IN_EYE ) ? OBS_MODE_FIXED : OBS_MODE_IN_EYE;
+		if ( args.ArgC() > 1 )
+			iMode = ( iArg == 2 ) ? OBS_MODE_IN_EYE : OBS_MODE_FIXED;
+
+		m_iObserverLastMode = iMode;
+		engine->ClientCommand( edict(), "cl_spec_mode %d", iMode );
+
+		if ( IsObserver() && SetObserverMode( iMode ) )
+		{
+			CBaseEntity *pTarget = FindNextObserverTarget( false );
+			if ( pTarget )
+				SetObserverTarget( pTarget );
+		}
+		return true;
+	}
 	else if ( FStrEq( pszCmd, "changeclass" ) )
 	{
 		m_iPlayerClass = ( iArg >= 0 && iArg < HIDDEN_CLASS_COUNT ) ? iArg : HIDDEN_CLASS_NONE;

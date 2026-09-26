@@ -38,6 +38,13 @@ public:
 	virtual void Event_Killed( const CTakeDamageInfo &info );
 	virtual void CreateRagdollEntity( void );
 
+	// Spectating (docs/spec/game-rules.md): the map's info_spectator cameras (Beta 4b's observer
+	// mode 1, OBS_MODE_FIXED here) or the living marines' helmet cams (mode 2, OBS_MODE_IN_EYE).
+	virtual bool SetObserverMode( int mode );
+	virtual bool SetObserverTarget( CBaseEntity *target );
+	virtual CBaseEntity *FindNextObserverTarget( bool bReverse );
+	virtual bool IsValidObserverTarget( CBaseEntity *target );
+
 	// Only the Hidden picks things up: corpses (+use, on release) and light props.
 	virtual bool IsUseableEntity( CBaseEntity *pEntity, unsigned int requiredCaps );
 	virtual void PlayerUse( void );
@@ -189,6 +196,7 @@ private:
 	CTakeDamageInfo m_KillInfo;	// for the corpse
 	bool m_bUseDroppedObject;	// this +use press let go of what we held
 	bool m_bAmmoReceived;		// resupplied this life; no more ammo calls
+	CUtlVector<EHANDLE> m_Cameras;	// the map's info_spectator cameras, in map order
 	float m_flRadioTimer;		// no radio before this
 
 	CUtlVector<StunTracker_t> m_Stunners;

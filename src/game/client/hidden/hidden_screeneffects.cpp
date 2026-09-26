@@ -113,11 +113,13 @@ void CHiddenScreenEffects::Render( int x, int y, int w, int h )
 			DrawBlurTrail( 0.7f / pPlayer->GetBlur() );
 		}
 	}
-	else if ( pPlayer->GetObserverMode() == OBS_MODE_DEATHCAM )
+	// Beta 4b's observer mode 1 (the value of SDK's deathcam) watched the map's cameras, which is
+	// OBS_MODE_FIXED here; its mode 2 watched marines through their helmet cams (OBS_MODE_IN_EYE).
+	else if ( pPlayer->GetObserverMode() == OBS_MODE_FIXED || pPlayer->GetObserverMode() == OBS_MODE_DEATHCAM )
 	{
 		DrawOverlay( OVERLAY_DEATHCAM, x, y, w, h );
 	}
-	else if ( pPlayer->GetObserverMode() == OBS_MODE_FIXED )
+	else if ( pPlayer->GetObserverMode() == OBS_MODE_IN_EYE )
 	{
 		DrawOverlay( OVERLAY_HELMETCAM, x, y, w, h );
 	}
