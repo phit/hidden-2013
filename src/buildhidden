@@ -1,0 +1,33 @@
+#!/bin/bash
+# Builds Hidden: Source's Linux client, server and shader libraries in the Steam Runtime (sniper)
+# container, like buildallprojects does for /hl2mp /tf. Outside the container it re-runs itself in
+# one with podman; inside (CI, or a sniper shell) it builds directly.
+#
+#   ./buildhidden [debug|release]
+
+set -euo pipefail
+
+script=$(readlink -f -- "$0")
+pushd "$(dirname -- "$script")" > /dev/null
+
+if [[ -z "${HIDDEN_IN_SNIPER:-}" ]]; then
+    source sdk_container
+    run_in_sniper "$@"
+fi
+
+mode="${1:-release}"
+if [[ "$mode" != "debug" && "$mode" != "release" ]]; then
+    echo "Usage: $0 [debug|release]"
+    exit 1
+fi
+export VPC_NINJA_BUILD_MODE="$mode"
+
+solution_out="_vpc_/ninja/hidden_$VPC_NINJA_BUILD_MODE"
+
+if [[ ! -e "$solution_out.ninja" ]]; then
+    devtools/bin/vpc /hidden /linux64 /ninja /define:SOURCESDK +game +game_shader_generic_hidden /mksln "$solution_out"
+fi
+
+ninja -f "$solution_out.ninja" -j"$(nproc)"
+
+popd

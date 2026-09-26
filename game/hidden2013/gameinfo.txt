@@ -25,7 +25,7 @@
 		SearchPaths
 		{
 			// User customizations: VPKs and subfolders, mounted alphabetically at boot.
-			game+mod			hidden2013/custom/*
+			game+mod			|gameinfo_path|custom/*
 
 			// New mod files. Anything here overrides the legacy Beta 4b content below.
 			mod+mod_write		|gameinfo_path|.
@@ -33,9 +33,13 @@
 			default_write_path	|gameinfo_path|.
 			gamebin				|gameinfo_path|bin
 
-			// Hidden: Source Beta 4b content, imported by tools/import_legacy.py.
-			// Not in git. Deliberately no gamebin here, so the 2006 DLLs can never load.
+			// Hidden: Source Beta 4b content. Never a gamebin for either, so the 2006 DLLs in the
+			// original's bin/ can never load.
+			// legacy/: an optional copy made by tools/import_legacy.py (development; not in git).
 			game+mod			|gameinfo_path|legacy
+			// The player's own Beta 4b install, next to this folder in sourcemods. Its cfg/ is
+			// searched too, so a GHSI autoexec.cfg there runs unless hidden2013/cfg has one.
+			game+mod			|gameinfo_path|../hidden
 
 			// Beta 4b ran on SDK Base 2006, which mounted HL2 and HL2DM content.
 			game+mod			|all_source_engine_paths|hl2mp/hl2mp_english.vpk
@@ -53,7 +57,7 @@
 			platform			|all_source_engine_paths|platform
 
 			// Files downloaded from servers, searched last.
-			game+download		hidden2013/download
+			game+download		|gameinfo_path|download
 		}
 	}
 }

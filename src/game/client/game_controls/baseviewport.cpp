@@ -744,6 +744,10 @@ void CBaseViewport::ReloadScheme(const char *fromFile)
 
 	// reload the .res file from disk
 	LoadControlSettings( "scripts/HudLayout.res", NULL, NULL, pConditions );
+#ifdef HIDDEN
+	// Beta 4b's layout predates some SDK 2013 HUD elements; ours places them.
+	LoadControlSettings( "scripts/HudLayout_hidden.res", NULL, NULL, pConditions );
+#endif
 
 	gHUD.RefreshHudTextures();
 

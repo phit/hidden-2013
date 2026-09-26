@@ -435,6 +435,15 @@ void CHud::Init( void )
 				}
 
 				KeyValues *key = kv->FindKey( pPanel->GetName(), false );
+#ifdef HIDDEN
+				// Elements Beta 4b's layout predates are in ours (see ClientModeShared::Init).
+				if ( !key )
+				{
+					KeyValuesAD kvHidden( "layout" );
+					if ( kvHidden->LoadFromFile( filesystem, "scripts/HudLayout_hidden.res" ) )
+						key = kvHidden->FindKey( pPanel->GetName(), false );
+				}
+#endif
 				if ( !key )
 				{
 					Assert( false );
