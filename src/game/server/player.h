@@ -1174,6 +1174,9 @@ protected:
 	friend class CHL1GameMovement;
 	friend class CCSGameMovement;	
 	friend class CHL2GameMovement;
+#ifdef HIDDEN
+	friend class CHiddenGameMovement;
+#endif
 	friend class CDODGameMovement;
 	friend class CPortalGameMovement;
 	

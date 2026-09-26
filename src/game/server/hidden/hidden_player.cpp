@@ -6,6 +6,7 @@
 //=============================================================================//
 
 #include "cbase.h"
+#include "in_buttons.h"
 #include "hidden_player.h"
 #include "hidden_gamerules.h"
 #include "hidden_cvars.h"
@@ -25,6 +26,8 @@
 #define HIDDEN_HIDDEN_FOV			110
 
 #define HIDDEN_BOOST_SPEED			250.0f
+#define HIDDEN_MARINE_WALK_SPEED	120.0f
+#define HIDDEN_HIDDEN_WALK_SPEED	160.0f
 #define HIDDEN_BOOST_TIME			10.0f
 #define HIDDEN_BOOST_CHARGES		3
 
@@ -91,6 +94,8 @@ IMPLEMENT_SERVERCLASS_ST( CHidden_Player, DT_Hidden_Player )
 	SendPropFloat( SENDINFO( m_flBlur ), 0, SPROP_NOSCALE ),
 	SendPropBool( SENDINFO( m_bLAM ) ),
 	SendPropBool( SENDINFO( m_bNightVision ) ),
+	SendPropFloat( SENDINFO( m_flStamina ), 0, SPROP_NOSCALE ),
+	SendPropBool( SENDINFO( m_bClinging ) ),
 	SendPropInt( SENDINFO( m_iThrowGrenadeCounter ), HIDDEN_THROWGRENADE_COUNTER_BITS, SPROP_UNSIGNED ),
 	SendPropString( SENDINFO( m_szCurrentLocation ) ),
 END_SEND_TABLE()
@@ -164,6 +169,9 @@ void CHidden_Player::Spawn( void )
 	m_bNightVision = false;
 	m_bLAM = false;
 	m_iBoostCount = 0;
+	m_flStamina = 0.0f;
+	m_bClinging = false;
+	m_bWalking = false;
 	ResetStun();
 
 	const int iTeam = GetTeamNumber();
@@ -217,6 +225,7 @@ void CHidden_Player::SetupHidden( void )
 	m_nSkin = 1;
 	m_nBody = 1;
 	SetMaxSpeed( HIDDEN_HIDDEN_SPEED );
+	m_flStamina = HIDDEN_STAMINA_MAX;
 	SetFOV( this, HIDDEN_HIDDEN_FOV );
 	SetCollisionGroup( HIDDEN_COLLISION_GROUP_HIDDEN );
 
@@ -351,6 +360,8 @@ void CHidden_Player::Event_Killed( const CTakeDamageInfo &info )
 	// The Hidden dies as the visible hidden.mdl instead of the cloaked mn_fixture1. As in Beta 4b the
 	// player takes the model too, so the client poses the ragdoll from the same skeleton (hidden.mdl
 	// has 21 bones, mn_fixture1 42).
+	m_bClinging = false;
+
 	const bool bHidden = ( GetTeamNumber() == TEAM_HIDDEN );
 	if ( bHidden )
 	{
@@ -377,6 +388,43 @@ void CHidden_Player::PlayerDeathThink( void )
 	// No respawning during a round: the dead watch until the next one.
 	if ( !IsObserver() && gpGlobals->curtime > GetDeathTime() + DEATH_ANIMATION_TIME )
 		BecomeObserver();
+}
+
+void CHidden_Player::PreThink( void )
+{
+	// +walk: pressing it (unless ducking) walks, letting go runs again.
+	if ( ( m_afButtonPressed | m_afButtonReleased ) & IN_WALK )
+	{
+		if ( m_bWalking && !( m_afButtonPressed & IN_WALK ) )
+			StopWalking();
+		else if ( !m_bWalking && ( m_afButtonPressed & IN_WALK ) && !( m_nButtons & IN_DUCK ) )
+			StartWalking();
+	}
+
+	BaseClass::PreThink();
+}
+
+// Beta 4b's CSDKPlayer walk speeds. They replace whatever speed was set, so walking ends a boost.
+void CHidden_Player::StartWalking( void )
+{
+	SetMaxSpeed( GetTeamNumber() == TEAM_IRIS ? HIDDEN_MARINE_WALK_SPEED : HIDDEN_HIDDEN_WALK_SPEED );
+	m_bWalking = true;
+}
+
+void CHidden_Player::StopWalking( void )
+{
+	SetMaxSpeed( GetTeamNumber() == TEAM_IRIS ? HIDDEN_MARINE_SPEED : HIDDEN_HIDDEN_SPEED );
+	m_bWalking = false;
+}
+
+void CHidden_Player::ItemPostFrame( void )
+{
+	// The Hidden gets stamina back on the ground (Beta 4b also stops it while the aura is on; that
+	// comes with the aura).
+	if ( GetTeamNumber() == TEAM_HIDDEN && m_flStamina < HIDDEN_STAMINA_MAX && GetGroundEntity() != NULL )
+		SetStamina( HIDDEN_STAMINA_REGEN );
+
+	BaseClass::ItemPostFrame();
 }
 
 void CHidden_Player::PostThink( void )

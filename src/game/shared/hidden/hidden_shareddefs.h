@@ -38,6 +38,15 @@ enum
 #define HIDDEN_LOCATION_LENGTH	25	// Beta 4b's location names are at most this long
 
 #define HIDDEN_MAX_MARINES		8	// at most this many marines spawn per round
+
+// Movement and stamina (docs/spec/hidden-abilities.md). The stamina rates are per tick.
+#define HIDDEN_STAMINA_MAX			100.0f
+#define HIDDEN_STAMINA_REGEN		0.3f	// on the ground
+#define HIDDEN_POUNCE_STAMINA		20.0f	// needed and used by a pounce
+#define HIDDEN_POUNCE_SPEED			615.0f	// along the aim
+#define HIDDEN_CLING_JUMP_STAMINA	10.0f	// per tick jump is held on a wall
+#define HIDDEN_CLING_DISTANCE		24.0f	// from the eyes to the wall
+#define HIDDEN_BACK_SPEED_SCALE		0.8f	// marines walking backwards
 #define HIDDEN_NUM_CHARACTERS	9	// marine characters, one per player
 
 // Marine classes (changeclass <n>).

@@ -43,6 +43,13 @@ public:
 	bool NightVisionEnabled( void ) const { return m_bNightVision; }
 	const char *GetCurrentLocation( void ) const { return m_szCurrentLocation; }
 
+	// Stamina and wall cling, predicted with the movement; see CHidden_Player.
+	float GetStamina( void ) const { return m_flStamina; }
+	void SetStamina( float flDelta ) { const float flNew = m_flStamina + flDelta; if ( flNew >= 0.0f && flNew <= HIDDEN_STAMINA_MAX ) m_flStamina = flNew; }
+	bool IsClinging( void ) const { return m_bClinging; }
+	void SetClinging( bool bClinging ) { m_bClinging = bClinging; }
+	virtual void ItemPostFrame( void );
+
 	virtual ShadowType_t ShadowCastType( void );
 
 	// Third-person animation (Beta 4b's SDK template anim state)
@@ -70,6 +77,8 @@ private:
 	float m_flBlur;
 	bool m_bLAM;
 	bool m_bNightVision;
+	float m_flStamina;
+	bool m_bClinging;
 	int m_iThrowGrenadeCounter;
 	char m_szCurrentLocation[HIDDEN_LOCATION_LENGTH];
 

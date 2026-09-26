@@ -1,33 +1,338 @@
 //========= Hidden: Source =====================================================//
 //
-// Purpose: Player movement. Beta 4b's CSDKGameMovement is the SDK's CGameMovement,
-//			so ladders are brush ladders (CONTENTS_LADDER); HL2's func_useableladder
-//			did nothing. See docs/spec/hidden-abilities.md.
+// Purpose: Player movement. Beta 4b's CSDKGameMovement is the SDK's CGameMovement
+//			plus the Hidden's pounce and wall cling and the marines' slower
+//			backwards walk, so we keep HL2's class but drop HL2's sprinting,
+//			jump and useable ladders. See docs/spec/hidden-abilities.md.
 //
 //=============================================================================//
 
 #include "cbase.h"
 #include "hl_gamemovement.h"
 #include "hidden_shareddefs.h"
+#include "hidden_player_shared.h"
+#include "in_buttons.h"
+#include "hidden_cvars.h"
+#include "movevars_shared.h"
 
 // memdbgon must be the last include file in a .cpp file!!!
 #include "tier0/memdbgon.h"
+
+extern bool g_bMovementOptimizations;
 
 class CHiddenGameMovement : public CHL2GameMovement
 {
 	typedef CHL2GameMovement BaseClass;
 public:
+	// Beta 4b's speeds: the player's max speed as set by the game, with no HL2 sprint or walk.
+	virtual void CheckParameters( void );
+	virtual void ReduceTimers( void ) { CGameMovement::ReduceTimers(); }
+
+	virtual bool CheckJumpButton( void );
+	virtual void FullWalkMove( void );
+	virtual void WalkMove( void );
+	virtual void AirMove( void );
+	virtual void Duck( void );
+
 	// Brush ladders, as in the SDK, instead of HL2's useable ladders.
 	virtual bool LadderMove( void );
 	virtual void FullLadderMove( void ) { CGameMovement::FullLadderMove(); }
 	virtual bool OnLadder( trace_t &trace ) { return CGameMovement::OnLadder( trace ); }
 	virtual int GetCheckInterval( IntervalType_t type ) { return CGameMovement::GetCheckInterval( type ); }
+
+private:
+	CHidden_Player *GetHiddenPlayer( void ) { return static_cast<CHidden_Player *>( player ); }
+	bool IsHidden( void ) { return player->GetTeamNumber() == TEAM_HIDDEN; }
+
+	void CheckBack( void );
+	bool CheckPounceButton( void );
+	void WallCling( void );
 };
+
+void CHiddenGameMovement::CheckParameters( void )
+{
+	CGameMovement::CheckParameters();
+	CheckBack();
+}
+
+// Marines on the ground walk backwards at 80 %. It counts as the speed crop, so a marine who
+// crouches while backing off isn't slowed to a third as well (as in Beta 4b).
+void CHiddenGameMovement::CheckBack( void )
+{
+	if ( player->GetTeamNumber() != TEAM_IRIS || m_iSpeedCropped != SPEED_CROPPED_RESET )
+		return;
+
+	if ( player->GetGroundEntity() != NULL && ( mv->m_nButtons & IN_BACK ) )
+	{
+		m_iSpeedCropped |= SPEED_CROPPED_DUCK;
+		mv->m_flForwardMove *= HIDDEN_BACK_SPEED_SCALE;
+	}
+}
+
+// The SDK's jump (21 units at 800 gravity) without HL2's forward boost; a clinging Hidden can jump
+// off the wall.
+bool CHiddenGameMovement::CheckJumpButton( void )
+{
+	if ( player->pl.deadflag )
+	{
+		mv->m_nOldButtons |= IN_JUMP;	// don't jump again until released
+		return false;
+	}
+
+	// See if we are waterjumping. If so, decrement count and return.
+	if ( player->m_flWaterJumpTime )
+	{
+		player->m_flWaterJumpTime -= gpGlobals->frametime;
+		if ( player->m_flWaterJumpTime < 0 )
+			player->m_flWaterJumpTime = 0;
+
+		return false;
+	}
+
+	// If we are in the water most of the way...
+	if ( player->GetWaterLevel() >= 2 )
+	{
+		// swimming, not jumping
+		SetGroundEntity( NULL );
+
+		if ( player->GetWaterType() == CONTENTS_WATER )
+			mv->m_vecVelocity[2] = 100;
+		else if ( player->GetWaterType() == CONTENTS_SLIME )
+			mv->m_vecVelocity[2] = 80;
+
+		// play swimming sound
+		if ( player->m_flSwimSoundTime <= 0 )
+		{
+			// Don't play sound again for 1 second
+			player->m_flSwimSoundTime = 1000;
+			PlaySwimSound();
+		}
+
+		return false;
+	}
+
+	CHidden_Player *pHidden = GetHiddenPlayer();
+	if ( player->GetGroundEntity() == NULL && !pHidden->IsClinging() )
+	{
+		mv->m_nOldButtons |= IN_JUMP;
+		return false;		// in air, so no effect
+	}
+
+	// Don't allow jumping when the player is in a stasis field.
+	if ( player->m_Local.m_bSlowMovement )
+		return false;
+
+	if ( mv->m_nOldButtons & IN_JUMP )
+		return false;		// don't pogo stick
+
+	// Cannot jump while in the unduck transition.
+	if ( player->m_Local.m_bDucking && ( player->GetFlags() & FL_DUCKING ) )
+		return false;
+
+	// Still updating the eye position.
+	if ( player->m_Local.m_flDuckJumpTime > 0.0f )
+		return false;
+
+	pHidden->SetClinging( false );
+
+	// In the air now.
+	SetGroundEntity( NULL );
+
+	player->PlayStepSound( (Vector &)mv->GetAbsOrigin(), player->m_pSurfaceData, 1.0, true );
+
+	MoveHelper()->PlayerSetAnimation( PLAYER_JUMP );
+
+	float flGroundFactor = 1.0f;
+	if ( player->m_pSurfaceData )
+		flGroundFactor = player->m_pSurfaceData->game.jumpFactor;
+
+	// Like Beta 4b, the optimised path doesn't follow sv_gravity.
+	const float flMul = g_bMovementOptimizations ? 268.3281572999747f : sqrt( 2 * GetCurrentGravity() * GAMEMOVEMENT_JUMP_HEIGHT );
+
+	// Accelerate upward. If we are ducking...
+	const float startz = mv->m_vecVelocity[2];
+	if ( player->m_Local.m_bDucking || ( player->GetFlags() & FL_DUCKING ) )
+		mv->m_vecVelocity[2] = flGroundFactor * flMul;
+	else
+		mv->m_vecVelocity[2] += flGroundFactor * flMul;
+
+	FinishGravity();
+
+	mv->m_outJumpVel.z += mv->m_vecVelocity[2] - startz;
+	mv->m_outStepHeight += 0.15f;
+
+	OnJump( mv->m_outJumpVel.z );
+
+	// Set jump time.
+	if ( gpGlobals->maxClients == 1 )
+	{
+		player->m_Local.m_flJumpTime = GAMEMOVEMENT_JUMP_TIME;
+		player->m_Local.m_bInDuckJump = true;
+	}
+
+	// Flag that we jumped.
+	mv->m_nOldButtons |= IN_JUMP;	// don't jump again until released
+	return true;
+}
+
+// The Hidden's pounce: a leap along the aim, from the ground or off a wall.
+bool CHiddenGameMovement::CheckPounceButton( void )
+{
+	if ( player->pl.deadflag )
+	{
+		mv->m_nOldButtons |= IN_BULLRUSH;
+		return false;
+	}
+
+	CHidden_Player *pHidden = GetHiddenPlayer();
+	if ( pHidden->GetStamina() < HIDDEN_POUNCE_STAMINA )
+		return false;
+
+	// In the water it's a swim stroke, as a jump would be (and costs nothing).
+	if ( player->GetWaterLevel() >= 2 )
+	{
+		SetGroundEntity( NULL );
+
+		if ( player->GetWaterType() == CONTENTS_WATER )
+			mv->m_vecVelocity[2] = 100;
+		else if ( player->GetWaterType() == CONTENTS_SLIME )
+			mv->m_vecVelocity[2] = 80;
+
+		if ( player->m_flSwimSoundTime <= 0 )
+		{
+			player->m_flSwimSoundTime = 1000;
+			PlaySwimSound();
+		}
+
+		return false;
+	}
+
+	if ( mv->m_nOldButtons & IN_BULLRUSH )
+		return false;
+
+	if ( player->m_Local.m_flDuckJumpTime > 0.0f )
+		return false;
+
+	if ( player->GetGroundEntity() == NULL && !pHidden->IsClinging() )
+		return false;
+
+	SetGroundEntity( NULL );
+	pHidden->SetClinging( false );
+
+	player->PlayStepSound( (Vector &)mv->GetAbsOrigin(), player->m_pSurfaceData, 1.0, true );
+	MoveHelper()->PlayerSetAnimation( PLAYER_JUMP );
+
+	Vector vecAim;
+	AngleVectors( mv->m_vecViewAngles + player->m_Local.m_vecPunchAngle, &vecAim );
+	mv->m_vecVelocity = vecAim * HIDDEN_POUNCE_SPEED;
+
+	FinishGravity();
+
+	pHidden->SetStamina( -HIDDEN_POUNCE_STAMINA );
+	mv->m_nOldButtons |= IN_BULLRUSH;
+	return true;
+}
+
+void CHiddenGameMovement::FullWalkMove( void )
+{
+	if ( GetHiddenPlayer()->IsClinging() )
+	{
+		WallCling();
+		return;
+	}
+
+	if ( !( mv->m_nButtons & IN_BULLRUSH ) )
+		mv->m_nOldButtons &= ~IN_BULLRUSH;
+
+	BaseClass::FullWalkMove();
+}
+
+// Beta 4b checks the pounce right after the jump, before the ground move; the ground friction
+// in between doesn't matter since the pounce replaces the velocity.
+void CHiddenGameMovement::WalkMove( void )
+{
+	if ( IsHidden() && ( mv->m_nButtons & IN_BULLRUSH ) && CheckPounceButton() )
+	{
+		AirMove();
+		return;
+	}
+
+	BaseClass::WalkMove();
+}
+
+// A Hidden in the air holding the pounce key grabs a wall within 24 units of the eyes.
+void CHiddenGameMovement::AirMove( void )
+{
+	CHidden_Player *pHidden = GetHiddenPlayer();
+	if ( IsHidden() && !pHidden->IsClinging() && ( mv->m_nButtons & IN_BULLRUSH ) )
+	{
+		Vector vecForward;
+		player->EyeVectors( &vecForward );
+
+		const Vector vecEyes = player->EyePosition();
+		trace_t tr;
+		UTIL_TraceLine( vecEyes, vecEyes + vecForward * HIDDEN_CLING_DISTANCE, MASK_SOLID_BRUSHONLY, NULL, COLLISION_GROUP_NONE, &tr );
+		if ( tr.fraction < 1.0f )
+		{
+			pHidden->SetClinging( true );
+			return;
+		}
+	}
+
+	BaseClass::AirMove();
+}
+
+// Stuck to the wall: no movement, stamina drains, and jump or pounce lets go.
+void CHiddenGameMovement::WallCling( void )
+{
+	CHidden_Player *pHidden = GetHiddenPlayer();
+
+	mv->m_vecVelocity.Init();
+
+	if ( player->GetGroundEntity() != NULL || pHidden->GetStamina() < 1.0f )
+	{
+		pHidden->SetClinging( false );
+		return;
+	}
+
+	pHidden->SetStamina( hdn_staminadrain.GetFloat() );
+
+	// Holding jump costs stamina every tick, even when the jump doesn't fire (Beta 4b).
+	if ( mv->m_nButtons & IN_JUMP )
+	{
+		pHidden->SetStamina( -HIDDEN_CLING_JUMP_STAMINA );
+		CheckJumpButton();
+	}
+	else
+	{
+		mv->m_nOldButtons &= ~IN_JUMP;
+	}
+
+	if ( mv->m_nButtons & IN_BULLRUSH )
+		CheckPounceButton();
+	else
+		mv->m_nOldButtons &= ~IN_BULLRUSH;
+}
+
+// Ducking lets go of the wall.
+void CHiddenGameMovement::Duck( void )
+{
+	CHidden_Player *pHidden = GetHiddenPlayer();
+	if ( pHidden->IsClinging() && player->IsAlive() &&
+		 ( ( mv->m_nButtons & IN_DUCK ) || player->m_Local.m_bDucking || ( player->GetFlags() & FL_DUCKING ) || player->m_Local.m_bInDuckJump ) )
+	{
+		pHidden->SetClinging( false );
+	}
+
+	BaseClass::Duck();
+}
 
 bool CHiddenGameMovement::LadderMove( void )
 {
 	if ( !CGameMovement::LadderMove() )
 		return false;
+
+	GetHiddenPlayer()->SetClinging( false );
 
 	// Marines put their weapon away while they hold on to a ladder, every tick they're on it;
 	// CWeaponHiddenBase::ItemPostFrame brings it back out once they're off.

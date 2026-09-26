@@ -36,7 +36,9 @@ public:
 	virtual bool ClientCommand( const CCommand &args );
 	virtual void PlayerDeathThink( void );
 	virtual void Event_Killed( const CTakeDamageInfo &info );
+	virtual void PreThink( void );
 	virtual void PostThink( void );
+	virtual void ItemPostFrame( void );
 	virtual void ImpulseCommands( void );
 
 	// Third-person animation (Beta 4b's SDK template anim state, played on the clients).
@@ -106,6 +108,19 @@ public:
 	bool IsSpawnQueued( void ) const { return m_bSpawnQueued; }
 	void SetSpawnQueued( bool bQueued ) { m_bSpawnQueued = bQueued; }
 
+	// Stamina (the Hidden's; marines have none). Changes that would leave 0-100 are dropped whole,
+	// as in Beta 4b, so regeneration stops just short of 100.
+	float GetStamina( void ) const { return m_flStamina; }
+	void SetStamina( float flDelta ) { const float flNew = m_flStamina + flDelta; if ( flNew >= 0.0f && flNew <= HIDDEN_STAMINA_MAX ) m_flStamina = flNew; }
+
+	// Wall cling, Beta 4b's movetype 12 (see hidden_gamemovement.cpp).
+	bool IsClinging( void ) const { return m_bClinging; }
+	void SetClinging( bool bClinging ) { m_bClinging = bClinging; }
+
+	// +walk: marines 120, the Hidden 160; letting go restores the run speed.
+	void StartWalking( void );
+	void StopWalking( void );
+
 	// Stun and blur (docs/spec/hidden-abilities.md): FN303 hits stun, explosions and the boost
 	// send a shockwave. Only the Hidden takes stun damage; anyone's view blurs.
 	bool IsStunned( void ) const { return m_bStunned; }
@@ -142,6 +157,8 @@ private:
 	CNetworkVar( float, m_flBlur );
 	CNetworkVar( bool, m_bLAM );
 	CNetworkVar( bool, m_bNightVision );
+	CNetworkVar( float, m_flStamina );
+	CNetworkVar( bool, m_bClinging );
 	CNetworkVar( int, m_iThrowGrenadeCounter );
 	CNetworkString( m_szCurrentLocation, HIDDEN_LOCATION_LENGTH );
 
@@ -150,6 +167,7 @@ private:
 	int m_iBoostCount;
 	float m_flBoostTimer;
 	bool m_bBoosted;
+	bool m_bWalking;
 
 	CUtlVector<StunTracker_t> m_Stunners;
 	float m_flStunTime;

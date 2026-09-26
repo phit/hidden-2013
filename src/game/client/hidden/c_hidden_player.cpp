@@ -60,6 +60,8 @@ IMPLEMENT_CLIENTCLASS_DT( C_Hidden_Player, DT_Hidden_Player, CHidden_Player )
 	RecvPropFloat( RECVINFO( m_flBlur ) ),
 	RecvPropBool( RECVINFO( m_bLAM ) ),
 	RecvPropBool( RECVINFO( m_bNightVision ) ),
+	RecvPropFloat( RECVINFO( m_flStamina ) ),
+	RecvPropBool( RECVINFO( m_bClinging ) ),
 	RecvPropInt( RECVINFO( m_iThrowGrenadeCounter ) ),
 	RecvPropString( RECVINFO( m_szCurrentLocation ) ),
 END_RECV_TABLE()
@@ -68,6 +70,8 @@ END_RECV_TABLE()
 BEGIN_PREDICTION_DATA( C_Hidden_Player )
 	DEFINE_PRED_FIELD( m_bZoom, FIELD_BOOLEAN, FTYPEDESC_INSENDTABLE ),
 	DEFINE_PRED_FIELD( m_iShotsFired, FIELD_INTEGER, FTYPEDESC_INSENDTABLE ),
+	DEFINE_PRED_FIELD( m_flStamina, FIELD_FLOAT, FTYPEDESC_INSENDTABLE ),
+	DEFINE_PRED_FIELD( m_bClinging, FIELD_BOOLEAN, FTYPEDESC_INSENDTABLE ),
 END_PREDICTION_DATA()
 
 C_Hidden_Player::C_Hidden_Player()
@@ -86,6 +90,8 @@ C_Hidden_Player::C_Hidden_Player()
 	m_flBlur = 0.0f;
 	m_bLAM = false;
 	m_bNightVision = false;
+	m_flStamina = 0.0f;
+	m_bClinging = false;
 	m_iThrowGrenadeCounter = 0;
 	m_szCurrentLocation[0] = '\0';
 
@@ -105,6 +111,15 @@ void C_Hidden_Player::UpdateClientSideAnimation( void )
 	m_pHiddenAnimState->Update( flYaw, angEyes[PITCH] );
 
 	BaseClass::UpdateClientSideAnimation();
+}
+
+void C_Hidden_Player::ItemPostFrame( void )
+{
+	// Predict the Hidden's stamina regeneration, as CHidden_Player::ItemPostFrame does.
+	if ( GetTeamNumber() == TEAM_HIDDEN && m_flStamina < HIDDEN_STAMINA_MAX && GetGroundEntity() != NULL )
+		SetStamina( HIDDEN_STAMINA_REGEN );
+
+	BaseClass::ItemPostFrame();
 }
 
 // The Hidden casts no shadow.
