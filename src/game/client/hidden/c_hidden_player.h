@@ -62,6 +62,10 @@ public:
 
 	virtual ShadowType_t ShadowCastType( void );
 
+	// hidden_player_shared.cpp
+	virtual void PlayStepSound( Vector &vecOrigin, surfacedata_t *psurface, float fvol, bool force );
+	virtual void GetStepSoundVelocities( float *velwalk, float *velrun );
+
 	// Third-person animation (Beta 4b's SDK template anim state)
 	virtual void UpdateClientSideAnimation( void );
 	virtual const QAngle &GetRenderAngles( void );

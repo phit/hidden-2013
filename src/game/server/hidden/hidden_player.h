@@ -36,6 +36,8 @@ public:
 	virtual bool ClientCommand( const CCommand &args );
 	virtual void PlayerDeathThink( void );
 	virtual void Event_Killed( const CTakeDamageInfo &info );
+	virtual int OnTakeDamage_Alive( const CTakeDamageInfo &info );
+	virtual void DeathSound( const CTakeDamageInfo &info );
 	virtual void CreateRagdollEntity( void );
 
 	// Spectating (docs/spec/game-rules.md): the map's info_spectator cameras (Beta 4b's observer
@@ -48,6 +50,10 @@ public:
 	// Only the Hidden picks things up: corpses (+use, on release) and light props.
 	virtual bool IsUseableEntity( CBaseEntity *pEntity, unsigned int requiredCaps );
 	virtual void PlayerUse( void );
+
+	// hidden_player_shared.cpp
+	virtual void PlayStepSound( Vector &vecOrigin, surfacedata_t *psurface, float fvol, bool force );
+	virtual void GetStepSoundVelocities( float *velwalk, float *velrun );
 	virtual void PickupObject( CBaseEntity *pObject, bool bLimitMassAndSize = true );
 
 	// radio <n>: voice calls and taunts (docs/spec/teams-classes.md). Marines who call for ammo can

@@ -16,6 +16,7 @@
 #include "team.h"
 #include "weapon_hiddenbase.h"
 #include "hidden_spectator.h"
+#include "soundent.h"
 
 // memdbgon must be the last include file in a .cpp file!!!
 #include "tier0/memdbgon.h"
@@ -154,8 +155,21 @@ void CHidden_Player::Precache( void )
 	PrecacheModel( HIDDEN_MODEL_HIDDEN_RAGDOLL );
 	PrecacheHiddenCorpses();
 
-	PrecacheScriptSound( "IRIS.DeployNV" );
-	PrecacheScriptSound( "IRIS.UnDeployNV" );
+	// Beta 4b's CSDKPlayer::Precache list.
+	static const char *s_pszSounds[] =
+	{
+		"Hidden.BehindYou", "Hidden.ImHere", "Hidden.ISeeYou", "Hidden.LookUp", "Hidden.TurnAround",
+		"Hidden.OverHere", "Hidden.YouAreNext", "Hidden.FreshMeat", "Hidden.ComingForYou",
+		"IRIS.Damage", "IRIS.RoundStart", "IRIS.RoundEnd", "IRIS.UnDeployNV", "IRIS.DeployNV",
+		"IRIS.DeploySonicAlarm", "IRIS.EnemySighted", "IRIS.RequestingAmmo", "IRIS.Affirmative",
+		"IRIS.ReportIn", "IRIS.ReportingIn", "IRIS.AgentDown", "IRIS.IfItBleeds", "IRIS.OneUglyMother",
+		"IRIS.WhereAreYou", "IRIS.ComeOnOut", "IRIS.BringIt",
+		"Player.KnifePigstick.Death", "Player.KnifeSlash.Death", "Player.FriendlyFire.Death",
+		// Played here but missing from Beta 4b's list.
+		"Hidden.Death",
+	};
+	for ( int i = 0; i < ARRAYSIZE( s_pszSounds ); i++ )
+		PrecacheScriptSound( s_pszSounds[i] );
 }
 
 void CHidden_Player::InitialSpawn( void )
@@ -394,6 +408,116 @@ void CHidden_Player::Event_Killed( const CTakeDamageInfo &info )
 
 	m_KillInfo = info;
 	BaseClass::Event_Killed( info );
+}
+
+// Beta 4b's player came straight from CBasePlayer, so this is its OnTakeDamage_Alive (without HL2's
+// drowning and burning sounds) plus Beta 4b's additions: the player_hurt event's damage and "hidden",
+// a hurt log line, the attacker's weighting and IRIS.Damage.
+int CHidden_Player::OnTakeDamage_Alive( const CTakeDamageInfo &info )
+{
+	m_bitsDamageType |= info.GetDamageType();
+
+	if ( !CBaseCombatCharacter::OnTakeDamage_Alive( info ) )
+		return 0;
+
+	CBaseEntity *pAttacker = info.GetAttacker();
+	if ( !pAttacker )
+		return 0;
+
+	Vector vecDir = vec3_origin;
+	if ( info.GetInflictor() )
+	{
+		vecDir = info.GetInflictor()->WorldSpaceCenter() - Vector( 0, 0, 10 ) - WorldSpaceCenter();
+		VectorNormalize( vecDir );
+	}
+
+	if ( info.GetInflictor() && GetMoveType() == MOVETYPE_WALK && !pAttacker->IsSolidFlagSet( FSOLID_TRIGGER ) )
+	{
+		// CBasePlayer's knockback (its DamageForce is file-static).
+		const Vector vecSize = WorldAlignSize();
+		float flForce = MIN( info.GetBaseDamage() * ( ( 32 * 32 * 72.0f ) / ( vecSize.x * vecSize.y * vecSize.z ) ) * 5, 1000.0f );
+		Vector vecForce = vecDir * -flForce;
+		if ( vecForce.z > 250.0f )
+			vecForce.z = 250.0f;
+		ApplyAbsVelocityImpulse( vecForce );
+	}
+
+	IGameEvent *event = gameeventmanager->CreateEvent( "player_hurt" );
+	if ( event )
+	{
+		event->SetInt( "userid", GetUserID() );
+		event->SetInt( "health", MAX( 0, m_iHealth ) );
+		event->SetFloat( "damage", info.GetDamage() );
+		event->SetInt( "priority", 5 );
+
+		if ( pAttacker->IsPlayer() )
+		{
+			CBasePlayer *pPlayer = ToBasePlayer( pAttacker );
+			event->SetInt( "attacker", pPlayer->GetUserID() );
+
+			const char *pszWeapon = "world";
+			if ( pPlayer->GetActiveWeapon() )
+			{
+				pszWeapon = pPlayer->GetActiveWeapon()->GetClassname();
+				if ( !Q_strncmp( pszWeapon, "weapon_", 7 ) )
+					pszWeapon += 7;
+			}
+			event->SetBool( "hidden", pPlayer->GetTeamNumber() == TEAM_HIDDEN || GetTeamNumber() == TEAM_HIDDEN );
+			event->SetString( "weapon", pszWeapon );
+
+			UTIL_LogPrintf( "\"%s<%i><%s><%s>\" hurt \"%s<%i><%s><%s>\" for \"<%i>\" with \"%s\"\n",
+				pPlayer->GetPlayerName(), pPlayer->GetUserID(), pPlayer->GetNetworkIDString(),
+				pPlayer->GetTeam() ? pPlayer->GetTeam()->GetName() : "",
+				GetPlayerName(), GetUserID(), GetNetworkIDString(), GetTeam() ? GetTeam()->GetName() : "",
+				RoundFloatToInt( info.GetDamage() ), pszWeapon );
+
+			// Hurting the other team counts towards being picked as the Hidden; hurting your own
+			// (yourself included) counts against it.
+			CHidden_Player *pHiddenAttacker = ToHiddenPlayer( pPlayer );
+			if ( pHiddenAttacker )
+			{
+				const float flDamage = ( pPlayer->GetTeamNumber() == GetTeamNumber() ) ? -info.GetDamage() : info.GetDamage();
+				pHiddenAttacker->AddWeighting( RoundFloatToInt( flDamage ) );
+			}
+		}
+		else
+		{
+			event->SetInt( "attacker", 0 );
+			event->SetBool( "hidden", false );
+			event->SetString( "weapon", "world" );
+		}
+
+		gameeventmanager->FireEvent( event );
+	}
+
+	if ( GetTeamNumber() == TEAM_IRIS )
+		EmitSound( "IRIS.Damage" );
+
+	if ( pAttacker->IsNPC() )
+		CSoundEnt::InsertSound( SOUND_COMBAT, GetAbsOrigin(), 512, 0.5, this );
+
+	return 1;
+}
+
+void CHidden_Player::DeathSound( const CTakeDamageInfo &info )
+{
+	if ( m_bitsDamageType & DMG_FALL )
+	{
+		EmitSound( "Player.FallGib" );
+		return;
+	}
+
+	if ( GetTeamNumber() == TEAM_IRIS )
+	{
+		// The pigstick (925) tells apart from a slash; exactly DMG_SLASH, so not a thrown knife's.
+		if ( info.GetDamageType() == DMG_SLASH )
+			EmitSound( info.GetDamage() <= 100.0f ? "Player.KnifeSlash.Death" : "Player.KnifePigstick.Death" );
+		else
+			EmitSound( "Player.FriendlyFire.Death" );
+		return;
+	}
+
+	EmitSound( "Hidden.Death" );
 }
 
 // Corpses are server ragdolls the Hidden can feed on (HL2MP's are client-side). In OverRun the dead

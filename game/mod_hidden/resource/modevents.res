@@ -49,6 +49,16 @@
 		"achievement"	"short"		// achievement ID
 	}
 
+	// Beta 4b's player_hurt adds the damage and whether the Hidden was involved (docs/spec/sounds.md).
+	"player_hurt"
+	{
+		"userid"	"short"   	// user ID of the player hurt
+		"attacker"	"short"	 	// user ID of the attacker, 0 for the world
+		"health"	"byte"		// health left
+		"damage"	"float"
+		"hidden"	"bool"		// the attacker or the victim is the Hidden
+	}
+
 	// Hidden: Source (docs/spec/game-rules.md, client.md)
 	"game_round_restart"			// players were reset for a new round
 	{
