@@ -227,6 +227,11 @@ void CHidden_Player::Spawn( void )
 
 	BaseClass::Spawn();
 
+	// CHL2MP_Player::Spawn clears the HUD bits StartObserverMode set, which showed HL2's health
+	// and suit readouts to spectators.
+	if ( IsObserver() )
+		m_Local.m_iHideHUD = HIDEHUD_HEALTH;
+
 	if ( iTeam == TEAM_SPECTATOR )
 		return;	// CBasePlayer::Spawn already started observer mode
 
