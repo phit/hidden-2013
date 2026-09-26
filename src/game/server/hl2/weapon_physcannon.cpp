@@ -989,6 +989,9 @@ public:
 private:
 	CGrabController		m_grabController;
 	CBasePlayer			*m_pPlayer;
+#ifdef HIDDEN
+	int					m_iOldCollisionGroup;
+#endif
 };
 
 LINK_ENTITY_TO_CLASS( player_pickup, CPlayerPickupController );
@@ -1004,6 +1007,9 @@ BEGIN_DATADESC( CPlayerPickupController )
 	DEFINE_PHYSPTR( m_grabController.m_controller ),
 
 	DEFINE_FIELD( m_pPlayer,		FIELD_CLASSPTR ),
+#ifdef HIDDEN
+	DEFINE_FIELD( m_iOldCollisionGroup, FIELD_INTEGER ),
+#endif
 	
 END_DATADESC()
 
@@ -1030,12 +1036,19 @@ void CPlayerPickupController::Init( CBasePlayer *pPlayer, CBaseEntity *pObject )
 		pOwner->EnableSprint( false );
 	}
 
+#ifdef HIDDEN
+	// Beta 4b carried everything as debris, so nothing held blocks a player (least of all its
+	// carrier, mid-jump), and put the old group back on release.
+	m_iOldCollisionGroup = pObject->GetCollisionGroup();
+	pObject->SetCollisionGroup( COLLISION_GROUP_DEBRIS );
+#else
 	// If the target is debris, convert it to non-debris
 	if ( pObject->GetCollisionGroup() == COLLISION_GROUP_DEBRIS )
 	{
 		// Interactive debris converts back to debris when it comes to rest
 		pObject->SetCollisionGroup( COLLISION_GROUP_INTERACTIVE_DEBRIS );
 	}
+#endif
 
 	// done so I'll go across level transitions with the player
 	SetParent( pPlayer );
@@ -1064,6 +1077,11 @@ void CPlayerPickupController::Init( CBasePlayer *pPlayer, CBaseEntity *pObject )
 void CPlayerPickupController::Shutdown( bool bThrown )
 {
 	CBaseEntity *pObject = m_grabController.GetAttached();
+
+#ifdef HIDDEN
+	if ( pObject )
+		pObject->SetCollisionGroup( m_iOldCollisionGroup );
+#endif
 
 	bool bClearVelocity = false;
 	if ( !bThrown && pObject && pObject->VPhysicsGetObject() && pObject->VPhysicsGetObject()->GetContactPoint(NULL,NULL) )
