@@ -42,6 +42,12 @@ public:
 	virtual bool IsUseableEntity( CBaseEntity *pEntity, unsigned int requiredCaps );
 	virtual void PlayerUse( void );
 	virtual void PickupObject( CBaseEntity *pObject, bool bLimitMassAndSize = true );
+
+	// radio <n>: voice calls and taunts (docs/spec/teams-classes.md). Marines who call for ammo can
+	// be resupplied by a support marine's +use.
+	bool Radio( int iMessage );
+	bool IsRequestingAmmo( void ) const { return m_bRequestAmmo; }
+	void GiveRequestedAmmo( CHidden_Player *pGiver );
 	virtual void PreThink( void );
 	virtual void PostThink( void );
 	virtual void ItemPostFrame( void );
@@ -170,6 +176,7 @@ private:
 	CNetworkVar( float, m_flStamina );
 	CNetworkVar( bool, m_bClinging );
 	CNetworkVar( bool, m_bAura );
+	CNetworkVar( bool, m_bRequestAmmo );
 	CNetworkVar( int, m_iThrowGrenadeCounter );
 	CNetworkString( m_szCurrentLocation, HIDDEN_LOCATION_LENGTH );
 
@@ -181,6 +188,8 @@ private:
 	bool m_bWalking;
 	CTakeDamageInfo m_KillInfo;	// for the corpse
 	bool m_bUseDroppedObject;	// this +use press let go of what we held
+	bool m_bAmmoReceived;		// resupplied this life; no more ammo calls
+	float m_flRadioTimer;		// no radio before this
 
 	CUtlVector<StunTracker_t> m_Stunners;
 	float m_flStunTime;

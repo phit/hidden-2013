@@ -100,6 +100,7 @@ IMPLEMENT_SERVERCLASS_ST( CHidden_Player, DT_Hidden_Player )
 	SendPropFloat( SENDINFO( m_flStamina ), 0, SPROP_NOSCALE ),
 	SendPropBool( SENDINFO( m_bClinging ) ),
 	SendPropBool( SENDINFO( m_bAura ) ),
+	SendPropBool( SENDINFO( m_bRequestAmmo ) ),
 	SendPropInt( SENDINFO( m_iThrowGrenadeCounter ), HIDDEN_THROWGRENADE_COUNTER_BITS, SPROP_UNSIGNED ),
 	SendPropString( SENDINFO( m_szCurrentLocation ) ),
 END_SEND_TABLE()
@@ -179,6 +180,8 @@ void CHidden_Player::Spawn( void )
 	m_bAura = false;
 	m_bWalking = false;
 	m_bUseDroppedObject = false;
+	m_bRequestAmmo = false;
+	m_bAmmoReceived = false;
 	ResetStun();
 
 	const int iTeam = GetTeamNumber();
@@ -402,7 +405,7 @@ bool CHidden_Player::IsUseableEntity( CBaseEntity *pEntity, unsigned int require
 		return true;
 
 	CBaseAnimating *pAnimating = pEntity ? pEntity->GetBaseAnimating() : NULL;
-	return pAnimating && pAnimating->IsRagdoll();
+	return pAnimating && ( pAnimating->IsRagdoll() || pAnimating->IsPlayer() );
 }
 
 void CHidden_Player::PlayerUse( void )
@@ -413,14 +416,106 @@ void CHidden_Player::PlayerUse( void )
 
 	BaseClass::PlayerUse();
 
-	// Letting go of +use on a ragdoll picks it up (CRagdollProp::Use in Beta 4b).
+	// Letting go of +use on a ragdoll picks it up (CRagdollProp::Use in Beta 4b); on a marine who
+	// called for ammo, a support marine hands some over.
 	if ( ( m_afButtonReleased & IN_USE ) && !m_bUseDroppedObject && m_hUseEntity == NULL )
 	{
 		CBaseEntity *pEntity = FindUseEntity();
 		CBaseAnimating *pAnimating = pEntity ? pEntity->GetBaseAnimating() : NULL;
 		if ( pAnimating && pAnimating->IsRagdoll() )
+		{
 			PickupObject( pAnimating );
+		}
+		else if ( pEntity && pEntity->IsPlayer() && GetTeamNumber() == TEAM_IRIS && m_iPlayerClass == HIDDEN_CLASS_SUPPORT )
+		{
+			CHidden_Player *pTarget = ToHiddenPlayer( pEntity );
+			if ( pTarget && pTarget->GetTeamNumber() == TEAM_IRIS && pTarget->IsRequestingAmmo() )
+				pTarget->GiveRequestedAmmo( this );
+		}
 	}
+}
+
+// A magazine's worth by weapon: the secondary's, then the primary's.
+void CHidden_Player::GiveRequestedAmmo( CHidden_Player *pGiver )
+{
+	static const struct { int iAmount; const char *pszAmmo; } s_Secondary[] =
+	{
+		{ 20, "AMMO_PISTOL" },		// HIDDEN_SECONDARY_PISTOL
+		{ 16, "AMMO_9MM" },			// HIDDEN_SECONDARY_PISTOL2
+	}, s_Primary[] =
+	{
+		{ 30, "AMMO_556" },			// HIDDEN_PRIMARY_FN2000
+		{ 50, "AMMO_BULLETS" },		// HIDDEN_PRIMARY_P90
+		{ 8, "AMMO_BUCKSHOT" },		// HIDDEN_PRIMARY_SHOTGUN
+		{ 15, "XBowBolt" },			// HIDDEN_PRIMARY_FN303
+	};
+
+	if ( m_iSecondary >= 0 && m_iSecondary < ARRAYSIZE( s_Secondary ) )
+		CBasePlayer::GiveAmmo( s_Secondary[m_iSecondary].iAmount, s_Secondary[m_iSecondary].pszAmmo );
+	if ( m_iPrimary >= 0 && m_iPrimary < ARRAYSIZE( s_Primary ) )
+		CBasePlayer::GiveAmmo( s_Primary[m_iPrimary].iAmount, s_Primary[m_iPrimary].pszAmmo );
+
+	m_bRequestAmmo = false;
+	m_bAmmoReceived = true;
+	pGiver->AddWeighting( 20 );
+}
+
+bool CHidden_Player::Radio( int iMessage )
+{
+	// Not while dead or within hdn_radio_limit of the last call (then the command goes unhandled, so
+	// the console says it's unknown, as in Beta 4b).
+	if ( !IsAlive() || gpGlobals->curtime < m_flRadioTimer )
+		return false;
+
+	m_flRadioTimer = gpGlobals->curtime + hdn_radio_limit.GetFloat();
+
+	if ( GetTeamNumber() == TEAM_HIDDEN )
+	{
+		static const char *s_pszTaunts[] = { "Hidden.BehindYou", "Hidden.ImHere", "Hidden.ISeeYou", "Hidden.LookUp",
+			"Hidden.TurnAround", "Hidden.OverHere", "Hidden.FreshMeat", "Hidden.YouAreNext" };
+		if ( iMessage >= 0 && iMessage < ARRAYSIZE( s_pszTaunts ) )
+			EmitSound( s_pszTaunts[iMessage] );
+		return true;
+	}
+
+	if ( GetTeamNumber() != TEAM_IRIS )
+		return true;
+
+	// Taunts: a sound and a line in open chat, no radio call.
+	switch ( iMessage )
+	{
+	case 5:	EmitSound( "IRIS.OneUglyMother" ); engine->ClientCommand( edict(), "say You are one UGLY mother!\n" ); return true;
+	case 6:	EmitSound( "IRIS.IfItBleeds" ); engine->ClientCommand( edict(), "say If it bleeds, we can kill it!\n" ); return true;
+	case 7:	EmitSound( "IRIS.BringIt" ); engine->ClientCommand( edict(), "say Bring it!\n" ); return true;
+	}
+
+	// Radio calls: a team chat line (which carries the location), and every other number too sends
+	// the iris_radio event the clients play the call from.
+	static const char *s_pszReports[] = { "say_team Reporting In\n", "say_team Still Here!\n", "say_team Checking In\n" };
+	switch ( iMessage )
+	{
+	case 0:	engine->ClientCommand( edict(), "say_team Agent Down\n" ); break;
+	case 1:	engine->ClientCommand( edict(), "say_team Subject Sighted\n" ); break;
+	case 2:	engine->ClientCommand( edict(), "say_team Affirmative\n" ); break;
+	case 3:
+		if ( m_bAmmoReceived )
+			return true;
+		engine->ClientCommand( edict(), "say_team I need ammo!\n" );
+		m_bRequestAmmo = true;
+		break;
+	case 4:	engine->ClientCommand( edict(), "say_team Report In\n" ); break;
+	case 10: engine->ClientCommand( edict(), s_pszReports[random->RandomInt( 0, ARRAYSIZE( s_pszReports ) - 1 )] ); break;
+	}
+
+	IGameEvent *pEvent = gameeventmanager->CreateEvent( "iris_radio" );
+	if ( pEvent )
+	{
+		pEvent->SetInt( "message", iMessage );
+		pEvent->SetInt( "userid", GetUserID() );
+		gameeventmanager->FireEvent( pEvent );
+	}
+
+	return true;
 }
 
 // Only the Hidden carries things (with HL2's pickup controller): ragdolls of any weight, other
@@ -763,7 +858,9 @@ bool CHidden_Player::ClientCommand( const CCommand &args )
 	const char *pszCmd = args[0];
 	const int iArg = ( args.ArgC() > 1 ) ? atoi( args[1] ) : 0;
 
-	if ( FStrEq( pszCmd, "changeclass" ) )
+	if ( FStrEq( pszCmd, "radio" ) )
+		return Radio( iArg );
+	else if ( FStrEq( pszCmd, "changeclass" ) )
 	{
 		m_iPlayerClass = ( iArg >= 0 && iArg < HIDDEN_CLASS_COUNT ) ? iArg : HIDDEN_CLASS_NONE;
 		m_bReadyToPlay = true;
