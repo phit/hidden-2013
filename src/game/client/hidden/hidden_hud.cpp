@@ -123,6 +123,9 @@ public:
 		SetParent( g_pClientMode->GetViewport() );
 		SetHiddenBits( HIDDEN_HUD_HIDDEN_BITS );
 		m_pLabel = new Label( this, "LocationLabel", "" );
+		// Centred: HudLayout.res's box (x 239, 160 wide) and its HudILocation frame (x 263, 115 wide)
+		// share a centre, so the name sits in the middle of the frame.
+		m_pLabel->SetContentAlignment( Label::a_center );
 		m_szLocation[0] = '\0';
 	}
 
@@ -165,7 +168,7 @@ private:
 DECLARE_HUDELEMENT( CHudLocation );
 
 //-----------------------------------------------------------------------------
-// The seconds left in the round, with Beta 4b's HudAnimations.txt events.
+// The time left in the round (mm.ss), with Beta 4b's HudAnimations.txt events.
 //-----------------------------------------------------------------------------
 class CHudRoundTimer : public CHudElement, public CHudNumericDisplay
 {
@@ -187,6 +190,18 @@ public:
 	}
 
 protected:
+	// Beta 4b's timer was a CHudBaseTimer (its 2006 version), which prints the value as minutes and
+	// seconds, "%02d.%02d": 03.42, not 222.
+	virtual void PaintNumbers( HFont font, int xpos, int ypos, int value )
+	{
+		wchar_t szTime[16];
+		V_snwprintf( szTime, ARRAYSIZE( szTime ), L"%02d.%02d", value / 60, value % 60 );
+
+		surface()->DrawSetTextFont( font );
+		surface()->DrawSetTextPos( xpos, ypos );
+		surface()->DrawUnicodeString( szTime );
+	}
+
 	virtual void OnThink( void )
 	{
 		if ( GetLocalTeam() == TEAM_HIDDEN )
