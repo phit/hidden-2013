@@ -56,6 +56,9 @@ public:
 	virtual void	Init( void );
 	virtual void	Reset( void );
 	virtual void	ApplySchemeSettings(vgui::IScheme *pScheme);
+#ifdef HIDDEN
+	virtual void	OnTick( void );
+#endif
 
 	int				GetChatInputOffset( void );
 

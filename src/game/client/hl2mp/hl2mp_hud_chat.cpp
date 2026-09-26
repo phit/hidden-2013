@@ -41,6 +41,13 @@ void CHudChatLine::ApplySchemeSettings(vgui::IScheme *pScheme)
 void CHudChatInputLine::ApplySchemeSettings(vgui::IScheme *pScheme)
 {
 	BaseClass::ApplySchemeSettings(pScheme);
+
+#ifdef HIDDEN
+	// Beta 4b's chat had no boxes: only the text shows.
+	GetInputPanel()->SetPaintBackgroundEnabled( false );
+	GetInputPanel()->SetPaintBorderEnabled( false );
+	GetPrompt()->SetPaintBackgroundEnabled( false );
+#endif
 }
 
 //=====================
@@ -67,7 +74,33 @@ void CHudChat::CreateChatLines( void )
 void CHudChat::ApplySchemeSettings( vgui::IScheme *pScheme )
 {
 	BaseClass::ApplySchemeSettings( pScheme );
+
+#ifdef HIDDEN
+	// Beta 4b's CHudChat cleared its colours: no box behind the chat, the history or the input.
+	SetPaintBorderEnabled( false );
+	SetBgColor( Color( 0, 0, 0, 0 ) );
+	SetFgColor( Color( 0, 0, 0, 0 ) );
+	if ( GetChatHistory() )
+	{
+		GetChatHistory()->SetPaintBorderEnabled( false );
+		GetChatHistory()->SetBgColor( Color( 0, 0, 0, 0 ) );
+	}
+#endif
 }
+
+#ifdef HIDDEN
+// FadeChatHistory sets the box colours every tick, and Beta 4b had no chat filters.
+void CHudChat::OnTick( void )
+{
+	BaseClass::OnTick();
+
+	SetBgColor( Color( 0, 0, 0, 0 ) );
+	if ( GetChatHistory() )
+		GetChatHistory()->SetBgColor( Color( 0, 0, 0, 0 ) );
+	if ( m_pFiltersButton )
+		m_pFiltersButton->SetVisible( false );
+}
+#endif
 
 
 void CHudChat::Init( void )
