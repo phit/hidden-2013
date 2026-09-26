@@ -201,28 +201,34 @@ def patch_hudlayout():
     print(f"{path.relative_to(DEST)}: added the SDK 2013 HUD elements")
 
 
-# SDK 2013's audio options fill the commentary combo only for games with commentary, so Beta 4b's
-# layout shows it empty. Hide it and its label.
-AUDIO_HIDDEN_CONTROLS = ("Commentary", "CommentaryLabel")
+# Controls in Beta 4b's dialog layouts that SDK 2013's GameUI no longer fills or handles, so they
+# show up empty or dead. Hide them.
+HIDDEN_CONTROLS = {
+    # The commentary combo is only filled for games with commentary.
+    "OptionsSubAudio.res": ("Commentary", "CommentaryLabel"),
+    # The 2006 player list had an add-friend button; SDK 2013's has no such control or string.
+    "PlayerListDialog.res": ("AddFriendButton",),
+}
 
 
-def patch_audio_options():
-    path = DEST / "resource" / "OptionsSubAudio.res"
-    if not path.exists():
-        return
-    text = path.read_bytes().decode("latin-1")
-    changed = []
-    for name in AUDIO_HIDDEN_CONTROLS:
-        block = re.search(r'\{[^{}]*"fieldName"\s*"%s"[^{}]*\}' % re.escape(name), text)
-        if not block:
+def patch_hidden_controls():
+    for filename, names in HIDDEN_CONTROLS.items():
+        path = DEST / "resource" / filename
+        if not path.exists():
             continue
-        new = re.sub(r'("visible"\s*)"1"', r'\1"0"', block.group(0))
-        if new != block.group(0):
-            text = text[:block.start()] + new + text[block.end():]
-            changed.append(name)
-    if changed:
-        path.write_bytes(text.encode("latin-1"))
-        print(f"{path.relative_to(DEST)}: hid {', '.join(changed)}")
+        text = path.read_bytes().decode("latin-1")
+        changed = []
+        for name in names:
+            block = re.search(r'\{[^{}]*"fieldName"\s*"%s"[^{}]*\}' % re.escape(name), text)
+            if not block:
+                continue
+            new = re.sub(r'("visible"\s*)"1"', r'\1"0"', block.group(0))
+            if new != block.group(0):
+                text = text[:block.start()] + new + text[block.end():]
+                changed.append(name)
+        if changed:
+            path.write_bytes(text.encode("latin-1"))
+            print(f"{path.relative_to(DEST)}: hid {', '.join(changed)}")
 
 
 def main():
@@ -250,7 +256,7 @@ def main():
         print(f"{src}: {summary}")
 
     patch_hudlayout()
-    patch_audio_options()
+    patch_hidden_controls()
     print(f"-> {DEST}")
 
 
