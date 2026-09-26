@@ -276,6 +276,13 @@ void CHiddenRules::ClientDisconnected( edict_t *pClient )
 	BaseClass::ClientDisconnected( pClient );
 }
 
+void CHiddenRules::ClientSettingsChanged( CBasePlayer *pPlayer )
+{
+	// Skip CHL2MPRules: it swaps teams to match cl_playermodel, which puts anyone who changes
+	// their name on team 2 (IRIS). Beta 4b's rules only had CTeamplayRules' name handling.
+	CTeamplayRules::ClientSettingsChanged( pPlayer );
+}
+
 bool CHiddenRules::ClientCommand( CBaseEntity *pEdict, const CCommand &args )
 {
 	// In a tutorial, joining ends the intermission at once.

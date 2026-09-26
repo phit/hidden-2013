@@ -57,6 +57,7 @@ public:
 	virtual void CreateStandardEntities( void );
 	virtual bool FPlayerCanRespawn( CBasePlayer *pPlayer ) { return false; }
 	virtual void ClientDisconnected( edict_t *pClient );
+	virtual void ClientSettingsChanged( CBasePlayer *pPlayer );
 	virtual bool ClientCommand( CBaseEntity *pEdict, const CCommand &args );
 
 	void SetCharacterTaken( int iCharacter, bool bTaken );

@@ -184,6 +184,7 @@ void CHL2MP_Player::Precache( void )
 
 	PrecacheModel ( "sprites/glow01.vmt" );
 
+#ifndef HIDDEN	// Hidden players never pick HL2 models or their sounds
 	//Precache Citizen models
 	int nHeads = ARRAYSIZE( g_ppszRandomCitizenModels );
 	int i;	
@@ -202,6 +203,7 @@ void CHL2MP_Player::Precache( void )
 	PrecacheScriptSound( "NPC_MetroPolice.Die" );
 	PrecacheScriptSound( "NPC_CombineS.Die" );
 	PrecacheScriptSound( "NPC_Citizen.die" );
+#endif
 }
 
 void CHL2MP_Player::GiveAllItems( void )
