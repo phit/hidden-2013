@@ -17,6 +17,7 @@ Usage:
 """
 import argparse
 import os
+import re
 import shutil
 import sys
 import tarfile
@@ -200,6 +201,30 @@ def patch_hudlayout():
     print(f"{path.relative_to(DEST)}: added the SDK 2013 HUD elements")
 
 
+# SDK 2013's audio options fill the commentary combo only for games with commentary, so Beta 4b's
+# layout shows it empty. Hide it and its label.
+AUDIO_HIDDEN_CONTROLS = ("Commentary", "CommentaryLabel")
+
+
+def patch_audio_options():
+    path = DEST / "resource" / "OptionsSubAudio.res"
+    if not path.exists():
+        return
+    text = path.read_bytes().decode("latin-1")
+    changed = []
+    for name in AUDIO_HIDDEN_CONTROLS:
+        block = re.search(r'\{[^{}]*"fieldName"\s*"%s"[^{}]*\}' % re.escape(name), text)
+        if not block:
+            continue
+        new = re.sub(r'("visible"\s*)"1"', r'\1"0"', block.group(0))
+        if new != block.group(0):
+            text = text[:block.start()] + new + text[block.end():]
+            changed.append(name)
+    if changed:
+        path.write_bytes(text.encode("latin-1"))
+        print(f"{path.relative_to(DEST)}: hid {', '.join(changed)}")
+
+
 def main():
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("sources", nargs="+", type=Path)
@@ -225,6 +250,7 @@ def main():
         print(f"{src}: {summary}")
 
     patch_hudlayout()
+    patch_audio_options()
     print(f"-> {DEST}")
 
 
