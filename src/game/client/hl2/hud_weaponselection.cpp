@@ -1460,6 +1460,12 @@ void CHudWeaponSelection::SelectWeaponSlot( int iSlot )
 	if ( pPlayer->IsAllowedToSwitchWeapons() == false )
 		return;
 
+#ifdef HIDDEN
+	// Beta 4b's number keys always switched straight to the weapon, whatever hud_fastswitch says.
+	FastWeaponSwitch( iSlot );
+	return;
+#endif
+
 	switch( hud_fastswitch.GetInt() )
 	{
 	case HUDTYPE_FASTSWITCH:
