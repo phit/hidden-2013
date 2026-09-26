@@ -10,59 +10,88 @@ target built on the HL2MP code base. Valve's original README is in [README.sdk.m
 
 ## Status
 
-Phase 1, skeleton. The mod builds, the dedicated server boots, and the Beta 4b maps load. There is no
-Hidden gameplay yet: the game plays as HL2MP, and the Hidden map entities (`info_hidden_spawn`,
-`info_marine_spawn`, `info_spectator`, `location_brush`, `extraction_point`, …) are still unknown to
-the server.
+Playable test builds. The Hidden and IRIS play full rounds on the Beta 4b maps: weapons and
+equipment, the Hidden's pounce, cling, aura and pigstick, the HUD, menus and spectating, and bots for
+both teams (`bot_add`). The goal is to match Beta 4b first; differences are listed in the docs.
+
+## Installing
+
+1. Install **Source SDK Base 2013 Multiplayer** from Steam (Library, Tools).
+2. Install **Hidden: Source Beta 4b** into `steamapps/sourcemods/hidden`, as the original installer
+   does. Its maps, models, sounds and materials are used from there; this mod ships none of them.
+3. Download a build from the [releases](../../releases) (`latest` is the newest `main` build) and
+   extract it into `steamapps/sourcemods`, next to `hidden`:
+
+   ```
+   steamapps/sourcemods/
+     hidden/        Hidden: Source Beta 4b
+     hidden2013/    this mod
+   ```
+
+4. Restart Steam and start **Hidden: Source** from the library.
+
+The Windows and Linux builds are 64-bit only. The `-symbols` archives hold debug information for
+crash reports; players don't need them.
+
+### Dedicated server
+
+Extract the same package into the server's folder, with Beta 4b's `hidden` folder next to
+`hidden2013`, and start it with `-game hidden2013`:
+
+- **Windows:** use `srcds_win64.exe` from the Source SDK Base 2013 Multiplayer install. The
+  `srcds.exe` in the dedicated server app (SteamCMD 244310) is 32-bit and can't load the mod.
+
+  ```powershell
+  & "<SDK Base 2013 MP>\srcds_win64.exe" -console -game "<path>\hidden2013" +maxplayers 12 +map hdn_docks
+  ```
+
+- **Linux:** the dedicated server from SteamCMD app 244310, with `-game hidden2013`. Not tested yet.
 
 ## Layout
 
 | Path | What |
 |---|---|
 | `src/game/client/client_hidden.vpc`, `src/game/server/server_hidden.vpc` | Client and server projects (HL2MP plus `HIDDEN` define) |
-| `src/game/{client,server,shared}/hidden/` | Hidden game code (to come) |
+| `src/game/{client,server,shared}/hidden/` | Hidden game code |
 | `game/hidden2013/` | The mod folder the game runs from |
-| `game/hidden2013/legacy/` | Beta 4b content, imported locally and **not in git** |
-| `tools/` | Build and asset scripts |
+| `tools/` | Build, packaging and asset scripts |
+| `.github/workflows/build.yml` | CI: Windows and Linux builds, packages, releases |
 
-## Getting the content
+## Building
 
-The original assets aren't in this repository. Import them from a Beta 4b copy:
+The Beta 4b content isn't in this repository. The mod mounts `game/hidden` (next to
+`game/hidden2013`, as in `sourcemods`), so link that to your Beta 4b install:
 
 ```powershell
-py tools/import_legacy.py <source> [<source> ...] --clean
+New-Item -ItemType Junction -Path game\hidden -Target "<Steam>\steamapps\sourcemods\hidden"
 ```
 
-`<source>` can be an installed mod folder (`...\steamapps\sourcemods\hidden`), the
-`ianua-base-hsb4b.tar.gz` archive, or a zip of maps such as `ghs-patch-assets-v2.zip` (fixed
-`hdn_decay`/`hdn_origin`) or `ghs-mappack-v1.zip`. Only content folders are copied (`materials`,
-`models`, `sound`, `maps`, `scripts`, `resource`, `media`); the 2006 binaries never are.
+Or copy the content into `game/hidden2013/legacy/`, which is mounted first:
+`py tools/import_legacy.py <source> [<source> ...] --clean`, where `<source>` is an installed mod
+folder, the `ianua-base-hsb4b.tar.gz` archive, or a zip of maps (`ghs-patch-assets-v2.zip`,
+`ghs-mappack-v1.zip`). Only content folders are copied, never the 2006 binaries.
 
-## Building (Windows)
-
-Requirements: Source SDK 2013 Multiplayer installed through Steam, Visual Studio 2022 (or its Build
+**Windows:** Source SDK 2013 Multiplayer installed through Steam, Visual Studio 2022 (or its Build
 Tools) with MSVC v143 and a Windows 10/11 SDK, and Python 3.13+.
 
 ```powershell
 tools\build.ps1            # Release; add -Regen after changing .vpc files, -Configuration Debug for debug
 ```
 
-This writes `client.dll` and `server.dll` to `game/hidden2013/bin/x64` and the launcher to
-`game/hidden2013_win64.exe`.
+This writes the DLLs to `game/hidden2013/bin/x64`, the shaders to `game/hidden2013/shaders/fxc` and
+the launcher to `game/hidden2013_win64.exe`. Run the launcher with Steam running.
 
-## Running
+**Linux:** [podman](https://podman.io/) and the Steam Runtime's sniper SDK image, which the script
+pulls:
 
-- **Client:** run `game\hidden2013_win64.exe` (Steam must be running).
-- **Dedicated server (Windows):** use the 64-bit `srcds_win64.exe` from the Source SDK Base 2013
-  Multiplayer install. The `srcds.exe` in the dedicated-server app (244310) is 32-bit and can't load
-  64-bit game DLLs.
+```sh
+src/buildhidden [release|debug]
+```
 
-  ```powershell
-  & "<SDK Base 2013 MP>\srcds_win64.exe" -console -game "<repo>\game\hidden2013" +maxplayers 12 +map hdn_docks
-  ```
+This writes the libraries to `game/hidden2013/bin/linux64`. The shaders are compiled on Windows only.
 
-- **Dedicated server (Linux):** to come. Build with `src/buildallprojects` against the Steam Runtime and
-  run on SteamCMD app 244310.
+**Packages:** `py tools/package.py windows|linux` puts the release archives in `dist/`, from what
+the builds left in `game/hidden2013`.
 
 ## License
 

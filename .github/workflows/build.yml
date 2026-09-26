@@ -1,0 +1,142 @@
+name: Build
+
+# Windows and Linux builds, packaged for players and servers (tools/package.py). Pushes to main
+# replace the rolling "latest" prerelease; publishing a release attaches its packages.
+# After Neotokyo: Rebuild's cibuild.yml, on the SDK's VPC build instead of CMake.
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+  release:
+    types: [published]
+
+jobs:
+  windows:
+    name: Windows ${{ matrix.configuration }}
+    runs-on: windows-2022
+    strategy:
+      fail-fast: false
+      matrix:
+        configuration: [Release, Debug]
+
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.13'
+
+      - name: Build
+        shell: pwsh
+        run: tools/build.ps1 -Configuration ${{ matrix.configuration }}
+
+      - name: Upload binaries and shaders
+        uses: actions/upload-artifact@v7
+        with:
+          name: windows-${{ matrix.configuration }}
+          path: |
+            game/hidden2013/bin/x64/*.dll
+            game/hidden2013/bin/x64/*.pdb
+            game/hidden2013/shaders/fxc/*.vcs
+          if-no-files-found: error
+
+  linux:
+    name: Linux ${{ matrix.configuration }}
+    runs-on: ubuntu-24.04
+    container:
+      image: registry.gitlab.steamos.cloud/steamrt/sniper/sdk:latest
+    strategy:
+      fail-fast: false
+      matrix:
+        configuration: [release, debug]
+
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Build
+        env:
+          HIDDEN_IN_SNIPER: '1'
+        run: src/buildhidden ${{ matrix.configuration }}
+
+      - name: Upload binaries
+        uses: actions/upload-artifact@v7
+        with:
+          name: linux-${{ matrix.configuration }}
+          path: game/hidden2013/bin/linux64/*.so
+          if-no-files-found: error
+
+  package:
+    name: Package
+    needs: [windows, linux]
+    runs-on: ubuntu-24.04
+
+    steps:
+      - uses: actions/checkout@v6
+
+      # The artifacts keep their paths below game/hidden2013 (the common root of each upload).
+      - uses: actions/download-artifact@v4
+        with:
+          name: windows-Release
+          path: game/hidden2013
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: linux-release
+          path: game/hidden2013/bin/linux64
+
+      - name: Package
+        run: |
+          version="$(date -u +%Y%m%d)-$(git rev-parse --short HEAD)"
+          if [ "${{ github.event_name }}" = release ]; then version="${{ github.ref_name }}"; fi
+          python3 tools/package.py windows --version "$version"
+          python3 tools/package.py linux --version "$version"
+
+      - name: Upload packages
+        uses: actions/upload-artifact@v7
+        with:
+          name: packages
+          path: dist/*
+          if-no-files-found: error
+
+  latest:
+    name: Update the latest prerelease
+    needs: package
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write
+
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: packages
+          path: dist
+
+      - name: Replace the latest prerelease
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh release delete latest --cleanup-tag --yes --repo "$GITHUB_REPOSITORY" || true
+          gh release create latest dist/* --prerelease --target "$GITHUB_SHA" \
+            --title "Latest main build" --notes "Built from $GITHUB_SHA. Needs Hidden: Source Beta 4b installed; see the README." \
+            --repo "$GITHUB_REPOSITORY"
+
+  release:
+    name: Attach packages to the release
+    needs: package
+    if: github.event_name == 'release'
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write
+
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: packages
+          path: dist
+
+      - name: Upload
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: gh release upload "${{ github.ref_name }}" dist/* --clobber --repo "$GITHUB_REPOSITORY"
