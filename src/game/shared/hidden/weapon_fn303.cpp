@@ -120,7 +120,7 @@ void CFN303Bolt::BoltTouch( CBaseEntity *pOther )
 			EmitSound( "Weapon_FN303.BoltHitWorld" );
 
 			SetMoveType( MOVETYPE_NONE );
-			UTIL_ImpactTrace( &tr, DMG_NERVEGAS );	// Beta 4b's damage type for the impact
+			UTIL_ImpactTrace( &tr, DMG_PARALYZE );	// Beta 4b's damage type for the impact: the paint splat decal
 			AddEffects( EF_NODRAW );
 			SetTouch( NULL );
 			SetThink( &CBaseEntity::SUB_Remove );
@@ -129,7 +129,7 @@ void CFN303Bolt::BoltTouch( CBaseEntity *pOther )
 		else
 		{
 			if ( !( tr.surface.flags & SURF_SKY ) )
-				UTIL_ImpactTrace( &tr, DMG_NERVEGAS );
+				UTIL_ImpactTrace( &tr, DMG_PARALYZE );
 
 			UTIL_Remove( this );
 		}
@@ -163,7 +163,7 @@ void CFN303Bolt::BoltTouch( CBaseEntity *pOther )
 		CHidden_Player *pVictim = ToHiddenPlayer( pOther );
 		if ( !pVictim )
 		{
-			UTIL_ImpactTrace( &tr, DMG_NERVEGAS );
+			UTIL_ImpactTrace( &tr, DMG_PARALYZE );
 		}
 		else
 		{

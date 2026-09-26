@@ -716,6 +716,12 @@ char const *CBaseEntity::DamageDecal( int bitsDamageType, int gameMaterial )
 	if ( bitsDamageType == DMG_SLASH )
 		return "ManhackCut";
 
+#ifdef HIDDEN
+	// The FN303's paint pellets
+	if ( bitsDamageType == DMG_PARALYZE )
+		return "303Splash";
+#endif
+
 	// This will get translated at a lower layer based on game material
 	return "Impact.Concrete";
 }

@@ -55,6 +55,7 @@ public:
 	virtual void Spawn( void );
 	virtual void ResolveFlyCollisionCustom( trace_t &trace, Vector &vecVelocity );
 	virtual float GetShakeAmplitude( void ) { return 0.0f; }	// no screen shake
+	virtual void BounceSound( void ) { EmitSound( "BaseGrenade.Bounce" ); }	// Beta 4b's CBaseGrenade still played it
 
 	void DangerSoundThink( void );
 	void SetDetonateTimerLength( float flTimer ) { m_flDetonateTime = gpGlobals->curtime + flTimer; }
@@ -334,6 +335,7 @@ void CWeaponGrenade::Precache( void )
 	BaseClass::Precache();
 
 	PrecacheModel( PIPEBOMB_THROWN_MODEL );
+	PrecacheScriptSound( "BaseGrenade.Bounce" );
 #ifndef CLIENT_DLL
 	UTIL_PrecacheOther( "grenade_projectile" );
 #endif
