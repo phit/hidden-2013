@@ -65,6 +65,7 @@ IMPLEMENT_CLIENTCLASS_DT( C_Hidden_Player, DT_Hidden_Player, CHidden_Player )
 	RecvPropFloat( RECVINFO( m_flStamina ) ),
 	RecvPropBool( RECVINFO( m_bClinging ) ),
 	RecvPropBool( RECVINFO( m_bAura ) ),
+	RecvPropBool( RECVINFO( m_bRequestAmmo ) ),
 	RecvPropInt( RECVINFO( m_iThrowGrenadeCounter ) ),
 	RecvPropString( RECVINFO( m_szCurrentLocation ) ),
 END_RECV_TABLE()
@@ -97,6 +98,7 @@ C_Hidden_Player::C_Hidden_Player()
 	m_flStamina = 0.0f;
 	m_bClinging = false;
 	m_bAura = false;
+	m_bRequestAmmo = false;
 	m_iThrowGrenadeCounter = 0;
 	m_szCurrentLocation[0] = '\0';
 

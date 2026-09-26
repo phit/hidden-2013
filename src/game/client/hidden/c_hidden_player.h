@@ -90,6 +90,7 @@ private:
 	float m_flStamina;
 	bool m_bClinging;
 	bool m_bAura;
+	bool m_bRequestAmmo;
 
 	CSmartPtr<CHiddenAuraEmitter> m_pAuraEmitter;
 	int m_iThrowGrenadeCounter;
