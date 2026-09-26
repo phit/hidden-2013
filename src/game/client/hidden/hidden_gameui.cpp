@@ -37,6 +37,38 @@ static const HiddenGameUIControl_t s_HiddenControls[] =
 	{ "PlayerListDialog", "AddFriendButton" },
 };
 
+// SDK 2013 options worth keeping, placed in free space on Beta 4b's tabs (the tabs' own units,
+// like their layout files). Every other control a Beta 4b layout doesn't place is hidden.
+struct HiddenGameUIPlacement_t
+{
+	const char *pszDialog;
+	const char *pszControl;
+	int x, y, wide, tall;
+};
+
+static const HiddenGameUIPlacement_t s_PlacedControls[] =
+{
+	// Mouse: raw input under the divider, acceleration as a row like sensitivity's, below the gamepad.
+	{ "OptionsSubMouse", "MouseRaw", 28, 164, 148, 28 },
+	{ "OptionsSubMouse", "MouseAccelerationCheckbox", 28, 276, 148, 28 },
+	{ "OptionsSubMouse", "MouseAccelerationSlider", 182, 272, 186, 40 },
+	{ "OptionsSubMouse", "MouseAccelerationLabel", 382, 276, 40, 24 },
+	// Audio: muting when unfocused, in the hidden commentary combo's place.
+	{ "OptionsSubAudio", "snd_mute_losefocus", 36, 194, 175, 24 },
+	// Multiplayer: which custom files to download from servers, under Advanced.
+	{ "OptionsSubMultiplayer", "DownloadFilterCheck", 40, 275, 220, 24 },
+};
+
+static const HiddenGameUIPlacement_t *FindPlacement( const char *pszDialog, const char *pszControl )
+{
+	for ( int i = 0; i < ARRAYSIZE( s_PlacedControls ); i++ )
+	{
+		if ( !Q_stricmp( pszDialog, s_PlacedControls[i].pszDialog ) && !Q_stricmp( pszControl, s_PlacedControls[i].pszControl ) )
+			return &s_PlacedControls[i];
+	}
+	return NULL;
+}
+
 class CHiddenGameUIFixups : public Panel
 {
 	DECLARE_CLASS_SIMPLE( CHiddenGameUIFixups, Panel );
@@ -64,6 +96,28 @@ public:
 			HideControls( root );
 	}
 
+	// Lists, for every options tab (open or not), the controls its layout file doesn't place.
+	void DumpUnplaced( VPANEL panel )
+	{
+		const char *pszClass = ipanel()->GetClassName( panel );
+		const char *pszName = ( pszClass && pszClass[0] == 'C' ) ? pszClass + 1 : "";
+		if ( !Q_strnicmp( pszName, "OptionsSub", 10 ) )
+		{
+			KeyValues *pLayout = GetLayout( pszName );
+			Msg( "%s (%s):\n", pszName, pLayout ? "Beta 4b layout" : "SDK 2013 layout, all placed" );
+			for ( int j = 0; pLayout && j < ipanel()->GetChildCount( panel ); j++ )
+			{
+				VPANEL child = ipanel()->GetChild( panel, j );
+				const char *pszChild = ipanel()->GetName( child );
+				if ( pszChild[0] && !pLayout->FindKey( pszChild ) )
+					Msg( "  %s (%s): %s\n", pszChild, ipanel()->GetClassName( child ), FindPlacement( pszName, pszChild ) ? "placed" : "hidden" );
+			}
+		}
+
+		for ( int i = 0; i < ipanel()->GetChildCount( panel ); i++ )
+			DumpUnplaced( ipanel()->GetChild( panel, i ) );
+	}
+
 private:
 	void HideControls( VPANEL panel )
 	{
@@ -83,7 +137,7 @@ private:
 			}
 		}
 
-		// An options tab: hide the controls its layout file doesn't mention.
+		// An options tab laid out by Beta 4b: place the controls we keep, hide the rest it doesn't mention.
 		if ( !Q_strnicmp( pszName, "OptionsSub", 10 ) )
 		{
 			KeyValues *pLayout = GetLayout( pszName );
@@ -91,8 +145,24 @@ private:
 			{
 				VPANEL child = ipanel()->GetChild( panel, j );
 				const char *pszChild = ipanel()->GetName( child );
-				if ( pszChild[0] && !pLayout->FindKey( pszChild ) && ipanel()->IsVisible( child ) )
+				if ( !pszChild[0] || pLayout->FindKey( pszChild ) )
+					continue;
+
+				const HiddenGameUIPlacement_t *pPlace = FindPlacement( pszName, pszChild );
+				if ( pPlace )
+				{
+					int x, y, w, t;
+					ipanel()->GetPos( child, x, y );
+					ipanel()->GetSize( child, w, t );
+					if ( x != pPlace->x || y != pPlace->y )
+						ipanel()->SetPos( child, pPlace->x, pPlace->y );
+					if ( w != pPlace->wide || t != pPlace->tall )
+						ipanel()->SetSize( child, pPlace->wide, pPlace->tall );
+				}
+				else if ( ipanel()->IsVisible( child ) )
+				{
 					ipanel()->SetVisible( child, false );
+				}
 			}
 		}
 
@@ -105,14 +175,22 @@ private:
 		}
 	}
 
-	// The layout file GameUI loaded for a dialog (resource/<name>.res), or NULL if there's none.
+	// Beta 4b's layout file for a dialog (resource/<name>.res), or NULL if the dialog uses SDK
+	// 2013's own, which places all of its controls.
 	KeyValues *GetLayout( const char *pszDialog )
 	{
 		int i = m_Layouts.Find( pszDialog );
 		if ( i == m_Layouts.InvalidIndex() )
 		{
+			const char *pszFile = VarArgs( "resource/%s.res", pszDialog );
+			// Beta 4b's are loose files outside SDK Base; SDK 2013's are under it, or in its VPKs.
+			char szFull[MAX_PATH], szBase[MAX_PATH];
+			const bool bBeta4b = g_pFullFileSystem->RelativePathToFullPath( pszFile, "GAME", szFull, sizeof( szFull ) ) &&
+				!( g_pFullFileSystem->GetSearchPath( "BASE_PATH", false, szBase, sizeof( szBase ) ) &&
+				   !V_strnicmp( szFull, szBase, V_strcspn( szBase, ";" ) ) );
+
 			KeyValues *pLayout = new KeyValues( pszDialog );
-			if ( !pLayout->LoadFromFile( g_pFullFileSystem, VarArgs( "resource/%s.res", pszDialog ), "GAME" ) )
+			if ( !bBeta4b || !pLayout->LoadFromFile( g_pFullFileSystem, pszFile, "GAME" ) )
 			{
 				pLayout->deleteThis();
 				pLayout = NULL;
@@ -138,8 +216,17 @@ public:
 		m_pFixups = NULL;
 	}
 
+	CHiddenGameUIFixups *GetFixups( void ) { return m_pFixups; }
+
 private:
 	CHiddenGameUIFixups *m_pFixups;
 };
 
 static CHiddenGameUISystem g_HiddenGameUISystem;
+
+CON_COMMAND( hdn_gameui_unplaced, "List the controls on each options tab that its Beta 4b layout doesn't place (open the options once first)" )
+{
+	VPANEL root = enginevgui->GetPanel( PANEL_GAMEUIDLL );
+	if ( root && g_HiddenGameUISystem.GetFixups() )
+		g_HiddenGameUISystem.GetFixups()->DumpUnplaced( root );
+}
