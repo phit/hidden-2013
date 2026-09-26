@@ -1254,8 +1254,8 @@ void CAPCMissile::ComputeActualDotPosition( CLaserDot *pLaserDot, Vector *pActua
 // RPG
 //=============================================================================
 
-LINK_ENTITY_TO_CLASS( weapon_rpg, CWeaponRPG );
 #ifndef HIDDEN	// Hidden: Source has no HL2MP weapons; kept only for the bots and player code
+LINK_ENTITY_TO_CLASS( weapon_rpg, CWeaponRPG );
 PRECACHE_WEAPON_REGISTER(weapon_rpg);
 #endif
 

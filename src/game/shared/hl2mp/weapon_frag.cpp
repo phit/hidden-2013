@@ -129,8 +129,8 @@ BEGIN_PREDICTION_DATA( CWeaponFrag )
 END_PREDICTION_DATA()
 #endif
 
-LINK_ENTITY_TO_CLASS( weapon_frag, CWeaponFrag );
 #ifndef HIDDEN	// Hidden: Source has no HL2MP weapons; kept only for the HL2 and HL2MP code
+LINK_ENTITY_TO_CLASS( weapon_frag, CWeaponFrag );
 PRECACHE_WEAPON_REGISTER(weapon_frag);
 #endif
 
