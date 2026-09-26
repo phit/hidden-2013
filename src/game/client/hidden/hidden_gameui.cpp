@@ -15,6 +15,7 @@
 #include "tier1/utldict.h"
 #include <vgui/ILocalize.h>
 #include <vgui/IPanel.h>
+#include <vgui/IScheme.h>
 #include <vgui/IVGui.h>
 #include <vgui_controls/Panel.h>
 
@@ -56,6 +57,8 @@ static const HiddenGameUIPlacement_t s_PlacedControls[] =
 	{ "OptionsSubMouse", "MouseAccelerationLabel", 382, 276, 40, 24 },
 	// Audio: muting when unfocused, in the hidden commentary combo's place.
 	{ "OptionsSubAudio", "snd_mute_losefocus", 36, 194, 175, 24 },
+	// Video: the third-party licence notices, left of Advanced.
+	{ "OptionsSubVideo", "ThirdPartyVideoCredits", 36, 208, 180, 24 },
 	// Multiplayer: which custom files to download from servers, under Advanced.
 	{ "OptionsSubMultiplayer", "DownloadFilterCheck", 40, 275, 220, 24 },
 };
@@ -152,13 +155,21 @@ private:
 				const HiddenGameUIPlacement_t *pPlace = FindPlacement( pszName, pszChild );
 				if ( pPlace )
 				{
+					// In the tab's units: scaled with the screen, like its layout, when it's proportional.
+					const bool bProportional = ipanel()->IsProportional( panel );
+					const HScheme hScheme = ipanel()->GetScheme( panel );
+					#define HIDDEN_SCALE( v ) ( bProportional ? scheme()->GetProportionalScaledValueEx( hScheme, v ) : v )
+					const int px = HIDDEN_SCALE( pPlace->x ), py = HIDDEN_SCALE( pPlace->y );
+					const int pw = HIDDEN_SCALE( pPlace->wide ), pt = HIDDEN_SCALE( pPlace->tall );
+					#undef HIDDEN_SCALE
+
 					int x, y, w, t;
 					ipanel()->GetPos( child, x, y );
 					ipanel()->GetSize( child, w, t );
-					if ( x != pPlace->x || y != pPlace->y )
-						ipanel()->SetPos( child, pPlace->x, pPlace->y );
-					if ( w != pPlace->wide || t != pPlace->tall )
-						ipanel()->SetSize( child, pPlace->wide, pPlace->tall );
+					if ( x != px || y != py )
+						ipanel()->SetPos( child, px, py );
+					if ( w != pw || t != pt )
+						ipanel()->SetSize( child, pw, pt );
 				}
 				else if ( ipanel()->IsVisible( child ) )
 				{
