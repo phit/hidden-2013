@@ -25,20 +25,26 @@
 
 // Deviation: Beta 4b's spectators only had the cameras and the marines' helmet cams. An admin can
 // lift that for one player, from the server console or rcon (or a listen server's host for anyone).
+// The server console or rcon, or a listen server's own player. UTIL_IsCommandIssuedByServerAdmin
+// assumes the host is slot 1, which bots added before the host joins can take.
+bool HiddenIsCommandIssuedByServerAdmin( const char *pszCommand )
+{
+	CBasePlayer *pCaller = UTIL_GetCommandClient();
+	if ( !pCaller )
+		return true;
+
+	INetChannelInfo *pNetInfo = engine->GetPlayerNetInfo( pCaller->entindex() );
+	if ( !engine->IsDedicatedServer() && pNetInfo && pNetInfo->IsLoopback() )
+		return true;
+
+	ClientPrint( pCaller, HUD_PRINTCONSOLE, UTIL_VarArgs( "%s: only the server can use this\n", pszCommand ) );
+	return false;
+}
+
 CON_COMMAND_F( hdn_spec_unrestricted, "hdn_spec_unrestricted <name|#userid> [0|1]: let a player also watch the Hidden and use the chase and free cameras", FCVAR_GAMEDLL )
 {
-	// The server console or rcon, or a listen server's own player (UTIL_IsCommandIssuedByServerAdmin
-	// assumes slot 1, which bots added before the host joins can take).
-	CBasePlayer *pCaller = UTIL_GetCommandClient();
-	if ( pCaller )
-	{
-		INetChannelInfo *pNetInfo = engine->GetPlayerNetInfo( pCaller->entindex() );
-		if ( engine->IsDedicatedServer() || !pNetInfo || !pNetInfo->IsLoopback() )
-		{
-			ClientPrint( pCaller, HUD_PRINTCONSOLE, "hdn_spec_unrestricted: only the server can use this\n" );
-			return;
-		}
-	}
+	if ( !HiddenIsCommandIssuedByServerAdmin( "hdn_spec_unrestricted" ) )
+		return;
 
 	CHidden_Player *pTarget = NULL;
 	if ( args.ArgC() >= 2 )

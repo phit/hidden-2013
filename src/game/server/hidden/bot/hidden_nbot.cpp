@@ -406,9 +406,10 @@ static void KickBot( CHiddenBot *pBot )
 	engine->ServerCommand( UTIL_VarArgs( "kickid %d\n", pBot->GetUserID() ) );
 }
 
-CON_COMMAND_F( hdn_bot_add, "Add bots: hdn_bot_add [count] [iris|any]; 'iris' bots never become the Hidden", FCVAR_GAMEDLL )
+// Deviation: Beta 4b's bot_add made the SDK template's test bots (now bot_add_test, hidden_bot.cpp).
+CON_COMMAND_F( bot_add, "Add bots: bot_add [count] [iris]; 'iris' bots never become the Hidden", FCVAR_GAMEDLL )
 {
-	if ( !UTIL_IsCommandIssuedByServerAdmin() )
+	if ( !HiddenIsCommandIssuedByServerAdmin( "bot_add" ) )
 		return;
 
 	int iCount = 1;
@@ -432,14 +433,15 @@ CON_COMMAND_F( hdn_bot_add, "Add bots: hdn_bot_add [count] [iris|any]; 'iris' bo
 		hdn_bot_quota.SetValue( CountBots() );
 }
 
-CON_COMMAND_F( hdn_bot_kick, "Remove a bot by name, or all of them ('all')", FCVAR_GAMEDLL )
+CON_COMMAND_F( bot_kick, "Remove a bot by name, or all of them; 'bot_kick all' also sets hdn_bot_quota to 0", FCVAR_GAMEDLL )
 {
-	if ( !UTIL_IsCommandIssuedByServerAdmin() )
+	if ( !HiddenIsCommandIssuedByServerAdmin( "bot_kick" ) )
 		return;
 
+	// No name: kick them all but keep the quota (nav_generate issues a bare bot_kick before the reload).
 	const char *pszWho = args.ArgC() > 1 ? args[1] : "all";
 	const bool bAll = !Q_stricmp( pszWho, "all" );
-	if ( bAll )
+	if ( bAll && args.ArgC() > 1 )
 		hdn_bot_quota.SetValue( 0 );
 
 	for ( int i = 1; i <= gpGlobals->maxClients; i++ )

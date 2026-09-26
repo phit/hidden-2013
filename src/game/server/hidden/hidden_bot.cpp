@@ -1,10 +1,10 @@
 //========= Hidden: Source =====================================================//
 //
 // Purpose: Beta 4b's test bots (CSDKBot, the 2006 SDK template's sdk_bot_temp.cpp):
-//			bot_add and the marine tutorial's "Subject 617". Each frame a bot runs
+//			bot_add_test (Beta 4b's bot_add) and the marine tutorial's "Subject 617". Each frame a bot runs
 //			forward, turns away from walls, now and then strafes or backs up, and
 //			stops for good once it's hurt; the bot_* cvars make bots mimic a
-//			player, fire or send commands. Real bots come later (docs/spec/bots.md).
+//			player, fire or send commands. The playable bots are bot_add (bot/hidden_nbot.cpp).
 //
 //=============================================================================//
 
@@ -75,7 +75,8 @@ static CHidden_Player *CreateBot( const char *pszName, bool bFrozen )
 	return pBot;
 }
 
-CON_COMMAND_F( bot_add, "Add a bot.", FCVAR_GAMEDLL | FCVAR_CHEAT )
+// Beta 4b's bot_add; that name now adds the playable bots.
+CON_COMMAND_F( bot_add_test, "Add a test bot: bot_add_test [-count n] [-frozen]", FCVAR_GAMEDLL | FCVAR_CHEAT )
 {
 	static int s_iBotNumber = 0;
 
@@ -351,7 +352,7 @@ void Bot_RunAll( void )
 	for ( int i = 1; i <= gpGlobals->maxClients; i++ )
 	{
 		CHidden_Player *pPlayer = ToHiddenPlayer( UTIL_PlayerByIndex( i ) );
-		// NextBots (hdn_bot_add, bot/hidden_nbot.cpp) run themselves.
+		// NextBots (bot_add, bot/hidden_nbot.cpp) run themselves.
 		if ( pPlayer && ( pPlayer->GetFlags() & FL_FAKECLIENT ) && !pPlayer->IsHLTV() && !pPlayer->IsReplay() && !pPlayer->MyNextBotPointer() )
 			Bot_Think( pPlayer );
 	}

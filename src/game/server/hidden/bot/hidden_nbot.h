@@ -1,7 +1,7 @@
 //========= Hidden: Source =====================================================//
 //
 // Purpose: Playable bots for both teams, on NextBot (Beta 4b's own bots were
-//			the SDK template's test bots, kept as bot_add in hidden_bot.cpp).
+//			the SDK template's test bots, now bot_add_test in hidden_bot.cpp).
 //			Not a Beta 4b feature: see docs/spec/bots.md.
 //
 //=============================================================================//

@@ -222,6 +222,9 @@ private:
 	bool m_bHadHidden;
 };
 
+// The server console or rcon, or a listen server's host; tells anyone else they can't.
+bool HiddenIsCommandIssuedByServerAdmin( const char *pszCommand );
+
 inline CHidden_Player *ToHiddenPlayer( CBaseEntity *pEntity )
 {
 	if ( !pEntity || !pEntity->IsPlayer() )
