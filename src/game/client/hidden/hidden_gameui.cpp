@@ -18,6 +18,7 @@
 #include <vgui/IScheme.h>
 #include <vgui/IVGui.h>
 #include <vgui_controls/Panel.h>
+#include <vgui_controls/Label.h>
 
 // memdbgon must be the last include file in a .cpp file!!!
 #include "tier0/memdbgon.h"
@@ -41,11 +42,14 @@ static const HiddenGameUIControl_t s_HiddenControls[] =
 
 // SDK 2013 options worth keeping, placed in free space on Beta 4b's tabs (the tabs' own units,
 // like their layout files). Every other control a Beta 4b layout doesn't place is hidden.
+// Entries with a heading token are labels of ours, for controls whose headings SDK 2013's own
+// layouts supply: Beta 4b style, "< Heading >".
 struct HiddenGameUIPlacement_t
 {
 	const char *pszDialog;
 	const char *pszControl;
 	int x, y, wide, tall;
+	const char *pszHeadingToken;
 };
 
 static const HiddenGameUIPlacement_t s_PlacedControls[] =
@@ -61,6 +65,11 @@ static const HiddenGameUIPlacement_t s_PlacedControls[] =
 	{ "OptionsSubVideo", "ThirdPartyVideoCredits", 36, 208, 180, 24 },
 	// Multiplayer: which custom files to download from servers, under Advanced.
 	{ "OptionsSubMultiplayer", "DownloadFilterCheck", 40, 275, 220, 24 },
+	// Video, Advanced: motion blur and multicore rendering beside HDR, as a row like the others.
+	{ "OptionsSubVideoAdvancedDlg", "HiddenMotionBlurLabel", 176, 234, 152, 24, "#GameUI_MotionBlur" },
+	{ "OptionsSubVideoAdvancedDlg", "MotionBlur", 176, 258, 132, 24 },
+	{ "OptionsSubVideoAdvancedDlg", "HiddenMulticoreLabel", 330, 234, 152, 24, "#GameUI_MulticoreRendering" },
+	{ "OptionsSubVideoAdvancedDlg", "Multicore", 330, 258, 132, 24 },
 };
 
 static const HiddenGameUIPlacement_t *FindPlacement( const char *pszDialog, const char *pszControl )
@@ -145,6 +154,8 @@ private:
 		if ( !Q_strnicmp( pszName, "OptionsSub", 10 ) )
 		{
 			KeyValues *pLayout = GetLayout( pszName );
+			if ( pLayout )
+				AddHeadings( panel, pszName );
 			for ( int j = 0; pLayout && j < ipanel()->GetChildCount( panel ); j++ )
 			{
 				VPANEL child = ipanel()->GetChild( panel, j );
@@ -185,6 +196,37 @@ private:
 			if ( ipanel()->IsVisible( child ) )
 				HideControls( child );
 		}
+	}
+
+	// Our headings for placed controls, added once to each instance of the dialog.
+	void AddHeadings( VPANEL panel, const char *pszDialog )
+	{
+		for ( int i = 0; i < ARRAYSIZE( s_PlacedControls ); i++ )
+		{
+			const HiddenGameUIPlacement_t &place = s_PlacedControls[i];
+			if ( !place.pszHeadingToken || Q_stricmp( place.pszDialog, pszDialog ) || FindChild( panel, place.pszControl ) )
+				continue;
+
+			wchar_t wszHeading[128];
+			const wchar_t *pwszText = g_pVGuiLocalize->Find( place.pszHeadingToken );
+			V_snwprintf( wszHeading, ARRAYSIZE( wszHeading ), L"< %ls >", pwszText ? pwszText : L"" );
+
+			Label *pLabel = new Label( NULL, place.pszControl, wszHeading );
+			pLabel->SetParent( panel );
+			pLabel->SetScheme( ipanel()->GetScheme( panel ) );
+			pLabel->SetProportional( ipanel()->IsProportional( panel ) );
+		}
+	}
+
+	static VPANEL FindChild( VPANEL panel, const char *pszName )
+	{
+		for ( int i = 0; i < ipanel()->GetChildCount( panel ); i++ )
+		{
+			VPANEL child = ipanel()->GetChild( panel, i );
+			if ( !Q_stricmp( ipanel()->GetName( child ), pszName ) )
+				return child;
+		}
+		return 0;
 	}
 
 	// Beta 4b's layout file for a dialog (resource/<name>.res), or NULL if the dialog uses SDK
