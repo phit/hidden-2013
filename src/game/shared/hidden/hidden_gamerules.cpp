@@ -109,7 +109,7 @@ static const char *s_HiddenPreserveEnts[] =
 	"env_fog_controller", "func_brush", "func_door", "func_wall", "func_illusionary", "func_rotating",
 	"infodecal", "info_projecteddecal", "info_node", "info_target", "info_node_hint",
 	"info_marine_spawn", "info_hidden_spawn", "info_spectator", "info_map_parameters", "keyframe_rope",
-	"move_rope", "info_ladder", "player", "point_viewcontrol", "scene_manager", "shadow_control",
+	"move_rope", "info_ladder", "player", "hidden_bot", "point_viewcontrol", "scene_manager", "shadow_control",
 	"sky_camera", "soundent", "trigger_soundscape", "viewmodel", "predicted_viewmodel", "worldspawn",
 	"point_devshot_camera",
 	"", // END Marker

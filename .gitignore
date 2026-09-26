@@ -511,3 +511,6 @@ game/mod_hidden/cfg/config.cfg
 game/mod_hidden/downloadlists/
 /game/mod_hidden/maps/graphs/
 game/mod_hidden/shaders/
+
+# Bot navigation meshes, generated per map (nav_generate or hdn_bot_auto_nav)
+game/mod_hidden/maps/*.nav

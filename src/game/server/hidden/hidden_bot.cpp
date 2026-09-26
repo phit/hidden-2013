@@ -351,7 +351,8 @@ void Bot_RunAll( void )
 	for ( int i = 1; i <= gpGlobals->maxClients; i++ )
 	{
 		CHidden_Player *pPlayer = ToHiddenPlayer( UTIL_PlayerByIndex( i ) );
-		if ( pPlayer && ( pPlayer->GetFlags() & FL_FAKECLIENT ) && !pPlayer->IsHLTV() && !pPlayer->IsReplay() )
+		// NextBots (hdn_bot_add, bot/hidden_nbot.cpp) run themselves.
+		if ( pPlayer && ( pPlayer->GetFlags() & FL_FAKECLIENT ) && !pPlayer->IsHLTV() && !pPlayer->IsReplay() && !pPlayer->MyNextBotPointer() )
 			Bot_Think( pPlayer );
 	}
 }
