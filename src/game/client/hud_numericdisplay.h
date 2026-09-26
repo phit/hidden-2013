@@ -40,6 +40,9 @@ protected:
 	// vgui overrides
 	virtual void Paint();
 	virtual void PaintLabel();
+#ifdef HIDDEN
+	virtual void PaintBackground() {}	// Beta 4b's numbers had no box behind them
+#endif
 
 	virtual void PaintNumbers(vgui::HFont font, int xpos, int ypos, int value);
 
