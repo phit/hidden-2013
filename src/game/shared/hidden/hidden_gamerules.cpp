@@ -786,6 +786,54 @@ void CHiddenRules::DeathNotice( CBasePlayer *pVictim, const CTakeDamageInfo &inf
 	BaseClass::DeathNotice( pVictim, info );
 }
 
+// Beta 4b's CGameRules::CanHavePlayerItem: each team picks up only its own weapons, and a marine
+// only the primary and pistol of their loadout (another of the same kind tops up its ammo).
+bool CHiddenRules::CanHavePlayerItem( CBasePlayer *pPlayer, CBaseCombatWeapon *pItem )
+{
+	static const char *s_pszPrimaries[HIDDEN_PRIMARY_COUNT] = { "weapon_fn2000", "weapon_p90", "weapon_shotgun", "weapon_fn303" };
+	static const char *s_pszSecondaries[HIDDEN_SECONDARY_COUNT] = { "weapon_pistol", "weapon_pistol2" };
+
+	const char *pszName = pItem->GetName();
+
+	if ( pPlayer->GetTeamNumber() == TEAM_HIDDEN )
+	{
+		for ( int i = 0; i < HIDDEN_PRIMARY_COUNT; i++ )
+		{
+			if ( !Q_stricmp( pszName, s_pszPrimaries[i] ) )
+				return false;
+		}
+		for ( int i = 0; i < HIDDEN_SECONDARY_COUNT; i++ )
+		{
+			if ( !Q_stricmp( pszName, s_pszSecondaries[i] ) )
+				return false;
+		}
+		if ( !Q_stricmp( pszName, "weapon_sonic" ) )
+			return false;
+	}
+	else
+	{
+		if ( !Q_stricmp( pszName, "weapon_knife" ) || !Q_stricmp( pszName, "weapon_grenade" ) )
+			return false;
+
+		CHidden_Player *pHiddenPlayer = ToHiddenPlayer( pPlayer );
+		if ( pHiddenPlayer )
+		{
+			for ( int i = 0; i < HIDDEN_PRIMARY_COUNT; i++ )
+			{
+				if ( i != pHiddenPlayer->GetPrimary() && !Q_stricmp( pszName, s_pszPrimaries[i] ) )
+					return false;
+			}
+			for ( int i = 0; i < HIDDEN_SECONDARY_COUNT; i++ )
+			{
+				if ( i != pHiddenPlayer->GetSecondary() && !Q_stricmp( pszName, s_pszSecondaries[i] ) )
+					return false;
+			}
+		}
+	}
+
+	return BaseClass::CanHavePlayerItem( pPlayer, pItem );
+}
+
 bool CHiddenRules::FPlayerCanTakeDamage( CBasePlayer *pPlayer, CBaseEntity *pAttacker, const CTakeDamageInfo &info )
 {
 	if ( pAttacker && pAttacker->IsPlayer() )

@@ -416,6 +416,20 @@ void CHidden_Player::Event_Killed( const CTakeDamageInfo &info )
 	BaseClass::Event_Killed( info );
 }
 
+// Deviation: a Hidden killed holding its pipe bombs leaves none behind. Beta 4b dropped them like
+// any active weapon, where only another Hidden could pick them up.
+void CHidden_Player::Weapon_Drop( CBaseCombatWeapon *pWeapon, const Vector *pvecTarget, const Vector *pVelocity )
+{
+	if ( pWeapon && !IsAlive() && FClassnameIs( pWeapon, "weapon_grenade" ) )
+	{
+		Weapon_Detach( pWeapon );
+		UTIL_Remove( pWeapon );
+		return;
+	}
+
+	BaseClass::Weapon_Drop( pWeapon, pvecTarget, pVelocity );
+}
+
 // Beta 4b's player came straight from CBasePlayer, so this is its OnTakeDamage_Alive (without HL2's
 // drowning and burning sounds) plus Beta 4b's additions: the player_hurt event's damage and "hidden",
 // a hurt log line, the attacker's weighting and IRIS.Damage.
