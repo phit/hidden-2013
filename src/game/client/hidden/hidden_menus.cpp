@@ -203,7 +203,10 @@ public:
 		for ( int i = 0; i < HIDDEN_NUM_CHARACTERS; i++ )
 		{
 			m_pCharacters[i] = FindControl<Button>( s_Characters[i].pszButton );
-			m_pStrikes[i] = FindControl<ImagePanel>( VarArgs( "STRIKE_%02d", i + 1 ) );
+			// Each strike lies over the button with the same number (STRIKE_07 over MEM7BUTTON).
+			m_pStrikes[i] = FindControl<ImagePanel>( VarArgs( "STRIKE_0%c", s_Characters[i].pszButton[3] ) );
+			if ( m_pStrikes[i] )
+				m_pStrikes[i]->SetMouseInputEnabled( false );
 		}
 	}
 
