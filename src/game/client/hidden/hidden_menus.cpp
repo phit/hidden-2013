@@ -197,7 +197,8 @@ public:
 		m_pInfo = FindControl<ImagePanel>( "Marine_Info" );
 		m_pClassTick = FindControl<ImagePanel>( "Tick" );
 		m_pCharacterTick = FindControl<ImagePanel>( "Tick_02" );
-		m_pChooseHidden = FindControl<ImagePanel>( "CROSS" );
+		m_pReady = FindControl<ImagePanel>( "CROSS" );
+		m_pChooseHidden = FindControl<ImagePanel>( "CROSS1" );
 
 		for ( int i = 0; i < HIDDEN_NUM_CHARACTERS; i++ )
 		{
@@ -215,8 +216,10 @@ protected:
 		if ( m_pCharacterTick )
 			m_pCharacterTick->SetVisible( false );
 
+		UpdateReady();
+
 		C_Hidden_Player *pPlayer = C_Hidden_Player::GetLocalHiddenPlayer();
-		ShowImage( m_pChooseHidden, ( pPlayer && !pPlayer->GetNoHidden() ) ? "selection/tick" : "selection/cross" );
+		ShowImage( m_pChooseHidden, ( pPlayer && pPlayer->GetNoHidden() ) ? "selection/tick" : "selection/cross" );
 	}
 
 	virtual void OnThink( void )
@@ -264,20 +267,22 @@ protected:
 		{
 			m_iClass = atoi( command + 12 );
 			MarkButton( m_pClassTick, m_iClass == 0 ? m_pAssault : m_pSupport );
+			UpdateReady();
 		}
 		else if ( !Q_strnicmp( command, "changemarine ", 13 ) )
 		{
 			m_iCharacter = atoi( command + 13 );
 			if ( m_iCharacter >= 0 && m_iCharacter < HIDDEN_NUM_CHARACTERS )
 				MarkButton( m_pCharacterTick, m_pCharacters[m_iCharacter] );
+			UpdateReady();
 		}
 		else if ( !Q_strnicmp( command, "chooseh", 7 ) )
 		{
-			// The box shows whether this player wants to be picked as the Hidden (a tick) or not.
+			// The box (CROSS1, on randbutton) is ticked while this player forfeits the Hidden selection.
 			C_Hidden_Player *pPlayer = C_Hidden_Player::GetLocalHiddenPlayer();
 			const bool bNoHiddenNow = pPlayer && pPlayer->GetNoHidden();
 			engine->ClientCmd( bNoHiddenNow ? "choosehidden 0" : "choosehidden 1" );
-			ShowImage( m_pChooseHidden, bNoHiddenNow ? "selection/tick" : "selection/cross" );
+			ShowImage( m_pChooseHidden, bNoHiddenNow ? "selection/cross" : "selection/tick" );
 		}
 		else if ( !Q_stricmp( command, "spectate" ) )
 		{
@@ -298,6 +303,12 @@ protected:
 	}
 
 private:
+	// CROSS turns into a tick once both a class and a character are picked.
+	void UpdateReady( void )
+	{
+		ShowImage( m_pReady, ( m_iClass >= 0 && m_iCharacter >= 0 ) ? "selection/tick" : "selection/cross" );
+	}
+
 	// The tick goes just left of the picked button.
 	void MarkButton( ImagePanel *pTick, Button *pButton )
 	{
@@ -321,6 +332,7 @@ private:
 	ImagePanel *m_pInfo;
 	ImagePanel *m_pClassTick;
 	ImagePanel *m_pCharacterTick;
+	ImagePanel *m_pReady;
 	ImagePanel *m_pChooseHidden;
 };
 
