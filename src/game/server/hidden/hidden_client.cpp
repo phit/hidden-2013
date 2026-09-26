@@ -183,6 +183,8 @@ void respawn( CBaseEntity *pEdict, bool fCopyCorpse )
 	}
 }
 
+void Bot_RunAll( void );	// hidden_bot.cpp
+
 void GameStartFrame( void )
 {
 	VPROF("GameStartFrame()");
@@ -190,6 +192,8 @@ void GameStartFrame( void )
 		return;
 
 	gpGlobals->teamplay = (teamplay.GetInt() != 0);
+
+	Bot_RunAll();
 }
 
 //=========================================================
