@@ -17,6 +17,7 @@
 #include "weapon_hiddenbase.h"
 #include "hidden_spectator.h"
 #include "soundent.h"
+#include "world.h"
 
 // memdbgon must be the last include file in a .cpp file!!!
 #include "tier0/memdbgon.h"
@@ -1061,7 +1062,20 @@ CBaseEntity *CHidden_Player::EntSelectSpawnPoint( void )
 		pSpot = gEntList.FindEntityByClassname( NULL, pszSpawn );
 
 	if ( !pSpot )
-		return BaseClass::EntSelectSpawnPoint();
+	{
+		pSpot = BaseClass::EntSelectSpawnPoint();
+
+		// Beta 4b returned NULL here and the spawn code used it: htr_tutorial has no
+		// info_marine_spawn, so everyone connecting (spectators search it too) crashed the server.
+		// Fall back to the other team's spawn, a spectator camera, then the world's origin.
+		if ( !pSpot )
+			pSpot = gEntList.FindEntityByClassname( NULL, bHidden ? "info_marine_spawn" : "info_hidden_spawn" );
+		if ( !pSpot )
+			pSpot = gEntList.FindEntityByClassname( NULL, "info_spectator" );
+		if ( !pSpot )
+			pSpot = GetWorldEntity();
+		return pSpot;
+	}
 
 	hLast = pSpot;
 	return pSpot;
