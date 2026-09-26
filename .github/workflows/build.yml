@@ -4,9 +4,25 @@ name: Build
 # replace the rolling "latest" prerelease; publishing a release attaches its packages.
 # After Neotokyo: Rebuild's cibuild.yml, on the SDK's VPC build instead of CMake.
 
+# Pushes and pull requests only build when something that goes into the build changed: the code, the
+# mod folder, or the build and packaging scripts and this workflow.
 on:
   push:
+    paths:
+      - 'src/**'
+      - 'game/**'
+      - 'tools/build.ps1'
+      - 'tools/build_shaders.ps1'
+      - 'tools/package.py'
+      - '.github/workflows/build.yml'
   pull_request:
+    paths:
+      - 'src/**'
+      - 'game/**'
+      - 'tools/build.ps1'
+      - 'tools/build_shaders.ps1'
+      - 'tools/package.py'
+      - '.github/workflows/build.yml'
   workflow_dispatch:
   release:
     types: [published]

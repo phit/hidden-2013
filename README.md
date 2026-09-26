@@ -3,7 +3,7 @@
 A reimplementation of [Hidden: Source](http://www.hidden-source.com) (Calibre Studios, Beta 4b, 2006) on
 the current Source SDK 2013 Multiplayer, reusing the original mod's content.
 
-The original game code was lost; a Calibre developer suggested rebuilding the game on the modern SDK
+The original game code was lost; this is a full rebuild of the game on the modern SDK
 with the old assets. This repository is a fork of
 [ValveSoftware/source-sdk-2013](https://github.com/ValveSoftware/source-sdk-2013) with a `HIDDEN` game
 target built on the HL2MP code base. Valve's original README is in [README.sdk.md](README.sdk.md).
