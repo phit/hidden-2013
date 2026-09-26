@@ -13,6 +13,7 @@
 #include "ienginevgui.h"
 #include "filesystem.h"
 #include "tier1/utldict.h"
+#include <vgui/ILocalize.h>
 #include <vgui/IPanel.h>
 #include <vgui/IVGui.h>
 #include <vgui_controls/Panel.h>
@@ -208,7 +209,30 @@ class CHiddenGameUISystem : public CAutoGameSystem
 public:
 	CHiddenGameUISystem() : CAutoGameSystem( "CHiddenGameUISystem" ), m_pFixups( NULL ) {}
 
-	virtual void PostInit( void ) { m_pFixups = new CHiddenGameUIFixups(); }
+	virtual void PostInit( void )
+	{
+		m_pFixups = new CHiddenGameUIFixups();
+
+		// Beta 4b's resource/gameui_<language>.txt shadows SDK 2013's, which has the strings for
+		// everything GameUI gained since (raw input, the download filter, ...). Add SDK 2013's from
+		// SDK Base's hl2 folder, then Beta 4b's again so its wording wins where both have a string.
+		char szBase[MAX_PATH], szLanguage[64];
+		if ( !g_pFullFileSystem->GetSearchPath( "BASE_PATH", false, szBase, sizeof( szBase ) ) )
+			return;
+		szBase[V_strcspn( szBase, ";" )] = 0;
+		engine->GetUILanguage( szLanguage, sizeof( szLanguage ) );
+
+		char szFile[MAX_PATH];
+		V_snprintf( szFile, sizeof( szFile ), "%shl2/resource/gameui_%s.txt", szBase, szLanguage );
+		V_FixSlashes( szFile );
+		if ( !g_pFullFileSystem->FileExists( szFile ) )
+		{
+			V_snprintf( szFile, sizeof( szFile ), "%shl2/resource/gameui_english.txt", szBase );
+			V_FixSlashes( szFile );
+		}
+		if ( g_pVGuiLocalize->AddFile( szFile ) )
+			g_pVGuiLocalize->AddFile( "resource/gameui_%language%.txt", "GAME", true );
+	}
 	virtual void Shutdown( void )
 	{
 		if ( m_pFixups )
