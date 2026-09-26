@@ -51,6 +51,9 @@ private:
 
 void CHiddenGameMovement::CheckParameters( void )
 {
+	// The same speed on both sides (m_flMaxspeed isn't networked); sv_maxspeed still caps it.
+	mv->m_flMaxSpeed = mv->m_flClientMaxSpeed = MIN( GetHiddenPlayer()->UpdateMaxSpeed( mv->m_nButtons, mv->m_nOldButtons ), sv_maxspeed.GetFloat() );
+
 	CGameMovement::CheckParameters();
 	CheckBack();
 }

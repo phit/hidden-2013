@@ -66,6 +66,9 @@ IMPLEMENT_CLIENTCLASS_DT( C_Hidden_Player, DT_Hidden_Player, CHidden_Player )
 	RecvPropBool( RECVINFO( m_bClinging ) ),
 	RecvPropBool( RECVINFO( m_bAura ) ),
 	RecvPropBool( RECVINFO( m_bRequestAmmo ) ),
+	RecvPropInt( RECVINFO( m_iSpeedMode ) ),
+	RecvPropBool( RECVINFO( m_bWalking ) ),
+	RecvPropFloat( RECVINFO( m_flBoostEnd ) ),
 	RecvPropInt( RECVINFO( m_iThrowGrenadeCounter ) ),
 	RecvPropString( RECVINFO( m_szCurrentLocation ) ),
 END_RECV_TABLE()
@@ -77,6 +80,9 @@ BEGIN_PREDICTION_DATA( C_Hidden_Player )
 	DEFINE_PRED_FIELD( m_flStamina, FIELD_FLOAT, FTYPEDESC_INSENDTABLE ),
 	DEFINE_PRED_FIELD( m_bClinging, FIELD_BOOLEAN, FTYPEDESC_INSENDTABLE ),
 	DEFINE_PRED_FIELD( m_bAura, FIELD_BOOLEAN, FTYPEDESC_INSENDTABLE ),
+	DEFINE_PRED_FIELD( m_iSpeedMode, FIELD_INTEGER, FTYPEDESC_INSENDTABLE ),
+	DEFINE_PRED_FIELD( m_bWalking, FIELD_BOOLEAN, FTYPEDESC_INSENDTABLE ),
+	DEFINE_PRED_FIELD( m_flBoostEnd, FIELD_FLOAT, FTYPEDESC_INSENDTABLE ),
 END_PREDICTION_DATA()
 
 C_Hidden_Player::C_Hidden_Player()
@@ -97,6 +103,9 @@ C_Hidden_Player::C_Hidden_Player()
 	m_bNightVision = false;
 	m_flStamina = 0.0f;
 	m_bClinging = false;
+	m_iSpeedMode = HIDDEN_SPEED_RUN;
+	m_bWalking = false;
+	m_flBoostEnd = 0.0f;
 	m_bAura = false;
 	m_bRequestAmmo = false;
 	m_iThrowGrenadeCounter = 0;

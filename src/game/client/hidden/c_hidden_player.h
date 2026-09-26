@@ -65,6 +65,7 @@ public:
 	// hidden_player_shared.cpp
 	virtual void PlayStepSound( Vector &vecOrigin, surfacedata_t *psurface, float fvol, bool force );
 	virtual void GetStepSoundVelocities( float *velwalk, float *velrun );
+	float UpdateMaxSpeed( int nButtons, int nOldButtons );
 
 	// Third-person animation (Beta 4b's SDK template anim state)
 	virtual void UpdateClientSideAnimation( void );
@@ -93,6 +94,9 @@ private:
 	bool m_bNightVision;
 	float m_flStamina;
 	bool m_bClinging;
+	int m_iSpeedMode;
+	bool m_bWalking;
+	float m_flBoostEnd;
 	bool m_bAura;
 	bool m_bRequestAmmo;
 

@@ -27,14 +27,8 @@
 #define HIDDEN_MODEL_HIDDEN			"models/manor/mn_fixture1.mdl"	// the cloaked Hidden, see docs/spec/client.md
 #define HIDDEN_MODEL_HIDDEN_RAGDOLL	"models/player/hidden.mdl"
 
-#define HIDDEN_MARINE_SPEED			180.0f
-#define HIDDEN_HIDDEN_SPEED			220.0f
 #define HIDDEN_HIDDEN_FOV			110
 
-#define HIDDEN_BOOST_SPEED			250.0f
-#define HIDDEN_MARINE_WALK_SPEED	120.0f
-#define HIDDEN_HIDDEN_WALK_SPEED	160.0f
-#define HIDDEN_BOOST_TIME			10.0f
 #define HIDDEN_BOOST_CHARGES		3
 
 LINK_ENTITY_TO_CLASS( player, CHidden_Player );
@@ -104,6 +98,9 @@ IMPLEMENT_SERVERCLASS_ST( CHidden_Player, DT_Hidden_Player )
 	SendPropBool( SENDINFO( m_bClinging ) ),
 	SendPropBool( SENDINFO( m_bAura ) ),
 	SendPropBool( SENDINFO( m_bRequestAmmo ) ),
+	SendPropInt( SENDINFO( m_iSpeedMode ), 2, SPROP_UNSIGNED ),
+	SendPropBool( SENDINFO( m_bWalking ) ),
+	SendPropFloat( SENDINFO( m_flBoostEnd ), 0, SPROP_NOSCALE ),
 	SendPropInt( SENDINFO( m_iThrowGrenadeCounter ), HIDDEN_THROWGRENADE_COUNTER_BITS, SPROP_UNSIGNED ),
 	SendPropString( SENDINFO( m_szCurrentLocation ) ),
 END_SEND_TABLE()
@@ -128,8 +125,9 @@ CHidden_Player::CHidden_Player()
 	m_bLAM = false;
 	m_bNightVision = false;
 	m_iBoostCount = 0;
-	m_flBoostTimer = 0.0f;
-	m_bBoosted = false;
+	m_iSpeedMode = HIDDEN_SPEED_RUN;
+	m_bWalking = false;
+	m_flBoostEnd = 0.0f;
 	m_iThrowGrenadeCounter = 0;
 	m_iSpawnTime = 0;
 	m_bSpawnQueued = false;
@@ -207,7 +205,9 @@ void CHidden_Player::Spawn( void )
 	m_flStamina = 0.0f;
 	m_bClinging = false;
 	m_bAura = false;
+	m_iSpeedMode = HIDDEN_SPEED_RUN;
 	m_bWalking = false;
+	m_flBoostEnd = 0.0f;
 	m_bUseDroppedObject = false;
 	m_bRequestAmmo = false;
 	m_bAmmoReceived = false;
@@ -810,15 +810,6 @@ void CHidden_Player::PlayerDeathThink( void )
 
 void CHidden_Player::PreThink( void )
 {
-	// +walk: pressing it (unless ducking) walks, letting go runs again.
-	if ( ( m_afButtonPressed | m_afButtonReleased ) & IN_WALK )
-	{
-		if ( m_bWalking && !( m_afButtonPressed & IN_WALK ) )
-			StopWalking();
-		else if ( !m_bWalking && ( m_afButtonPressed & IN_WALK ) && !( m_nButtons & IN_DUCK ) )
-			StartWalking();
-	}
-
 	// The Hidden's aura follows the vision key.
 	if ( GetTeamNumber() == TEAM_HIDDEN && ( ( m_afButtonPressed | m_afButtonReleased ) & IN_GRENADE1 ) )
 		m_bAura = ( m_afButtonPressed & IN_GRENADE1 ) != 0;
@@ -826,17 +817,17 @@ void CHidden_Player::PreThink( void )
 	BaseClass::PreThink();
 }
 
-// Beta 4b's CSDKPlayer walk speeds. They replace whatever speed was set, so walking ends a boost.
+// HL2's calls; +walk itself is handled per command in UpdateMaxSpeed.
 void CHidden_Player::StartWalking( void )
 {
-	SetMaxSpeed( GetTeamNumber() == TEAM_IRIS ? HIDDEN_MARINE_WALK_SPEED : HIDDEN_HIDDEN_WALK_SPEED );
 	m_bWalking = true;
+	m_iSpeedMode = HIDDEN_SPEED_WALK;
 }
 
 void CHidden_Player::StopWalking( void )
 {
-	SetMaxSpeed( GetTeamNumber() == TEAM_IRIS ? HIDDEN_MARINE_SPEED : HIDDEN_HIDDEN_SPEED );
 	m_bWalking = false;
+	m_iSpeedMode = HIDDEN_SPEED_RUN;
 }
 
 void CHidden_Player::ItemPostFrame( void )
@@ -865,13 +856,6 @@ void CHidden_Player::PostThink( void )
 
 	if ( m_bStunned )
 		UpdateStun();
-
-	// The boost wears off back to walking speed.
-	if ( m_bBoosted && m_flBoostTimer < gpGlobals->curtime )
-	{
-		SetMaxSpeed( HIDDEN_MARINE_SPEED );
-		m_bBoosted = false;
-	}
 }
 
 void CHidden_Player::SetAnimation( PLAYER_ANIM playerAnim )
@@ -936,8 +920,8 @@ void CHidden_Player::ImpulseCommands( void )
 		break;
 
 	case HIDDEN_EQUIPMENT_BOOST:
-		DevMsg( 1, "Boost values : %i - %i\n", m_bBoosted ? 1 : 0, m_iBoostCount );
-		if ( !m_bBoosted && m_iBoostCount > 0 )
+		DevMsg( 1, "Boost values : %i - %i\n", IsBoosted() ? 1 : 0, m_iBoostCount );
+		if ( !IsBoosted() && m_iBoostCount > 0 )
 		{
 			Boost();
 			m_iBoostCount--;
@@ -951,11 +935,11 @@ void CHidden_Player::ImpulseCommands( void )
 	ClearImpulse();
 }
 
+// Not predicted (impulses run on the server only), so the client corrects once when it starts.
 void CHidden_Player::Boost( void )
 {
-	m_flBoostTimer = gpGlobals->curtime + HIDDEN_BOOST_TIME;
-	SetMaxSpeed( HIDDEN_BOOST_SPEED );
-	m_bBoosted = true;
+	m_flBoostEnd = gpGlobals->curtime + HIDDEN_BOOST_TIME;
+	m_iSpeedMode = HIDDEN_SPEED_BOOST;
 }
 
 int CHidden_Player::FlashlightIsOn( void )

@@ -49,6 +49,21 @@ enum
 #define HIDDEN_AURA_MAX_SPEED		0.5f	// the aura only shows anything this still
 #define HIDDEN_CLING_DISTANCE		24.0f	// from the eyes to the wall
 #define HIDDEN_BACK_SPEED_SCALE		0.8f	// marines walking backwards
+
+// Max speeds (Beta 4b's CSDKPlayer), picked each command by CHidden_Player::UpdateMaxSpeed.
+#define HIDDEN_MARINE_SPEED			180.0f
+#define HIDDEN_HIDDEN_SPEED			220.0f
+#define HIDDEN_MARINE_WALK_SPEED	120.0f
+#define HIDDEN_HIDDEN_WALK_SPEED	160.0f
+#define HIDDEN_BOOST_SPEED			250.0f	// marines' boost equipment
+#define HIDDEN_BOOST_TIME			10.0f
+
+enum
+{
+	HIDDEN_SPEED_RUN = 0,
+	HIDDEN_SPEED_WALK,
+	HIDDEN_SPEED_BOOST,
+};
 #define HIDDEN_NUM_CHARACTERS	9	// marine characters, one per player
 
 // Marine classes (changeclass <n>).

@@ -54,6 +54,7 @@ public:
 	// hidden_player_shared.cpp
 	virtual void PlayStepSound( Vector &vecOrigin, surfacedata_t *psurface, float fvol, bool force );
 	virtual void GetStepSoundVelocities( float *velwalk, float *velrun );
+	float UpdateMaxSpeed( int nButtons, int nOldButtons );
 	virtual void PickupObject( CBaseEntity *pObject, bool bLimitMassAndSize = true );
 
 	// radio <n>: voice calls and taunts (docs/spec/teams-classes.md). Marines who call for ammo can
@@ -115,7 +116,7 @@ public:
 	void LaserTurnOff( void ) { m_bLAM = false; }
 	bool NightVisionEnabled( void ) const { return m_bNightVision; }
 	void SetNightVision( bool bEnabled ) { m_bNightVision = bEnabled; }
-	bool IsBoosted( void ) const { return m_bBoosted; }
+	bool IsBoosted( void ) const { return m_flBoostEnd > 0.0f; }
 	int GetBoostCount( void ) const { return m_iBoostCount; }
 	void Boost( void );
 
@@ -190,15 +191,15 @@ private:
 	CNetworkVar( bool, m_bClinging );
 	CNetworkVar( bool, m_bAura );
 	CNetworkVar( bool, m_bRequestAmmo );
+	CNetworkVar( int, m_iSpeedMode );	// HIDDEN_SPEED_*: run, walk or boost, whichever came last
+	CNetworkVar( bool, m_bWalking );
+	CNetworkVar( float, m_flBoostEnd );	// 0 when not boosted
 	CNetworkVar( int, m_iThrowGrenadeCounter );
 	CNetworkString( m_szCurrentLocation, HIDDEN_LOCATION_LENGTH );
 
 	IHiddenPlayerAnimState *m_pHiddenAnimState;
 
 	int m_iBoostCount;
-	float m_flBoostTimer;
-	bool m_bBoosted;
-	bool m_bWalking;
 	CTakeDamageInfo m_KillInfo;	// for the corpse
 	bool m_bUseDroppedObject;	// this +use press let go of what we held
 	bool m_bAmmoReceived;		// resupplied this life; no more ammo calls
