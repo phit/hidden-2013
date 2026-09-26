@@ -47,6 +47,7 @@ ClientModeHL2MPNormal* GetClientModeHL2MPNormal()
 #ifdef HIDDEN
 extern void CreateHiddenViewportPanels( CBaseViewport *pViewport );
 extern IViewPortPanel *CreateHiddenScoreBoard( IViewPort *pViewPort );
+extern IViewPortPanel *CreateHiddenSpectatorGUI( IViewPort *pViewPort );
 #endif
 
 class CHudViewport : public CBaseViewport
@@ -101,7 +102,11 @@ IViewPortPanel* CHudViewport::CreatePanelByName( const char *szPanelName )
 	}
 	else if ( Q_strcmp(PANEL_SPECGUI, szPanelName) == 0 )
 	{
+#ifdef HIDDEN
+		newpanel = CreateHiddenSpectatorGUI( this );
+#else
 		newpanel = new CHL2MPSpectatorGUI( this );	
+#endif
 		return newpanel;
 	}
 
