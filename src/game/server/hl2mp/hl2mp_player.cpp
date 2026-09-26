@@ -81,7 +81,9 @@ IMPLEMENT_SERVERCLASS_ST(CHL2MP_Player, DT_HL2MP_Player)
 	// predict in GameMovement, but the HL2 codebase doesn't do that and modifies this
 	// on the player.
 	// So, just never send it, and don't predict it on the client either.
+#ifndef HIDDEN	// Hidden's speeds are set by the server (team, +walk, boost) and the client needs them
 	SendPropExclude( "DT_BasePlayer", "m_flMaxspeed" ),
+#endif
 
 
 	// Data that only gets sent to the local player
