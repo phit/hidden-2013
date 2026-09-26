@@ -124,8 +124,10 @@ void CHiddenScreenEffects::Render( int x, int y, int w, int h )
 	{
 		DrawOverlay( OVERLAY_DEATHCAM, x, y, w, h );
 	}
-	else if ( pPlayer->GetObserverMode() == OBS_MODE_IN_EYE )
+	else if ( pPlayer->GetObserverMode() == OBS_MODE_IN_EYE || pPlayer->GetObserverMode() == OBS_MODE_CHASE ||
+		pPlayer->GetObserverMode() == OBS_MODE_ROAMING )
 	{
+		// The chase and free cameras (admin-unrestricted spectators only) look like the helmet cams.
 		DrawOverlay( OVERLAY_HELMETCAM, x, y, w, h );
 	}
 

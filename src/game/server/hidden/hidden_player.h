@@ -96,6 +96,10 @@ public:
 
 	// Hidden selection (docs/spec/hidden-selection.md)
 	bool GetNoHidden( void ) const { return m_bNoHidden; }
+
+	// Set by an admin (hdn_spec_unrestricted): may also watch the Hidden and use the chase and free cameras.
+	bool IsSpecUnrestricted( void ) const { return m_bSpecUnrestricted; }
+	void SetSpecUnrestricted( bool bUnrestricted ) { m_bSpecUnrestricted = bUnrestricted; }
 	bool GetHadHidden( void ) const { return m_bHadHidden; }
 	void SetHadHidden( bool bHad ) { m_bHadHidden = bHad; }
 	int GetWeighting( void ) const { return m_iWeighting; }
@@ -180,6 +184,7 @@ private:
 	CNetworkVar( int, m_iSecondary );
 	CNetworkVar( int, m_iEquipment );
 	CNetworkVar( bool, m_bNoHidden );
+	bool m_bSpecUnrestricted;
 	CNetworkVar( int, m_iWeighting );
 	CNetworkVar( bool, m_bSafety );
 	CNetworkVar( bool, m_bZoom );

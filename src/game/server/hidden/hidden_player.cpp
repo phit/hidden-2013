@@ -22,6 +22,42 @@
 // memdbgon must be the last include file in a .cpp file!!!
 #include "tier0/memdbgon.h"
 
+// Deviation: Beta 4b's spectators only had the cameras and the marines' helmet cams. An admin can
+// lift that for one player, from the server console or rcon (or a listen server's host for anyone).
+CON_COMMAND_F( hdn_spec_unrestricted, "hdn_spec_unrestricted <name|#userid> [0|1]: let a player also watch the Hidden and use the chase and free cameras", FCVAR_GAMEDLL )
+{
+	if ( !UTIL_IsCommandIssuedByServerAdmin() )
+		return;
+
+	CHidden_Player *pTarget = NULL;
+	if ( args.ArgC() >= 2 )
+	{
+		const char *pszWho = args[1];
+		pTarget = ToHiddenPlayer( pszWho[0] == '#' ? UTIL_PlayerByUserId( atoi( pszWho + 1 ) ) : UTIL_PlayerByName( pszWho ) );
+	}
+	else
+	{
+		pTarget = ToHiddenPlayer( UTIL_GetCommandClient() );	// a listen server's host, on themselves
+	}
+
+	if ( !pTarget )
+	{
+		Msg( "hdn_spec_unrestricted: no such player\n" );
+		return;
+	}
+
+	const bool bOn = args.ArgC() >= 3 ? atoi( args[2] ) != 0 : !pTarget->IsSpecUnrestricted();
+	pTarget->SetSpecUnrestricted( bOn );
+	Msg( "%s: spectating %s\n", pTarget->GetPlayerName(), bOn ? "unrestricted" : "restricted" );
+	ClientPrint( pTarget, HUD_PRINTCONSOLE, bOn ? "Spectating unrestricted\n" : "Spectating restricted\n" );
+
+	if ( !bOn && pTarget->IsObserver() )
+	{
+		pTarget->SetObserverMode( pTarget->GetObserverMode() );
+		pTarget->ValidateCurrentObserverTarget();
+	}
+}
+
 #define HIDDEN_MODEL_MARINE			"models/player/iris.mdl"
 #define HIDDEN_MODEL_MARINE_SUPPORT	"models/player/iris_supply.mdl"
 #define HIDDEN_MODEL_HIDDEN			"models/manor/mn_fixture1.mdl"	// the cloaked Hidden, see docs/spec/client.md
@@ -116,6 +152,7 @@ CHidden_Player::CHidden_Player()
 	m_iSecondary = HIDDEN_LOADOUT_NONE;
 	m_iEquipment = HIDDEN_LOADOUT_NONE;
 	m_bNoHidden = false;
+	m_bSpecUnrestricted = false;
 	m_iWeighting = 0;
 	m_bReadyToPlay = false;
 	m_bSafety = false;
@@ -397,6 +434,17 @@ void CHidden_Player::ChangeTeam( int iTeam )
 
 	if ( iTeam == TEAM_SPECTATOR )
 		BecomeObserver();
+
+	// Whoever was watching this player through the helmet cam can't keep watching the Hidden.
+	if ( iTeam == TEAM_HIDDEN )
+	{
+		for ( int i = 1; i <= gpGlobals->maxClients; i++ )
+		{
+			CBasePlayer *pObserver = UTIL_PlayerByIndex( i );
+			if ( pObserver && pObserver != this && pObserver->IsObserver() && pObserver->GetObserverTarget() == this )
+				pObserver->ValidateCurrentObserverTarget();
+		}
+	}
 }
 
 void CHidden_Player::Event_Killed( const CTakeDamageInfo &info )
@@ -703,7 +751,10 @@ void CHidden_Player::PickupObject( CBaseEntity *pObject, bool bLimitMassAndSize 
 // remembers) becomes the cameras.
 bool CHidden_Player::SetObserverMode( int mode )
 {
-	if ( mode != OBS_MODE_NONE && mode != OBS_MODE_DEATHCAM && mode != OBS_MODE_IN_EYE )
+	// hdn_spec_unrestricted (deviation, for admins) also allows the chase and free cameras.
+	const bool bAllowed = mode == OBS_MODE_NONE || mode == OBS_MODE_DEATHCAM || mode == OBS_MODE_IN_EYE ||
+		( m_bSpecUnrestricted && ( mode == OBS_MODE_CHASE || mode == OBS_MODE_ROAMING ) );
+	if ( !bAllowed )
 		mode = OBS_MODE_FIXED;
 
 	if ( !BaseClass::SetObserverMode( mode ) )
@@ -753,7 +804,7 @@ bool CHidden_Player::SetObserverTarget( CBaseEntity *target )
 // The cameras, or the marines; with no marine left to watch, back to the cameras.
 CBaseEntity *CHidden_Player::FindNextObserverTarget( bool bReverse )
 {
-	if ( GetObserverMode() == OBS_MODE_IN_EYE )
+	if ( GetObserverMode() == OBS_MODE_IN_EYE || GetObserverMode() == OBS_MODE_CHASE )
 	{
 		const int iStart = m_hObserverTarget ? m_hObserverTarget->entindex() : entindex();
 		int i = iStart;
@@ -810,7 +861,9 @@ bool CHidden_Player::IsValidObserverTarget( CBaseEntity *target )
 		return false;
 
 	CBasePlayer *pPlayer = ToBasePlayer( target );
-	return pPlayer->GetTeamNumber() != TEAM_HIDDEN && !pPlayer->IsObserver() && !pPlayer->IsEffectActive( EF_NODRAW ) && pPlayer->IsAlive();
+	if ( pPlayer->GetTeamNumber() == TEAM_HIDDEN && !m_bSpecUnrestricted )
+		return false;
+	return pPlayer != this && !pPlayer->IsObserver() && !pPlayer->IsEffectActive( EF_NODRAW ) && pPlayer->IsAlive();
 }
 
 void CHidden_Player::PlayerDeathThink( void )
@@ -1144,15 +1197,31 @@ bool CHidden_Player::ClientCommand( const CCommand &args )
 	}
 	else if ( FStrEq( pszCmd, "spec_mode" ) )
 	{
-		// Beta 4b's two modes: toggle, or 1 for the cameras and 2 for the marines.
-		int iMode = ( GetObserverMode() == OBS_MODE_IN_EYE ) ? OBS_MODE_FIXED : OBS_MODE_IN_EYE;
+		// Beta 4b's two modes: toggle, or 1 for the cameras and 2 for the marines. Players an admin
+		// unrestricted (hdn_spec_unrestricted) also get 3, the chase camera, and 4, the free camera.
+		static const int s_iModes[] = { OBS_MODE_FIXED, OBS_MODE_IN_EYE, OBS_MODE_CHASE, OBS_MODE_ROAMING };
+		const int iModes = m_bSpecUnrestricted ? 4 : 2;
+
+		int iMode;
 		if ( args.ArgC() > 1 )
-			iMode = ( iArg == 2 ) ? OBS_MODE_IN_EYE : OBS_MODE_FIXED;
+		{
+			iMode = s_iModes[clamp( iArg, 1, iModes ) - 1];
+		}
+		else
+		{
+			int iCurrent = 0;
+			for ( int i = 0; i < iModes; i++ )
+			{
+				if ( s_iModes[i] == GetObserverMode() )
+					iCurrent = i;
+			}
+			iMode = s_iModes[( iCurrent + 1 ) % iModes];
+		}
 
 		m_iObserverLastMode = iMode;
 		engine->ClientCommand( edict(), "cl_spec_mode %d", iMode );
 
-		if ( IsObserver() && SetObserverMode( iMode ) )
+		if ( IsObserver() && SetObserverMode( iMode ) && iMode != OBS_MODE_ROAMING )
 		{
 			CBaseEntity *pTarget = FindNextObserverTarget( false );
 			if ( pTarget )
