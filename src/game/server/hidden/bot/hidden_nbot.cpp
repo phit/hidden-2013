@@ -111,16 +111,9 @@ bool CHiddenBotVision::IsVisibleEntityNoticed( CBaseEntity *subject ) const
 		return true;
 
 	const float flRange = ( subject->GetAbsOrigin() - me->GetAbsOrigin() ).Length();
-	if ( flRange < 200.0f )
+	if ( flRange < 100.0f )
 		return true;
 
-	// Once spotted it's easier to keep track of.
-	const CKnownEntity *known = GetKnown( subject );
-	if ( known && known->IsVisibleRecently() && flRange < 700.0f )
-		return true;
-
-	// A chance per second of looking at it: about 0.3 at 600 units for a normal bot, twice that
-	// if it stands still, none beyond 1200.
 	const int iIndex = subject->entindex();
 	if ( iIndex <= 0 || iIndex > MAX_PLAYERS )
 		return false;
@@ -128,10 +121,24 @@ bool CHiddenBotVision::IsVisibleEntityNoticed( CBaseEntity *subject ) const
 	const float flElapsed = clamp( gpGlobals->curtime - m_flLastNoticeCheck[iIndex], 0.0f, 1.0f );
 	m_flLastNoticeCheck[iIndex] = gpGlobals->curtime;
 
+	const float flSpeed = subject->GetAbsVelocity().Length();
+	const float flSkill = 0.5f + 0.25f * me->GetDifficulty();
+
+	// Keeping track of it once spotted is a chance too, so a moving Hidden flickers in and out of
+	// view (and fire): about 3.5 times a second while it stands still, 1.5 at full speed.
+	const CKnownEntity *known = GetKnown( subject );
+	if ( known && known->IsVisibleRecently() && flRange < 900.0f )
+	{
+		const float flTrack = ( 3.5f - 2.0f * clamp( flSpeed / 220.0f, 0.0f, 1.0f ) ) * flSkill;
+		return RandomFloat() < flTrack * flElapsed;
+	}
+
+	// Spotting it: about 0.3 a second at 600 units for a normal bot, twice that if it stands
+	// still, none beyond 1200.
 	float flPerSecond = clamp( ( 1200.0f - flRange ) / 1200.0f, 0.0f, 1.0f ) * 0.6f;
-	if ( subject->GetAbsVelocity().Length2D() < 30.0f )
+	if ( flSpeed < 30.0f )
 		flPerSecond *= 2.0f;
-	flPerSecond *= 0.5f + 0.25f * me->GetDifficulty();
+	flPerSecond *= flSkill;
 
 	return RandomFloat() < flPerSecond * flElapsed;
 }

@@ -407,6 +407,19 @@ static CBasePlayer *GetVisibleMarine( CHiddenBot *me, float flMaxRange )
 	return pBest;
 }
 
+// Whether the marine is looking our way (within about 50 degrees).
+static bool IsFacingMe( CHiddenBot *me, CBasePlayer *pVictim )
+{
+	Vector vecFacing;
+	AngleVectors( pVictim->EyeAngles(), &vecFacing );
+	Vector vecToMe = me->GetAbsOrigin() - pVictim->GetAbsOrigin();
+	vecToMe.z = 0.0f;
+	vecFacing.z = 0.0f;
+	vecToMe.NormalizeInPlace();
+	vecFacing.NormalizeInPlace();
+	return DotProduct( vecFacing, vecToMe ) > 0.65f;
+}
+
 // Launch angle for a pounce to land on the target (the low arc), aim straight when out of reach.
 // A steep pounce goes up at 55 degrees instead, to clear a fence or a wall edge on the way.
 static Vector GetPounceAimPoint( CHiddenBot *me, CBaseEntity *pTarget, bool bSteep = false )
@@ -433,9 +446,13 @@ static Vector GetPounceAimPoint( CHiddenBot *me, CBaseEntity *pTarget, bool bSte
 class CHiddenBotRetreat : public Action< CHiddenBot >
 {
 public:
+	CHiddenBotRetreat( float flMinTime = 4.0f, float flMaxTime = 7.0f ) : m_flMinTime( flMinTime ), m_flMaxTime( flMaxTime ) {}
+
 	virtual ActionResult< CHiddenBot > OnStart( CHiddenBot *me, Action< CHiddenBot > *priorAction )
 	{
-		m_giveUpTimer.Start( RandomFloat( 4.0f, 7.0f ) );
+		m_giveUpTimer.Start( RandomFloat( m_flMinTime, m_flMaxTime ) );
+		m_leapTimer.Start( RandomFloat( 0.0f, 0.3f ) );
+		m_bLeaping = false;
 		return Continue();
 	}
 
@@ -474,6 +491,36 @@ public:
 			m_path.Compute( me, m_vecGoal, cost );
 		}
 
+		// Leap away along the way we're running, when there's room.
+		if ( m_bLeaping )
+		{
+			if ( me->GetBodyInterface()->IsHeadAimingOnTarget() || m_leapAimTimer.IsElapsed() )
+			{
+				BOT_DEBUG( me, "leaping away\n" );
+				me->PressPounceButton();
+				m_bLeaping = false;
+				m_leapTimer.Start( RandomFloat( 2.0f, 3.0f ) );
+			}
+		}
+		else if ( m_leapTimer.IsElapsed() && me->GetStamina() >= HIDDEN_POUNCE_STAMINA + 10.0f && me->GetLocomotionInterface()->IsOnGround() )
+		{
+			Vector vecDir = me->GetAbsVelocity();
+			vecDir.z = 0.0f;
+			if ( vecDir.NormalizeInPlace() > 100.0f )
+			{
+				trace_t tr;
+				UTIL_TraceHull( me->GetAbsOrigin() + Vector( 0, 0, 20 ), me->GetAbsOrigin() + Vector( 0, 0, 20 ) + vecDir * 200.0f,
+					VEC_HULL_MIN, VEC_HULL_MAX, MASK_PLAYERSOLID, me, COLLISION_GROUP_PLAYER_MOVEMENT, &tr );
+				if ( !tr.DidHit() )
+				{
+					m_bLeaping = true;
+					m_leapAimTimer.Start( 0.4f );
+					const Vector vecAim = vecDir * cosf( DEG2RAD( 25.0f ) ) + Vector( 0, 0, sinf( DEG2RAD( 25.0f ) ) );
+					me->GetBodyInterface()->AimHeadTowards( me->EyePosition() + vecAim * 200.0f, IBody::CRITICAL, 0.5f, NULL, "Leaping away" );
+				}
+			}
+		}
+
 		if ( m_path.IsValid() && TheNavMesh->IsLoaded() )
 			m_path.Update( me );
 		else
@@ -484,6 +531,11 @@ public:
 	virtual const char *GetName( void ) const { return "HiddenRetreat"; }
 
 private:
+	float m_flMinTime;
+	float m_flMaxTime;
+	CountdownTimer m_leapTimer;
+	CountdownTimer m_leapAimTimer;
+	bool m_bLeaping;
 	PathFollower m_path;
 	Vector m_vecGoal;
 	CountdownTimer m_repathTimer;
@@ -501,6 +553,8 @@ public:
 		m_pounceTimer.Start( RandomFloat( 0.5f, 1.5f ) );
 		m_flBestRange = FLT_MAX;
 		m_iStalls = 0;
+		m_iSlashes = 0;
+		m_iSlashesBeforeRunning = RandomInt( 1, 3 );
 		m_bSteepPounce = false;
 		m_progressTimer.Start( 3.0f );
 		m_directTimer.Invalidate();
@@ -518,7 +572,12 @@ public:
 
 		CBasePlayer *pVictim = m_hVictim.Get();
 		if ( !pVictim || !pVictim->IsAlive() || pVictim->GetTeamNumber() != TEAM_IRIS )
+		{
+			// Hit and run: don't wait for the rest of them to turn up.
+			if ( GetVisibleMarine( me, 1000.0f ) )
+				return ChangeTo( new CHiddenBotRetreat, "Kill made, slipping away" );
 			return Done( "Victim gone" );
+		}
 
 		const CKnownEntity *known = me->GetVisionInterface()->GetKnown( pVictim );
 		if ( !known || known->GetTimeSinceLastSeen() > 4.0f )
@@ -557,6 +616,10 @@ public:
 					BOT_DEBUG( me, "slash %s\n", pVictim->GetPlayerName() );
 					me->PressFireButton();
 					m_knifeTimer.Start( 0.5f );
+
+					// Hit and run: a slash or two, then away before they can line up a shot.
+					if ( ++m_iSlashes >= m_iSlashesBeforeRunning )
+						return ChangeTo( new CHiddenBotRetreat( 1.5f, 3.0f ), "Hit and run" );
 				}
 			}
 
@@ -601,7 +664,10 @@ public:
 		const float flHoriz = ( pVictim->GetAbsOrigin() - me->GetAbsOrigin() ).Length2D();
 		const float flDZ = pVictim->GetAbsOrigin().z - me->GetAbsOrigin().z;
 		const bool bBelow = flDZ < -50.0f && flHoriz < 350.0f;
-		const bool bMidRange = flRange > 160.0f && flRange < 550.0f && RandomFloat() < 0.5f + 0.15f * me->GetDifficulty();
+		// Head-on pounces from range get it shot; wait until they look away or we're close.
+		const bool bFacingMe = IsFacingMe( me, pVictim );
+		const bool bMidRange = flRange > 160.0f && flRange < 550.0f && ( !bFacingMe || flRange < 280.0f ) &&
+			RandomFloat() < 0.5f + 0.15f * me->GetDifficulty();
 
 		const bool bCanSee = IsVisibleNow( known );
 		const bool bClear = me->IsLineOfFireClear( pVictim->WorldSpaceCenter() );
@@ -630,6 +696,27 @@ public:
 		if ( bPathing )
 		{
 			MoveAlongPath( me, m_path, pVictim->GetAbsOrigin(), m_repathTimer, 1.0f );
+		}
+		else if ( bFacingMe && flRange > 250.0f && TheNavMesh->IsLoaded() )
+		{
+			// It's looking at us: work round behind it rather than walk into its sights.
+			if ( m_flankTimer.IsElapsed() || !m_flankPath.IsValid() )
+			{
+				m_flankTimer.Start( 1.0f );
+
+				Vector vecFacing;
+				AngleVectors( pVictim->EyeAngles(), &vecFacing );
+				vecFacing.z = 0.0f;
+				vecFacing.NormalizeInPlace();
+				const Vector vecSide( -vecFacing.y, vecFacing.x, 0.0f );
+				const float flSide = ( ( me->GetAbsOrigin() - pVictim->GetAbsOrigin() ).Dot( vecSide ) > 0.0f ) ? 1.0f : -1.0f;
+				m_vecFlank = pVictim->GetAbsOrigin() - vecFacing * 200.0f + vecSide * flSide * 250.0f;
+
+				CHiddenBotPathCost cost( me );
+				m_flankPath.Compute( me, m_vecFlank, cost );
+				BOT_DEBUG( me, "flanking %s\n", pVictim->GetPlayerName() );
+			}
+			m_flankPath.Update( me );
 		}
 		else
 		{
@@ -680,7 +767,9 @@ private:
 
 		const bool bBehind = DotProduct( vecFacing, vecToMe ) < 0.2f;
 		const bool bSlow = pVictim->GetAbsVelocity().Length2D() < 60.0f;
-		return ( bBehind || bSlow ) && RandomFloat() < 0.4f + 0.15f * me->GetDifficulty();
+		if ( bBehind )
+			return RandomFloat() < 0.6f + 0.1f * me->GetDifficulty();
+		return bSlow && RandomFloat() < 0.3f + 0.1f * me->GetDifficulty();
 	}
 
 	void Strafe( CHiddenBot *me )
@@ -699,6 +788,9 @@ private:
 	CHandle< CBasePlayer > m_hVictim;
 	ChasePath m_chase;
 	PathFollower m_path;
+	PathFollower m_flankPath;
+	Vector m_vecFlank;
+	CountdownTimer m_flankTimer;
 	CountdownTimer m_repathTimer;
 	CountdownTimer m_pounceTimer;
 	CountdownTimer m_pounceAimTimer;
@@ -709,6 +801,8 @@ private:
 	CountdownTimer m_directTimer;
 	float m_flBestRange;
 	int m_iStalls;
+	int m_iSlashes;
+	int m_iSlashesBeforeRunning;
 	bool m_bSteepPounce;
 	bool m_bAimingPounce;
 	bool m_bStrafeLeft;
@@ -772,10 +866,14 @@ public:
 
 		EquipKnife( me );
 
-		// Go for a marine on their own (or one right next to us); stalk the ones in a group.
+		// Go for a marine with at most two others near (or one right next to us); stalk bigger groups.
 		CBasePlayer *pSeen = GetVisibleMarine( me, 900.0f );
-		if ( pSeen && ( CountAlliesNear( pSeen, 400.0f ) <= 1 || me->IsRangeLessThan( pSeen, 250.0f ) || ( me->GetHealth() > 90 && RandomFloat() < 0.02f ) ) )
+		if ( pSeen && ( CountAlliesNear( pSeen, 400.0f ) <= 2 || me->IsRangeLessThan( pSeen, 250.0f ) || ( me->GetHealth() > 90 && RandomFloat() < 0.02f ) ) )
 			return SuspendFor( new CHiddenBotAttack( pSeen ), "Found a marine" );
+
+		// A group in sight and close enough to spot us: back off out of view and wait for them to split up.
+		if ( pSeen && me->IsRangeLessThan( pSeen, 1000.0f ) )
+			return SuspendFor( new CHiddenBotRetreat, "Too many of them" );
 
 		if ( me->GetHealth() < 60 && me->GetVisionInterface()->GetTimeSinceVisible( TEAM_IRIS ) > 3.0f )
 		{
@@ -895,8 +993,10 @@ public:
 		if ( me->GetTeamNumber() == TEAM_HIDDEN )
 			return vecTarget;
 
+		// The cloak makes a moving Hidden hard to pin down: up to 4 degrees more at full speed.
 		static const float s_flErrorDegrees[] = { 4.0f, 2.5f, 1.5f, 0.7f };
-		const float flError = tanf( DEG2RAD( s_flErrorDegrees[me->GetDifficulty()] ) ) * me->GetRangeTo( vecTarget );
+		const float flMoving = 4.0f * clamp( subject->GetAbsVelocity().Length() / 220.0f, 0.0f, 1.0f );
+		const float flError = tanf( DEG2RAD( s_flErrorDegrees[me->GetDifficulty()] + flMoving ) ) * me->GetRangeTo( vecTarget );
 		return vecTarget + Vector( RandomFloat( -flError, flError ), RandomFloat( -flError, flError ), RandomFloat( -flError, flError ) * 0.5f );
 	}
 
