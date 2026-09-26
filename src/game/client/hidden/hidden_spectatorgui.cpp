@@ -9,6 +9,7 @@
 #include "cbase.h"
 #include "hl2mptextwindow.h"
 #include <vgui/IScheme.h>
+#include <vgui/ISurface.h>
 #include <vgui_controls/Label.h>
 #include "hidden_gamerules.h"
 #include "hidden_spectator.h"
@@ -23,7 +24,7 @@ class CHiddenSpectatorGUI : public CHL2MPSpectatorGUI
 	DECLARE_CLASS_SIMPLE( CHiddenSpectatorGUI, CHL2MPSpectatorGUI );
 
 public:
-	CHiddenSpectatorGUI( IViewPort *pViewPort ) : CHL2MPSpectatorGUI( pViewPort ) {}
+	CHiddenSpectatorGUI( IViewPort *pViewPort ) : CHL2MPSpectatorGUI( pViewPort ), m_hFont( INVALID_FONT ) {}
 
 	virtual void Update( void );
 
@@ -33,30 +34,59 @@ protected:
 	virtual void OnThink( void );
 
 private:
-	void SetLabelStyle( IScheme *pScheme, const char *pszName, Color color );
+	void StyleLabels( void );
+	void SetLabelStyle( const char *pszName, Color color );
 	void PlaceAfterCaption( const char *pszCaption, const char *pszValue );
+
+	HFont m_hFont;
 };
 
-void CHiddenSpectatorGUI::SetLabelStyle( IScheme *pScheme, const char *pszName, Color color )
+void CHiddenSpectatorGUI::SetLabelStyle( const char *pszName, Color color )
 {
 	Label *pLabel = dynamic_cast<Label *>( FindChildByName( pszName ) );
 	if ( !pLabel )
 		return;
 
+	if ( m_hFont != INVALID_FONT && pLabel->GetFont() != m_hFont )
+	{
+		pLabel->SetFont( m_hFont );
+		pLabel->InvalidateLayout();	// fit the text to the new font, or it's cut short
+	}
 	pLabel->SetFgColor( color );
-	pLabel->SetFont( pScheme->GetFont( "SpecNumbers", IsProportional() ) );
+}
+
+// Beta 4b's white captions and clock, the location in green. Its panel styled the labels after
+// their own scheme pass; in SDK 2013 theirs runs last and resets them to the scheme's label colour
+// and font, so this runs again every think.
+void CHiddenSpectatorGUI::StyleLabels( void )
+{
+	SetLabelStyle( "timerlabel", Color( 255, 255, 255, 255 ) );
+	SetLabelStyle( "timerclock", Color( 255, 255, 255, 255 ) );
+	SetLabelStyle( "location", Color( 255, 255, 255, 255 ) );
+	SetLabelStyle( "cameralocation", Color( 0, 255, 0, 150 ) );
 }
 
 void CHiddenSpectatorGUI::ApplySchemeSettings( IScheme *pScheme )
 {
 	BaseClass::ApplySchemeSettings( pScheme );
 
+	// Beta 4b asks for SpecNumbers (OratorStd 30) unscaled: 30 pixels at any resolution. Deviation:
+	// scale it with the screen, the size Beta 4b's had at 800x600 (the scheme's own scaling, from
+	// 480 lines, came out a quarter bigger than that).
+	int iScreenWide, iScreenTall;
+	surface()->GetScreenSize( iScreenWide, iScreenTall );
+	if ( m_hFont == INVALID_FONT )
+		m_hFont = surface()->CreateFont();
+	surface()->SetFontGlyphSet( m_hFont, "OratorStd", MAX( 30 * iScreenTall / 600, 12 ), 500, 0, 0,
+		ISurface::FONTFLAG_ANTIALIAS | ISurface::FONTFLAG_ADDITIVE | ISurface::FONTFLAG_CUSTOM );
+
 	InvalidateLayout();	// the styles and the captions' widths, in PerformLayout
 }
 
 // Spectator.res leaves 60 (clock) and 90 (location) units of 640 for the captions, less than
-// "Time :" and "Location :" take in the 30-tall OratorStd, so the values ran into them. Keep
-// Beta 4b's positions where they fit, otherwise start the value just after its caption.
+// "Time :" and "Location :" take in OratorStd at that size (Beta 4b cut the captions to "T..." and
+// "Lo..." instead). Keep Beta 4b's positions where they fit, otherwise
+// start the value just after its caption.
 void CHiddenSpectatorGUI::PlaceAfterCaption( const char *pszCaption, const char *pszValue )
 {
 	Label *pCaption = dynamic_cast<Label *>( FindChildByName( pszCaption ) );
@@ -84,13 +114,7 @@ void CHiddenSpectatorGUI::PerformLayout( void )
 {
 	BaseClass::PerformLayout();
 
-	// Here rather than in ApplySchemeSettings: the labels' own scheme pass runs after ours and
-	// turned them orange. Beta 4b's: white captions and clock, the location in green.
-	IScheme *pScheme = scheme()->GetIScheme( GetScheme() );
-	SetLabelStyle( pScheme, "timerlabel", Color( 255, 255, 255, 255 ) );
-	SetLabelStyle( pScheme, "timerclock", Color( 255, 255, 255, 255 ) );
-	SetLabelStyle( pScheme, "location", Color( 255, 255, 255, 255 ) );
-	SetLabelStyle( pScheme, "cameralocation", Color( 0, 255, 0, 150 ) );
+	StyleLabels();
 
 	PlaceAfterCaption( "timerclock", "timerlabel" );	// Beta 4b's names: timerclock is the caption
 	PlaceAfterCaption( "location", "cameralocation" );
@@ -130,6 +154,8 @@ void CHiddenSpectatorGUI::OnThink( void )
 	wchar_t szTime[64];
 	V_swprintf_safe( szTime, L"%d:%02d", iSeconds / 60, iSeconds % 60 );
 	SetLabelText( "timerlabel", szTime );
+
+	StyleLabels();
 
 	BaseClass::OnThink();
 }
