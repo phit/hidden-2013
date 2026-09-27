@@ -34,12 +34,13 @@ ROOT = Path(__file__).resolve().parent.parent
 MOD = "hidden2013"
 GAME = ROOT / "game" / MOD
 
-# "root": files that go next to hidden2013/, in the dedicated server's folder: (source, destination).
+# "root": other files, (source, destination relative to the folder the package is extracted into).
 PLATFORMS = {
     "windows": {"bin": "x64", "libs": ["client.dll", "server.dll", "game_shader_generic_hidden.dll"],
                 "symbols": ".pdb", "archive": "zip", "shaders": True, "root": []},
     "linux": {"bin": "linux64", "libs": ["client.so", "server.so", "game_shader_generic_hidden.so"],
-              "symbols": ".dbg", "archive": "tar.gz", "shaders": True, "root": []},
+              "symbols": ".dbg", "archive": "tar.gz", "shaders": True,
+              "root": [(ROOT / "tools" / "lowercase_beta4b.sh", "hidden2013/lowercase_beta4b.sh")]},
     # SteamCMD's dedicated server has 64-bit engine libraries but only 32-bit launchers; on Linux it
     # also lacks the 64-bit Steamworks library, and loads the game's server_srv.so.
     "windows-server": {"bin": "x64", "libs": ["server.dll"], "symbols": ".pdb", "archive": "zip",
@@ -48,7 +49,8 @@ PLATFORMS = {
                      "shaders": False,
                      "root": [(ROOT / "game" / "srcds_linux64", "srcds_linux64"),
                               (ROOT / "src" / "lib" / "public" / "linux64" / "libsteam_api.so",
-                               "bin/linux64/libsteam_api.so")]},
+                               "bin/linux64/libsteam_api.so"),
+                              (ROOT / "tools" / "lowercase_beta4b.sh", "hidden2013/lowercase_beta4b.sh")]},
 }
 
 
@@ -69,7 +71,7 @@ def split_debug_info(lib, dbg):
 
 
 # Files other than libraries that get the executable bit in tars.
-EXECUTABLES = {"srcds_linux64"}
+EXECUTABLES = {"srcds_linux64", "lowercase_beta4b.sh"}
 
 
 def write_archive(path, kind, root, files):
