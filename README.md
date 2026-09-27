@@ -45,7 +45,9 @@ srcds_win64.exe -console -game hidden2013 +maxplayers 12 +map hdn_docks
 ./srcds_linux64 -console -game hidden2013 +maxplayers 12 +map hdn_docks
 ```
 
-On Linux, link SteamCMD's 64-bit `steamclient.so` into `~/.steam/sdk64` first. The
+On Linux, first lower-case the Beta 4b folder's names (`sh hidden2013/lowercase_beta4b.sh`; the
+engine looks paths up in lower case) and link SteamCMD's 64-bit `steamclient.so` into
+`~/.steam/sdk64`. The
 [servers page](https://phit.github.io/hidden-2013/servers/) has the details.
 
 ## Layout

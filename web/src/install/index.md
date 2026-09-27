@@ -35,6 +35,14 @@ steamapps/sourcemods/
 
 Restart Steam, and **Hidden: Rebuild** shows up in your Library.
 
+**On Linux**, run this once as well. Beta 4b has file and folder names with capitals, which the
+game looks up in lower case, and Linux file names are case-sensitive; the script lower-cases the
+names in the `hidden` folder (Windows doesn't mind either way):
+
+```
+sh ~/.steam/steam/steamapps/sourcemods/hidden2013/lowercase_beta4b.sh
+```
+
 To update, extract a newer package over the old one. Servers only take players on the same version,
 so update when a new release is out.
 

@@ -34,8 +34,16 @@ srcds_win64.exe -console -game hidden2013 +maxplayers 12 +map hdn_docks
 
 ## Linux
 
-The Steamworks library looks for the 64-bit `steamclient.so` in `~/.steam/sdk64`. SteamCMD has it;
-link it there once:
+Two one-time steps. Beta 4b has file and folder names with capitals (`materials/Wall`, ...), and
+the engine looks everything up in lower case, which Linux's case-sensitive file system doesn't
+find. The server package brings a script that lower-cases the names in the `hidden` folder:
+
+```
+sh hidden2013/lowercase_beta4b.sh
+```
+
+And the Steamworks library looks for the 64-bit `steamclient.so` in `~/.steam/sdk64`. SteamCMD
+has it; link it there:
 
 ```
 mkdir -p ~/.steam/sdk64
