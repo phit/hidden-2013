@@ -3,6 +3,8 @@
 // Purpose: Beta 5 Hidden Roar (Paegus's hsm_roar 1.0.1): the Hidden cries out
 //			when hurt. See docs/spec/plugins.md.
 //
+//			Original: https://forums.alliedmods.net/showthread.php?t=78958
+//
 //=============================================================================//
 
 #include "cbase.h"

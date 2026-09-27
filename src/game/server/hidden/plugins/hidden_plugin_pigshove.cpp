@@ -3,6 +3,8 @@
 // Purpose: Beta 5 PigShove (Paegus's hsm_pigshove 1.1.5): the pigstick shoves
 //			marines until the Hidden is badly hurt. See docs/spec/plugins.md.
 //
+//			Original: https://forums.alliedmods.net/showthread.php?p=699595
+//
 //=============================================================================//
 
 #include "cbase.h"

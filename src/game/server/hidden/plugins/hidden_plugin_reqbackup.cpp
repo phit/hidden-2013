@@ -3,6 +3,8 @@
 // Purpose: Request Backup (Paegus's hsm_reqbackup 1.0.2): a badly hurt marine
 //			calls for backup. See docs/spec/plugins.md.
 //
+//			Original: https://forums.alliedmods.net/showthread.php?t=78957
+//
 //=============================================================================//
 
 #include "cbase.h"
