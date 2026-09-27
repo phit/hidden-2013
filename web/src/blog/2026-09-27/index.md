@@ -22,6 +22,6 @@ Also in:
 - **The community's fixed `hdn_decay` and `hdn_origin`** in the map cycle, falling back to the
   originals where a server doesn't have them.
 
-Test builds are on the [downloads]({{root}}#downloads); the [install guide]({{root}}install/)
-walks through it. Where something doesn't play the way you remember Beta 4b,
+The first release, [v1.0.0.2](https://github.com/phit/hidden-2013/releases/tag/v1.0.0.2), is on the
+[downloads]({{root}}#downloads); the [install guide]({{root}}install/) walks through it. Where something doesn't play the way you remember Beta 4b,
 [open an issue](https://github.com/phit/hidden-2013/issues): matching the original comes first.
