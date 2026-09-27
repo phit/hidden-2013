@@ -79,6 +79,7 @@ public:
 
 	void RestartRound( void );
 	void CleanUpMap( void );
+	void ClearHiddenWeighting( void );
 	CHiddenSelector &GetSelector( void ) { return m_Selector; }
 
 private:

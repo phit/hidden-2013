@@ -392,6 +392,7 @@ void CHiddenRules::Think( void )
 
 	case ROUND_ENDING:
 		FireSimpleEvent( "game_round_end" );
+		ClearHiddenWeighting();
 		GoToIntermission();
 		break;
 
@@ -498,6 +499,21 @@ void CHiddenRules::RestartRound( void )
 	m_nRoundState = IsTutorial() ? ROUND_TUTORIAL : ROUND_STARTING;
 	m_iRoundDuration = mp_roundtime.GetInt();
 	m_flRoundStart = gpGlobals->curtime;
+}
+
+// Deviation, from Paegus's Hidden weight exploit fix plugin (hsm_hdnweightfix 1.0.2,
+// https://forums.alliedmods.net/showthread.php?p=773165): the Hidden earns weighting for the damage it
+// does and keeps it until its next spawn, but the next Hidden is picked before anyone spawns. A Hidden
+// who switched to IRIS between rounds went into the draw with all of it. Everyone but the marines loses
+// theirs when the round ends.
+void CHiddenRules::ClearHiddenWeighting( void )
+{
+	for ( int i = 1; i <= gpGlobals->maxClients; i++ )
+	{
+		CHidden_Player *pPlayer = ToHiddenPlayer( UTIL_PlayerByIndex( i ) );
+		if ( pPlayer && pPlayer->GetTeamNumber() != TEAM_IRIS )
+			pPlayer->AddWeighting( -pPlayer->GetWeighting() );
+	}
 }
 
 void CHiddenRules::CleanUpMap( void )
