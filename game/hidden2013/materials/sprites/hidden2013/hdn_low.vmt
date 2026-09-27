@@ -1,11 +1,11 @@
-// Team Aura health sprite (docs/spec/plugins.md). The plugin's own aura art isn't
-// in Beta 4b, so this tints HL2's glow; the colour is the plugin's.
+// Team Aura health sprite (docs/spec/plugins.md): Paegus's material and texture from the
+// hsm_teamaura plugin's sprites.zip, moved here from vgui/hud.
 "UnlitGeneric"
 {
-	"$basetexture"	"sprites/glow01"
+	"$basetexture"	"sprites/hidden2013/hdn_aura"
 	"$additive"	"1"
 	"$vertexalpha"	"1"
-	"$vertexcolor"	"1"
 	"$ignorez"	"1"
+	"$vertexcolor"	"1"
 	"$color"	"[0.8 0.1 0.1]"
 }
