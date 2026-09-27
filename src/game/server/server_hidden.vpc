@@ -358,6 +358,7 @@ $Project "Server (Hidden)"
 			$File	"hidden\hidden_sonic_alarm.h"
 			$File	"hidden\plugins\hidden_plugins.cpp"
 			$File	"hidden\plugins\hidden_plugins.h"
+			$File	"hidden\plugins\hidden_plugin_pigshove.cpp"
 		}
 
 		$Folder	"HL2MP"
