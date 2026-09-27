@@ -32,7 +32,11 @@ void RegisterUserMessages( void )
 	usermessages->Register( "Fade", 10 );
 	usermessages->Register( "VGUIMenu", -1 );	// Show VGUI menu
 	usermessages->Register( "Rumble", 3 );	// Send a rumble to a controller
+#ifndef HIDDEN
+	// Beta 4b had no armour HUD and registered no Battery; CBasePlayer only sends it when it's
+	// registered, and a client with no hook for it drops the connection.
 	usermessages->Register( "Battery", 2 );
+#endif
 	usermessages->Register( "Damage", 18 );		// BUG: floats are sent for coords, no variable bitfields in hud & fixed size Msg
 	usermessages->Register( "VoiceMask", VOICE_MAX_PLAYERS_DW*4 * 2 + 1 );
 	usermessages->Register( "RequestState", 0 );
