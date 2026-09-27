@@ -163,6 +163,9 @@ CHiddenRules::CHiddenRules()
 
 	m_nGameType = GameTypeForMap( STRING( gpGlobals->mapname ) );
 
+	// CMultiplayRules loaded the map cycle before our LoadMapCycleFileIntoVector could apply.
+	LoadMapCycleFile();
+
 	m_nRoundState = ROUND_INTERMISSION;
 	m_iMarineCount = 0;
 	m_iHiddenCount = 0;
@@ -244,6 +247,47 @@ void CHiddenRules::CreateStandardEntities( void )
 	CTeamplayRules::CreateStandardEntities();
 
 	CBaseEntity::Create( "hidden_gamerules", vec3_origin, vec3_angle );
+}
+#endif
+
+#ifndef CLIENT_DLL
+// The map cycle may name maps this server doesn't have. A missing <map>_fixed (the community's fixed
+// hdn_decay and hdn_origin) falls back to <map>; any other missing map is dropped, so the cycle never
+// stalls on a changelevel that can't load.
+static bool MapExists( const char *pszMap )
+{
+	char szPath[MAX_PATH];
+	V_snprintf( szPath, sizeof( szPath ), "maps/%s.bsp", pszMap );
+	return engine->IsMapValid( szPath ) != 0;
+}
+
+void CHiddenRules::LoadMapCycleFileIntoVector( const char *pszMapCycleFile, CUtlVector<char *> &mapList )
+{
+	BaseClass::LoadMapCycleFileIntoVector( pszMapCycleFile, mapList );
+
+	for ( int i = mapList.Count() - 1; i >= 0; i-- )
+	{
+		if ( MapExists( mapList[i] ) )
+			continue;
+
+		char szOriginal[MAX_MAP_NAME];
+		V_strncpy( szOriginal, mapList[i], sizeof( szOriginal ) );
+		const int nLen = V_strlen( szOriginal );
+		if ( nLen > 6 && !V_stricmp( szOriginal + nLen - 6, "_fixed" ) )
+		{
+			szOriginal[nLen - 6] = '\0';
+			if ( MapExists( szOriginal ) )
+			{
+				Msg( "Map cycle: %s not found, using %s\n", mapList[i], szOriginal );
+				V_strcpy( mapList[i], szOriginal );
+				continue;
+			}
+		}
+
+		Msg( "Map cycle: %s not found, skipping it\n", mapList[i] );
+		delete [] mapList[i];
+		mapList.Remove( i );
+	}
 }
 #endif
 

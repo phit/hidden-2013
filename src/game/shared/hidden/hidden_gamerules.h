@@ -76,6 +76,7 @@ public:
 	virtual const char *GetChatPrefix( bool bTeamOnly, CBasePlayer *pPlayer );
 	virtual const char *GetChatLocation( bool bTeamOnly, CBasePlayer *pPlayer );
 	virtual void RadiusDamage( const CTakeDamageInfo &info, const Vector &vecSrc, float flRadius, int iClassIgnore, CBaseEntity *pEntityIgnore );
+	virtual void LoadMapCycleFileIntoVector( const char *pszMapCycleFile, CUtlVector<char *> &mapList );
 
 	void RestartRound( void );
 	void CleanUpMap( void );
