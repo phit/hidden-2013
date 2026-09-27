@@ -83,8 +83,11 @@ public:
 
 	// Class, character and loadout
 	int GetPlayerClass( void ) const { return m_iPlayerClass; }
+	void SetPlayerClass( int iClass ) { m_iPlayerClass = iClass; }	// takes effect at the next spawn
 	int GetPrimary( void ) const { return m_iPrimary; }
+	void SetPrimary( int iPrimary ) { m_iPrimary = iPrimary; }
 	int GetSecondary( void ) const { return m_iSecondary; }
+	void SetSecondary( int iSecondary ) { m_iSecondary = iSecondary; }
 	int GetEquipment( void ) const { return m_iEquipment; }
 	int GetCharacter( void ) const { return m_iCharacter; }
 	bool HasValidCharacter( void ) const { return m_iCharacter >= 0; }

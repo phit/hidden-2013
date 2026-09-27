@@ -156,3 +156,14 @@ const char *HiddenPlugins_LogName( CBasePlayer *pPlayer )
 		pPlayer->GetNetworkIDString(), pPlayer->GetTeam() ? pPlayer->GetTeam()->GetName() : "" );
 	return pszName;
 }
+
+bool HiddenPlugins_RemoveWeapon( CBasePlayer *pPlayer, const char *pszWeapon )
+{
+	CBaseCombatWeapon *pWeapon = pPlayer->Weapon_OwnsThisType( pszWeapon );
+	if ( !pWeapon )
+		return false;
+
+	pPlayer->RemovePlayerItem( pWeapon );
+	UTIL_Remove( pWeapon );
+	return true;
+}

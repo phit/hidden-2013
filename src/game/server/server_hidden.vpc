@@ -361,6 +361,7 @@ $Project "Server (Hidden)"
 			$File	"hidden\plugins\hidden_plugin_carrytheone.cpp"
 			$File	"hidden\plugins\hidden_plugin_mirrordmg.cpp"
 			$File	"hidden\plugins\hidden_plugin_pigshove.cpp"
+			$File	"hidden\plugins\hidden_plugin_pvp.cpp"
 			$File	"hidden\plugins\hidden_plugin_reqbackup.cpp"
 			$File	"hidden\plugins\hidden_plugin_roar.cpp"
 		}

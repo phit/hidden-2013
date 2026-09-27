@@ -47,6 +47,10 @@ void HiddenPlugins_PrintCenter( CBasePlayer *pPlayer, const char *pszFormat, ...
 void HiddenPlugins_PrintChat( CBasePlayer *pPlayer, const char *pszFormat, ... ) FMTFUNCTION( 2, 3 );
 void HiddenPlugins_PrintConsole( CBasePlayer *pPlayer, const char *pszFormat, ... ) FMTFUNCTION( 2, 3 );
 
+// Takes a weapon away from a player (SourceMod's RemovePlayerItem and RemoveEdict). Returns false
+// if they had none.
+bool HiddenPlugins_RemoveWeapon( CBasePlayer *pPlayer, const char *pszWeapon );
+
 // A player's log name, "name<userid><networkid><team>".
 const char *HiddenPlugins_LogName( CBasePlayer *pPlayer );
 
