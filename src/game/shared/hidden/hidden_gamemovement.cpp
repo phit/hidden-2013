@@ -20,6 +20,13 @@
 
 extern bool g_bMovementOptimizations;
 
+#ifdef GAME_DLL
+static ConVar hdn_debug_movement( "hdn_debug_movement", "0", FCVAR_CHEAT, "Print the Hidden's wall cling and pounce events" );
+#define HIDDEN_MOVEMENT_DEBUG( ... ) do { if ( hdn_debug_movement.GetBool() ) Msg( __VA_ARGS__ ); } while ( 0 )
+#else
+#define HIDDEN_MOVEMENT_DEBUG( ... ) do {} while ( 0 )
+#endif
+
 class CHiddenGameMovement : public CHL2GameMovement
 {
 	typedef CHL2GameMovement BaseClass;
@@ -42,6 +49,13 @@ public:
 
 private:
 	CHidden_Player *GetHiddenPlayer( void ) { return static_cast<CHidden_Player *>( player ); }
+
+	void SetClinging( bool bClinging, const char *pszWhy )
+	{
+		if ( GetHiddenPlayer()->IsClinging() != bClinging )
+			HIDDEN_MOVEMENT_DEBUG( "%.2f cling %s: %s\n", gpGlobals->curtime, bClinging ? "on" : "off", pszWhy );
+		GetHiddenPlayer()->SetClinging( bClinging );
+	}
 	bool IsHidden( void ) { return player->GetTeamNumber() == TEAM_HIDDEN; }
 
 	void CheckBack( void );
@@ -136,7 +150,7 @@ bool CHiddenGameMovement::CheckJumpButton( void )
 	if ( player->m_Local.m_flDuckJumpTime > 0.0f )
 		return false;
 
-	pHidden->SetClinging( false );
+	SetClinging( false, "jump" );
 
 	// In the air now.
 	SetGroundEntity( NULL );
@@ -189,7 +203,11 @@ bool CHiddenGameMovement::CheckPounceButton( void )
 
 	CHidden_Player *pHidden = GetHiddenPlayer();
 	if ( pHidden->GetStamina() < HIDDEN_POUNCE_STAMINA )
+	{
+		if ( !( mv->m_nOldButtons & IN_BULLRUSH ) )
+			HIDDEN_MOVEMENT_DEBUG( "%.2f no pounce: stamina %.1f\n", gpGlobals->curtime, pHidden->GetStamina() );
 		return false;
+	}
 
 	// In the water it's a swim stroke, as a jump would be (and costs nothing).
 	if ( player->GetWaterLevel() >= 2 )
@@ -220,7 +238,7 @@ bool CHiddenGameMovement::CheckPounceButton( void )
 		return false;
 
 	SetGroundEntity( NULL );
-	pHidden->SetClinging( false );
+	SetClinging( false, "pounce" );
 
 	player->PlayStepSound( (Vector &)mv->GetAbsOrigin(), player->m_pSurfaceData, 1.0, true );
 	MoveHelper()->PlayerSetAnimation( PLAYER_JUMP );
@@ -228,6 +246,7 @@ bool CHiddenGameMovement::CheckPounceButton( void )
 	Vector vecAim;
 	AngleVectors( mv->m_vecViewAngles + player->m_Local.m_vecPunchAngle, &vecAim );
 	mv->m_vecVelocity = vecAim * HIDDEN_POUNCE_SPEED;
+	HIDDEN_MOVEMENT_DEBUG( "%.2f pounce: velocity %.0f %.0f %.0f\n", gpGlobals->curtime, mv->m_vecVelocity.x, mv->m_vecVelocity.y, mv->m_vecVelocity.z );
 
 	FinishGravity();
 
@@ -277,7 +296,7 @@ void CHiddenGameMovement::AirMove( void )
 		UTIL_TraceLine( vecEyes, vecEyes + vecForward * HIDDEN_CLING_DISTANCE, MASK_SOLID_BRUSHONLY, NULL, COLLISION_GROUP_NONE, &tr );
 		if ( tr.fraction < 1.0f )
 		{
-			pHidden->SetClinging( true );
+			SetClinging( true, "grabbed a wall" );
 			return;
 		}
 	}
@@ -294,7 +313,7 @@ void CHiddenGameMovement::WallCling( void )
 
 	if ( player->GetGroundEntity() != NULL || pHidden->GetStamina() < 1.0f )
 	{
-		pHidden->SetClinging( false );
+		SetClinging( false, player->GetGroundEntity() ? "on the ground" : "out of stamina" );
 		return;
 	}
 
@@ -324,7 +343,7 @@ void CHiddenGameMovement::Duck( void )
 	if ( pHidden->IsClinging() && player->IsAlive() &&
 		 ( ( mv->m_nButtons & IN_DUCK ) || player->m_Local.m_bDucking || ( player->GetFlags() & FL_DUCKING ) || player->m_Local.m_bInDuckJump ) )
 	{
-		pHidden->SetClinging( false );
+		SetClinging( false, "duck" );
 	}
 
 	BaseClass::Duck();
@@ -335,7 +354,7 @@ bool CHiddenGameMovement::LadderMove( void )
 	if ( !CGameMovement::LadderMove() )
 		return false;
 
-	GetHiddenPlayer()->SetClinging( false );
+	SetClinging( false, "ladder" );
 
 	// Marines put their weapon away while they hold on to a ladder, every tick they're on it;
 	// CWeaponHiddenBase::ItemPostFrame brings it back out once they're off.
