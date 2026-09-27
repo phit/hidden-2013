@@ -1,0 +1,15 @@
+// Beta 4b's map cycle, with the community's fixed hdn_decay and hdn_origin. Maps this server
+// doesn't have are skipped, and a missing <map>_fixed falls back to <map>.
+hdn_decay_fixed
+hdn_derelict
+hdn_docks
+hdn_discovery
+hdn_executive
+hdn_highrise
+hdn_origin_fixed
+hdn_sewers
+hdn_stalkyard
+hdn_traindepot
+ovr_derelict
+ovr_decay
+ovr_docks
