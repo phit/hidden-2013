@@ -40,6 +40,16 @@ void HiddenPlugins_PlayerHurt( CHidden_Player *pVictim, const CTakeDamageInfo &i
 		pPlugin->PlayerHurt( pVictim, info );
 }
 
+bool HiddenPlugins_AlarmTriggered( CHiddenSonicAlarm *pAlarm, CBaseEntity *pBreaker, CRecipientFilter &filter )
+{
+	FOR_EACH_HIDDEN_PLUGIN( pPlugin )
+	{
+		if ( !pPlugin->AlarmTriggered( pAlarm, pBreaker, filter ) )
+			return false;
+	}
+	return true;
+}
+
 class CHiddenPluginSystem : public CAutoGameSystemPerFrame, public CGameEventListener
 {
 public:

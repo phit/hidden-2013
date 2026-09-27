@@ -11,6 +11,8 @@
 
 class CHidden_Player;
 class CTakeDamageInfo;
+class CHiddenSonicAlarm;
+class CRecipientFilter;
 
 // One static instance per plugin. The hooks stand in for the SourceMod events and callbacks the
 // plugins used; each plugin checks its own on/off cvar.
@@ -35,12 +37,18 @@ public:
 	virtual void PlayerSay( CHidden_Player *pPlayer, const char *pszText ) {}	// player_say
 	virtual void Radio( CHidden_Player *pPlayer, int iMessage ) {}				// iris_radio
 
+	// A sonic alarm's beam was broken, by pBreaker if it was something (the plugins listened for the
+	// alarm's sound). A plugin may take players out of filter, who hear it, or return false to keep
+	// it quiet: no sound and nothing on the radar.
+	virtual bool AlarmTriggered( CHiddenSonicAlarm *pAlarm, CBaseEntity *pBreaker, CRecipientFilter &filter ) { return true; }
+
 	static CHiddenPlugin *s_pFirst;
 	CHiddenPlugin *m_pNext;
 };
 
 bool HiddenPlugins_OnTakeDamage( CHidden_Player *pVictim, CTakeDamageInfo &info );
 void HiddenPlugins_PlayerHurt( CHidden_Player *pVictim, const CTakeDamageInfo &info );
+bool HiddenPlugins_AlarmTriggered( CHiddenSonicAlarm *pAlarm, CBaseEntity *pBreaker, CRecipientFilter &filter );
 
 // SourceMod's PrintCenterText, PrintToChat and PrintToConsole for one player.
 void HiddenPlugins_PrintCenter( CBasePlayer *pPlayer, const char *pszFormat, ... ) FMTFUNCTION( 2, 3 );

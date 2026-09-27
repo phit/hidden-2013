@@ -32,11 +32,15 @@ public:
 
 	void SetAlarmOwner( CBaseEntity *pOwner ) { m_hOwner = pOwner; }
 
+	// Where the beam points.
+	const Vector &GetBeamDir( void ) const { return m_vecDir; }
+
 private:
 	void MakeBeam( void );
 	void KillBeam( void );
 
 	EHANDLE m_hOwner;
+	EHANDLE m_hBreaker;	// what broke the beam last
 	float m_flPowerUp;
 	Vector m_vecDir;
 	Vector m_vecEnd;

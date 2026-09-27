@@ -11,6 +11,7 @@
 #include "props_shared.h"
 #include "te_effect_dispatch.h"
 #include "igameevents.h"
+#include "plugins/hidden_plugins.h"
 
 // memdbgon must be the last include file in a .cpp file!!!
 #include "tier0/memdbgon.h"
@@ -32,6 +33,7 @@ LINK_ENTITY_TO_CLASS( npc_tripmine, CHiddenSonicAlarm );
 
 BEGIN_DATADESC( CHiddenSonicAlarm )
 	DEFINE_FIELD( m_hOwner, FIELD_EHANDLE ),
+	DEFINE_FIELD( m_hBreaker, FIELD_EHANDLE ),
 	DEFINE_FIELD( m_flPowerUp, FIELD_TIME ),
 	DEFINE_FIELD( m_vecDir, FIELD_VECTOR ),
 	DEFINE_FIELD( m_vecEnd, FIELD_POSITION_VECTOR ),
@@ -191,6 +193,7 @@ void CHiddenSonicAlarm::BeamBreakThink( void )
 	if ( ToBaseCombatCharacter( tr.m_pEnt ) || fabs( m_flBeamLength - tr.fraction ) > 0.001f )
 	{
 		// Something broke the beam.
+		m_hBreaker = tr.m_pEnt;
 		m_iHealth = 0;
 		SetThink( &CHiddenSonicAlarm::AlarmThink );
 		SetNextThink( gpGlobals->curtime + SONIC_ALARM_TRIGGER_DELAY );
@@ -202,18 +205,24 @@ void CHiddenSonicAlarm::BeamBreakThink( void )
 
 void CHiddenSonicAlarm::AlarmThink( void )
 {
-	EmitSound( "Weapon_Sonic.Alarm" );
-
-	// The marines' radar shows where it went off.
-	IGameEvent *pEvent = gameeventmanager->CreateEvent( "alarm_trigger" );
-	if ( pEvent )
+	// The built-in plugins can decide who hears it, or that nobody does.
+	CPASAttenuationFilter filter( this, "Weapon_Sonic.Alarm" );
+	if ( HiddenPlugins_AlarmTriggered( this, m_hBreaker, filter ) )
 	{
-		const Vector &vecOrigin = GetAbsOrigin();
-		pEvent->SetFloat( "posx", vecOrigin.x );
-		pEvent->SetFloat( "posy", vecOrigin.y );
-		pEvent->SetFloat( "posz", vecOrigin.z );
-		gameeventmanager->FireEvent( pEvent );
+		EmitSound( filter, entindex(), "Weapon_Sonic.Alarm" );
+
+		// The marines' radar shows where it went off.
+		IGameEvent *pEvent = gameeventmanager->CreateEvent( "alarm_trigger" );
+		if ( pEvent )
+		{
+			const Vector &vecOrigin = GetAbsOrigin();
+			pEvent->SetFloat( "posx", vecOrigin.x );
+			pEvent->SetFloat( "posy", vecOrigin.y );
+			pEvent->SetFloat( "posz", vecOrigin.z );
+			gameeventmanager->FireEvent( pEvent );
+		}
 	}
+	m_hBreaker = NULL;
 
 	// Rebuild the beam and watch again once the alarm has sounded.
 	KillBeam();
