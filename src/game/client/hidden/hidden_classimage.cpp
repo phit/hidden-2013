@@ -18,12 +18,14 @@
 #include "ivrenderview.h"
 #include "tier0/vprof.h"
 #include "model_types.h"
+#include "hidden_shareddefs.h"
 
 // memdbgon must be the last include file in a .cpp file!!!
 #include "tier0/memdbgon.h"
 
 using namespace vgui;
 
+#define CLASSIMAGE_SUPPORT_MODEL	"models/player/iris_supply.mdl"
 #define CLASSIMAGE_WEAPON_MODEL		"models/weapons/f2000/w_f2000.mdl"
 #define CLASSIMAGE_WEAPON_SEQUENCE	"Idle_Upper_Aug"
 #define CLASSIMAGE_LOWER_SEQUENCE	"walk_lower"
@@ -69,6 +71,15 @@ DECLARE_BUILD_FACTORY( CSClassImagePanel );
 
 static CHandle<C_BaseAnimatingOverlay> s_hClassImagePlayer;
 static CHandle<C_BaseAnimating> s_hClassImageWeapon;
+
+static int s_iPreviewCharacter = 0;
+static int s_iPreviewClass = HIDDEN_CLASS_ASSAULT;
+
+void HiddenClassImage_SetMarine( int iCharacter, int iClass )
+{
+	s_iPreviewCharacter = ( iCharacter >= 0 && iCharacter < HIDDEN_NUM_CHARACTERS ) ? iCharacter : 0;
+	s_iPreviewClass = ( iClass == HIDDEN_CLASS_SUPPORT ) ? HIDDEN_CLASS_SUPPORT : HIDDEN_CLASS_ASSAULT;
+}
 
 // A panel only shows when it and all its parents do.
 static bool WillPanelBeVisible( VPANEL hPanel )
@@ -121,6 +132,11 @@ static void UpdateClassImageEntity( const char *pszModelName, int x, int y, int 
 
 		s_hClassImagePlayer = pPlayerModel;
 	}
+
+	// Dressed as CHidden_Player::SetupMarine dresses the character.
+	pPlayerModel->m_nSkin = s_iPreviewCharacter;
+	pPlayerModel->m_nBody = s_iPreviewCharacter;
+	pPlayerModel->SetBodygroup( 2, 2 );
 
 	C_BaseAnimating *pWeaponModel = s_hClassImageWeapon.Get();
 	if ( bNewPlayer || ShouldRecreateClassImageEntity( pWeaponModel, CLASSIMAGE_WEAPON_MODEL ) )
@@ -258,7 +274,8 @@ void HiddenClassImage_PostRenderVGui( void )
 		const int nViewTall = h - 10;
 		const int nViewX = nMenuX + 2 * x + 3;
 		const int nViewY = nMenuY + nMenuTall - ( 2 * y + 5 ) - nViewTall;
-		UpdateClassImageEntity( pPanel->GetModelName(), nViewX, nViewY, nViewWide, nViewTall );
+		const char *pszModel = ( s_iPreviewClass == HIDDEN_CLASS_SUPPORT ) ? CLASSIMAGE_SUPPORT_MODEL : pPanel->GetModelName();
+		UpdateClassImageEntity( pszModel, nViewX, nViewY, nViewWide, nViewTall );
 		return;
 	}
 }

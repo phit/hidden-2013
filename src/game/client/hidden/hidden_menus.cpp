@@ -16,6 +16,7 @@
 #include "baseviewport.h"
 #include "c_hidden_player.h"
 #include "hidden_gamerules.h"
+#include "hidden_classimage.h"
 #include "filesystem.h"
 
 // memdbgon must be the last include file in a .cpp file!!!
@@ -183,9 +184,22 @@ static const struct
 	{ "MEM9BUTTON", "selection/kasim", "selection/kasiminfo" },
 };
 
-// The class just picked in the team menu (-2 to keep the current one), for the weapon menu that
-// opens straight after, before the server has the new class.
+// The class and character just picked in the team menu (-2 to keep the current one), for the weapon
+// menu that opens straight after, before the server has them.
 static int s_iPickedClass = -2;
+static int s_iPickedCharacter = -2;
+
+// The menus' 3D preview shows this marine: a pick if there is one, else the player's own.
+static void ShowPreviewMarine( int iCharacter, int iClass )
+{
+	C_Hidden_Player *pPlayer = C_Hidden_Player::GetLocalHiddenPlayer();
+	if ( iCharacter < 0 && pPlayer )
+		iCharacter = pPlayer->GetCharacter();
+	if ( iClass < 0 && pPlayer )
+		iClass = pPlayer->GetPlayerClass();
+
+	HiddenClassImage_SetMarine( iCharacter, iClass );
+}
 
 class CHiddenTeamMenu : public CHiddenMenu
 {
@@ -266,6 +280,22 @@ protected:
 			ShowImage( m_pInfo, "selection/assaultinfo" );
 		if ( m_pSupport && m_pSupport->IsCursorOver() )
 			ShowImage( m_pInfo, "selection/supportinfo" );
+
+		// The preview shows whoever is hovered, else the picks.
+		int iCharacter = m_iCharacter;
+		for ( int i = 0; i < HIDDEN_NUM_CHARACTERS; i++ )
+		{
+			if ( m_pCharacters[i] && m_pCharacters[i]->IsEnabled() && m_pCharacters[i]->IsCursorOver() )
+				iCharacter = i;
+		}
+
+		int iClass = m_iClass;
+		if ( m_pAssault && m_pAssault->IsCursorOver() )
+			iClass = HIDDEN_CLASS_ASSAULT;
+		else if ( m_pSupport && m_pSupport->IsCursorOver() )
+			iClass = HIDDEN_CLASS_SUPPORT;
+
+		ShowPreviewMarine( iCharacter, iClass );
 	}
 
 	virtual void OnCommand( const char *command )
@@ -301,6 +331,7 @@ protected:
 			engine->ClientCmd( VarArgs( "changeclass %d", m_iClass ) );
 			engine->ClientCmd( VarArgs( "changemarine %d", m_iCharacter ) );
 			s_iPickedClass = m_iClass;
+			s_iPickedCharacter = m_iCharacter;
 			Close();
 			m_pViewPort->ShowPanel( PANEL_HIDDEN_WEAPON, true );
 		}
@@ -414,6 +445,8 @@ protected:
 		C_Hidden_Player *pPlayer = C_Hidden_Player::GetLocalHiddenPlayer();
 		if ( iClass < 0 && pPlayer )
 			iClass = pPlayer->GetPlayerClass();
+
+		ShowPreviewMarine( s_iPickedCharacter, iClass );
 
 		const bool bSupport = ( iClass == HIDDEN_CLASS_SUPPORT );
 		for ( int i = 0; i < ARRAYSIZE( m_pStrikes ); i++ )
