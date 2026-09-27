@@ -15,6 +15,7 @@
 #include "bone_setup.h"
 #include "physics.h"
 #include "vphysics/constraints.h"
+#include "igamesystem.h"
 
 // memdbgon must be the last include file in a .cpp file!!!
 #include "tier0/memdbgon.h"
@@ -88,29 +89,59 @@ void CHiddenCorpse::TearApart( const Vector &vecForce, const Vector &vecDir )
 	UTIL_Remove( this );
 }
 
-void CHiddenCorpse::Pin( IPhysicsConstraint *pConstraint )
+// The welds holding pinned ragdolls. Beta 4b kept each in a field it added to every entity; ours
+// live here, and a weld goes when its ragdoll does (vphysics copes with a constraint that outlives
+// its object, as the SDK's constraint entities do, until it's destroyed).
+struct HiddenPin_t
 {
-	if ( m_pPinConstraint )
-		physenv->DestroyConstraint( m_pPinConstraint );
+	EHANDLE hRagdoll;
+	IPhysicsConstraint *pConstraint;
+};
 
-	m_pPinConstraint = pConstraint;
+static CUtlVector< HiddenPin_t > s_Pins;
+
+// Destroys the welds of a ragdoll, or with NULL, of the ragdolls that are gone.
+static void UnpinRagdoll( CBaseEntity *pRagdoll )
+{
+	for ( int i = s_Pins.Count() - 1; i >= 0; i-- )
+	{
+		if ( s_Pins[i].hRagdoll.Get() == pRagdoll )
+		{
+			physenv->DestroyConstraint( s_Pins[i].pConstraint );
+			s_Pins.Remove( i );
+		}
+	}
 }
+
+class CHiddenPinSystem : public CAutoGameSystemPerFrame
+{
+public:
+	CHiddenPinSystem() : CAutoGameSystemPerFrame( "CHiddenPinSystem" ) {}
+
+	virtual void FrameUpdatePostEntityThink( void ) { UnpinRagdoll( NULL ); }
+
+	virtual void LevelShutdownPreEntity( void )
+	{
+		for ( int i = 0; i < s_Pins.Count(); i++ )
+			physenv->DestroyConstraint( s_Pins[i].pConstraint );
+		s_Pins.RemoveAll();
+	}
+};
+
+static CHiddenPinSystem g_HiddenPinSystem;
 
 void CHiddenCorpse::UpdateOnRemove( void )
 {
-	Pin( NULL );
+	UnpinRagdoll( this );
 	BaseClass::UpdateOnRemove();
 }
 
 void HiddenPinHeldRagdoll( CBasePlayer *pPlayer, CBaseEntity *pHeld )
 {
-	// Beta 4b pinned any ragdoll; only corpses can hold on to the weld here.
-	CHiddenCorpse *pCorpse = dynamic_cast<CHiddenCorpse *>( pHeld );
-	IPhysicsObject *pPhys = pCorpse ? pCorpse->VPhysicsGetObject() : NULL;
+	CRagdollProp *pRagdoll = dynamic_cast<CRagdollProp *>( pHeld );
+	IPhysicsObject *pPhys = pRagdoll ? pRagdoll->VPhysicsGetObject() : NULL;
 	if ( !pPhys )
 		return;
-
-	DevMsg( "pin meh!\n" );
 
 	Vector vecForward;
 	pPlayer->EyeVectors( &vecForward );
@@ -121,17 +152,22 @@ void HiddenPinHeldRagdoll( CBasePlayer *pPlayer, CBaseEntity *pHeld )
 	if ( tr.fraction >= 1.0f )
 		return;
 
-	DevMsg( "pinned!\n" );
-
 	// 4 units off the wall, as it's turned now, and welded to the world.
 	QAngle angles;
 	pPhys->GetPosition( NULL, &angles );
 	pPhys->SetPosition( tr.endpos + tr.plane.normal * 4.0f, angles, true );
 
+	UnpinRagdoll( pRagdoll );
+
 	constraint_fixedparams_t fixed;
 	fixed.Defaults();
 	fixed.InitWithCurrentObjectState( g_PhysWorldObject, pPhys );
-	pCorpse->Pin( physenv->CreateFixedConstraint( g_PhysWorldObject, pPhys, NULL, fixed ) );
+	IPhysicsConstraint *pConstraint = physenv->CreateFixedConstraint( g_PhysWorldObject, pPhys, NULL, fixed );
+	if ( pConstraint )
+	{
+		HiddenPin_t pin = { pRagdoll, pConstraint };
+		s_Pins.AddToTail( pin );
+	}
 	pPhys->Wake();
 }
 
