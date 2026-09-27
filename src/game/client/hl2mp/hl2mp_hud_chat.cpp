@@ -15,6 +15,9 @@
 #include "c_hl2mp_player.h"
 #include "hl2mp_gamerules.h"
 #include "ihudlcd.h"
+#ifdef HIDDEN
+#include <vgui_controls/ScrollBar.h>
+#endif
 
 
 
@@ -84,6 +87,18 @@ void CHudChat::ApplySchemeSettings( vgui::IScheme *pScheme )
 	{
 		GetChatHistory()->SetPaintBorderEnabled( false );
 		GetChatHistory()->SetBgColor( Color( 0, 0, 0, 0 ) );
+
+		// The history's scrollbar (Beta 4b's chat had none) takes Beta 4b's ClientScheme
+		// scrollbars instead of ChatScheme's grey track: orange line-art arrows and slider.
+		for ( int i = 0; i < GetChatHistory()->GetChildCount(); i++ )
+		{
+			vgui::ScrollBar *pScrollBar = dynamic_cast< vgui::ScrollBar * >( GetChatHistory()->GetChild( i ) );
+			if ( pScrollBar && pScrollBar->GetScheme() != vgui::scheme()->GetScheme( "ClientScheme" ) )
+			{
+				pScrollBar->SetScheme( vgui::scheme()->GetScheme( "ClientScheme" ) );
+				pScrollBar->InvalidateLayout( false, true );
+			}
+		}
 	}
 #endif
 }
