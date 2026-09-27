@@ -1,6 +1,6 @@
-PatchVersion=2000
-ClientVersion=2000
-ServerVersion=2000
+PatchVersion=1.0.0.1
+ClientVersion=1
+ServerVersion=1
 ProductName=hidden2013
 appID=243750
 ServerAppID=244310
