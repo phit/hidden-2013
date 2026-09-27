@@ -10,6 +10,7 @@
 #include "cbase.h"
 #include "hidden_plugins.h"
 #include "hidden_player.h"
+#include "engine/IEngineSound.h"
 #include "team.h"
 
 // memdbgon must be the last include file in a .cpp file!!!
@@ -29,8 +30,9 @@ public:
 	{
 		Reset();
 
+		CBaseEntity::PrecacheScriptSound( "IRIS.RequestBackup" );
 		for ( int i = 1; i <= 4; i++ )
-			CBaseEntity::PrecacheSound( UTIL_VarArgs( "player/iris/IRIS-backup%02i.wav", i ) );
+			enginesound->PrecacheSound( UTIL_VarArgs( "player/iris/IRIS-backup%02i.wav", i ), true );
 	}
 
 	virtual void RoundStart( void ) { Reset(); }

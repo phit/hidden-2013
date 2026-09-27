@@ -11,6 +11,7 @@
 #include "cbase.h"
 #include "hidden_plugins.h"
 #include "hidden_player.h"
+#include "engine/IEngineSound.h"
 #include "hidden_sonic_alarm.h"
 #include "ammodef.h"
 #include "explode.h"
@@ -55,8 +56,8 @@ public:
 		m_bMapAllowed = Q_strnicmp( STRING( gpGlobals->mapname ), "ovr", 3 ) != 0;	// not made for OverRun
 		m_iBeamSprite = CBaseEntity::PrecacheModel( MINES_BEAM_SPRITE );
 		m_iBeamHalo = CBaseEntity::PrecacheModel( MINES_BEAM_HALO );
-		CBaseEntity::PrecacheSound( MINES_SOUND_ARM );
-		CBaseEntity::PrecacheSound( MINES_SOUND_EXPLODE );
+		enginesound->PrecacheSound( MINES_SOUND_ARM, true );
+		enginesound->PrecacheSound( MINES_SOUND_EXPLODE, true );
 		Reset();
 	}
 

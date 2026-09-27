@@ -43,6 +43,8 @@ public:
 		m_flHideAllTime = 0.0f;
 		m_bAllowed = true;
 		UpdateModel();
+		CBaseEntity::PrecacheScriptSound( "Hidden.AuraOut" );
+		CBaseEntity::PrecacheScriptSound( "Hidden.AuraIn" );
 	}
 
 	virtual void RoundStart( void )

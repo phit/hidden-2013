@@ -35,6 +35,7 @@ public:
 	{
 		RoundStart();
 		m_flRageBufferEnd = 0.0f;
+		CBaseEntity::PrecacheScriptSound( "IRIS.RageAlert" );
 	}
 
 	virtual void RoundStart( void )

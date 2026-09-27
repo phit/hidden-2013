@@ -10,6 +10,7 @@
 #include "cbase.h"
 #include "hidden_plugins.h"
 #include "hidden_player.h"
+#include "engine/IEngineSound.h"
 
 // memdbgon must be the last include file in a .cpp file!!!
 #include "tier0/memdbgon.h"
@@ -30,9 +31,9 @@ public:
 		m_flNextRoar = 0.0f;
 
 		for ( int i = 1; i <= 8; i++ )
-			CBaseEntity::PrecacheSound( UTIL_VarArgs( "player/hidden/voice/617-303pain%02i.mp3", i ) );
+			enginesound->PrecacheSound( UTIL_VarArgs( "player/hidden/voice/617-303pain%02i.mp3", i ), true );
 		for ( int i = 1; i <= 6; i++ )
-			CBaseEntity::PrecacheSound( UTIL_VarArgs( "player/hidden/voice/617-pain%02i.mp3", i ) );
+			enginesound->PrecacheSound( UTIL_VarArgs( "player/hidden/voice/617-pain%02i.mp3", i ), true );
 	}
 
 	virtual void PlayerHurt( CHidden_Player *pVictim, const CTakeDamageInfo &info )
