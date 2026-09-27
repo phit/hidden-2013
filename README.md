@@ -35,17 +35,18 @@ crash reports; players don't need them.
 
 ### Dedicated server
 
-Extract the same package into the server's folder, with Beta 4b's `hidden` folder next to
-`hidden2013`, and start it with `-game hidden2013`:
+Install Source SDK Base 2013 Dedicated Server with SteamCMD (app 244310), then extract the **server
+package** (`hidden2013-<version>-windows-server.zip` or `-linux-server.tar.gz`) into its folder and
+put Beta 4b's `hidden` folder there too. SteamCMD's server only has 32-bit launchers; the package
+brings 64-bit ones, `srcds_win64.exe` and `srcds_linux64`:
 
-- **Windows:** use `srcds_win64.exe` from the Source SDK Base 2013 Multiplayer install. The
-  `srcds.exe` in the dedicated server app (SteamCMD 244310) is 32-bit and can't load the mod.
+```
+srcds_win64.exe -console -game hidden2013 +maxplayers 12 +map hdn_docks
+./srcds_linux64 -console -game hidden2013 +maxplayers 12 +map hdn_docks
+```
 
-  ```powershell
-  & "<SDK Base 2013 MP>\srcds_win64.exe" -console -game "<path>\hidden2013" +maxplayers 12 +map hdn_docks
-  ```
-
-- **Linux:** the dedicated server from SteamCMD app 244310, with `-game hidden2013`. Not tested yet.
+On Linux, link SteamCMD's 64-bit `steamclient.so` into `~/.steam/sdk64` first. The
+[servers page](https://phit.github.io/hidden-2013/servers/) has the details.
 
 ## Layout
 
@@ -54,6 +55,8 @@ Extract the same package into the server's folder, with Beta 4b's `hidden` folde
 | `src/game/client/client_hidden.vpc`, `src/game/server/server_hidden.vpc` | Client and server projects (HL2MP plus `HIDDEN` define) |
 | `src/game/{client,server,shared}/hidden/` | Hidden game code |
 | `game/hidden2013/` | The mod folder the game runs from |
+| `src/srcds_hidden/` | The 64-bit dedicated server launchers |
+| `web/` | The project site (GitHub Pages) |
 | `tools/` | Build, packaging and asset scripts |
 | `.github/workflows/build.yml` | CI: Windows and Linux builds, packages, releases |
 
