@@ -63,6 +63,7 @@ public:
 	bool Radio( int iMessage );
 	bool IsRequestingAmmo( void ) const { return m_bRequestAmmo; }
 	void GiveRequestedAmmo( CHidden_Player *pGiver );
+	virtual void PlayerRunCommand( CUserCmd *ucmd, IMoveHelper *moveHelper );
 	virtual void PreThink( void );
 	virtual void PostThink( void );
 	virtual void ItemPostFrame( void );

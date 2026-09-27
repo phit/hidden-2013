@@ -902,6 +902,14 @@ void CHidden_Player::PlayerDeathThink( void )
 		BecomeObserver();
 }
 
+// Beta 4b's player came from the SDK template, which ignores +zoom (its default z bind): the FN2000's
+// scope is the secondary attack. HL2's player zooms the suit on it and blocks attacking while it's held.
+void CHidden_Player::PlayerRunCommand( CUserCmd *ucmd, IMoveHelper *moveHelper )
+{
+	ucmd->buttons &= ~IN_ZOOM;
+	BaseClass::PlayerRunCommand( ucmd, moveHelper );
+}
+
 void CHidden_Player::PreThink( void )
 {
 	// The Hidden's aura follows the vision key.
