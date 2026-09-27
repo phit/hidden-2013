@@ -22,6 +22,7 @@ import argparse
 import datetime
 import html
 import json
+import os
 import re
 import shutil
 import sys
@@ -186,8 +187,10 @@ def latest_release_block():
     fallback = (f'<p>See the <a href="https://github.com/{REPO}/releases">releases on GitHub</a>; '
                 f'<a href="https://github.com/{REPO}/releases/tag/latest">latest</a> is the newest test build.</p>')
     try:
-        req = urllib.request.Request(f"https://api.github.com/repos/{REPO}/releases/latest",
-                                     headers={"Accept": "application/vnd.github+json", "User-Agent": "hidden-2013-site"})
+        headers = {"Accept": "application/vnd.github+json", "User-Agent": "hidden-2013-site"}
+        if os.environ.get("GITHUB_TOKEN"):  # CI: avoids the anonymous rate limit
+            headers["Authorization"] = f"Bearer {os.environ['GITHUB_TOKEN']}"
+        req = urllib.request.Request(f"https://api.github.com/repos/{REPO}/releases/latest", headers=headers)
         release = json.load(urllib.request.urlopen(req, timeout=20))
     except Exception as e:  # no release yet (404), or offline
         print(f"latest release: {e}; linking the releases page", file=sys.stderr)
