@@ -366,6 +366,7 @@ $Project "Server (Hidden)"
 			$File	"hidden\plugins\hidden_plugin_reqbackup.cpp"
 			$File	"hidden\plugins\hidden_plugin_roar.cpp"
 			$File	"hidden\plugins\hidden_plugin_sonicmines.cpp"
+			$File	"hidden\plugins\hidden_plugin_teamaura.cpp"
 			$File	"hidden\plugins\hidden_plugin_visibility.cpp"
 		}
 

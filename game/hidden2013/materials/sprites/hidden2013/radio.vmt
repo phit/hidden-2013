@@ -1,0 +1,18 @@
+// Team Aura radio sprite (docs/spec/plugins.md), drawn with Beta 4b's HUD texture.
+"UnlitGeneric"
+{
+	"$basetexture"	"vgui/hud/assault_icon_radio"
+	"$translucent"	"1"
+	"$vertexcolor"	"1"
+	"$ignorez"	"1"
+
+	"Proxies"
+	{
+		"AnimatedTexture"
+		{
+			"animatedtexturevar"	"$basetexture"
+			"animatedtextureframenumvar"	"$frame"
+			"animatedtextureframerate"	"8"
+		}
+	}
+}
