@@ -1,0 +1,61 @@
+/* After NEOTOKYO;REBUILD's site, in Beta 4b's orange. */
+body {
+  font-family: sans-serif;
+  max-width: 70em;
+  margin: 1em auto;
+  padding: 0 16px;
+  background-color: #0b0b0b;
+  color: #e6e6e6;
+  line-height: 1.5;
+}
+
+a {
+  color: #f0a030;
+}
+
+a:hover, a:active {
+  color: #ffd080;
+}
+
+h1, h2, h3 {
+  color: #f0a030;
+}
+
+hr {
+  border: 0;
+  border-top: 1px solid #333;
+}
+
+code, pre {
+  background-color: #1a1a1a;
+  font-size: 0.95em;
+}
+
+pre {
+  padding: 0.6em 0.8em;
+  overflow-x: auto;
+}
+
+table {
+  border-collapse: collapse;
+  width: 100%;
+  margin: 0.5em 0 1.5em;
+  display: block;
+  overflow-x: auto;
+}
+
+th, td {
+  border: 1px solid #333;
+  padding: 0.3em 0.6em;
+  text-align: left;
+  vertical-align: top;
+}
+
+th {
+  background-color: #1a1a1a;
+}
+
+img {
+  max-width: 100%;
+  height: auto;
+}

@@ -528,3 +528,7 @@ src/lib/public/linux64/vgui_controls.a
 
 # tools/package.py output
 /dist/
+
+# Project site build output (web/build.py)
+/web/_out/
+/web/_serve/
