@@ -164,7 +164,7 @@ protected:
 //-----------------------------------------------------------------------------
 // The team menu (classmenu): hover a class or character to see it, click to
 // pick; "enter" sends the picks (-2 keeps the current one) and opens the
-// loadout. Characters someone else has are struck out.
+// loadout. Taken characters are struck out, the player's own too.
 //-----------------------------------------------------------------------------
 static const struct
 {
@@ -253,13 +253,15 @@ protected:
 			if ( !m_pCharacters[i] )
 				continue;
 
-			// Someone else has this one.
-			if ( pRules && pRules->IsCharacterTaken( i ) && i != m_iCharacter )
+			// Someone has this one, the player included (Beta 4b made no exception). Beta 4b only
+			// dims the first strike, Wakefield's; the others show at full alpha.
+			if ( pRules && pRules->IsCharacterTaken( i ) )
 			{
 				if ( m_pStrikes[i] )
 				{
 					m_pStrikes[i]->SetVisible( true );
-					m_pStrikes[i]->SetAlpha( 127 );
+					if ( i == 0 )
+						m_pStrikes[i]->SetAlpha( 127 );
 				}
 				m_pCharacters[i]->SetEnabled( false );
 				continue;
