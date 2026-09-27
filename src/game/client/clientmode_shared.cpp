@@ -10,6 +10,9 @@
 
 #include "cbase.h"
 #include "clientmode_shared.h"
+#ifdef HIDDEN
+#include "hidden_classimage.h"
+#endif
 #include "iinput.h"
 #include "view_shared.h"
 #include "iviewrender.h"
@@ -610,6 +613,10 @@ void ClientModeShared::PostRender()
 
 void ClientModeShared::PostRenderVGui()
 {
+#ifdef HIDDEN
+	// The team and weapon menus' 3D marine preview, drawn over them as Beta 4b (from CS:S) did.
+	HiddenClassImage_PostRenderVGui();
+#endif
 }
 
 //-----------------------------------------------------------------------------
