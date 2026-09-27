@@ -11,6 +11,7 @@
 #include "gib.h"
 #include "player_pickup.h"
 #include "hidden_player.h"
+#include "plugins/hidden_plugins.h"
 #include "hidden_gamerules.h"
 #include "hidden_cvars.h"
 #include "team.h"
@@ -497,9 +498,14 @@ void CHidden_Player::Weapon_Drop( CBaseCombatWeapon *pWeapon, const Vector *pvec
 
 // Beta 4b's player came straight from CBasePlayer, so this is its OnTakeDamage_Alive (without HL2's
 // drowning and burning sounds) plus Beta 4b's additions: the player_hurt event's damage and "hidden",
-// a hurt log line, the attacker's weighting and IRIS.Damage.
-int CHidden_Player::OnTakeDamage_Alive( const CTakeDamageInfo &info )
+// a hurt log line, the attacker's weighting and IRIS.Damage. The built-in plugins can change or drop
+// the damage first, and hear about it after.
+int CHidden_Player::OnTakeDamage_Alive( const CTakeDamageInfo &inputInfo )
 {
+	CTakeDamageInfo info = inputInfo;
+	if ( !HiddenPlugins_OnTakeDamage( this, info ) )
+		return 0;
+
 	m_bitsDamageType |= info.GetDamageType();
 
 	if ( !CBaseCombatCharacter::OnTakeDamage_Alive( info ) )
@@ -580,6 +586,8 @@ int CHidden_Player::OnTakeDamage_Alive( const CTakeDamageInfo &info )
 
 	if ( pAttacker->IsNPC() )
 		CSoundEnt::InsertSound( SOUND_COMBAT, GetAbsOrigin(), 512, 0.5, this );
+
+	HiddenPlugins_PlayerHurt( this, info );
 
 	return 1;
 }
