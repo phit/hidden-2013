@@ -1,19 +1,24 @@
 name: Build
 
 # Windows and Linux builds, packaged for players and servers (tools/package.py). Pushes to main
-# replace the rolling "latest" prerelease; publishing a release attaches its packages.
+# replace the rolling "latest" prerelease; pushing a v* tag (v + steam.inf's PatchVersion) makes a
+# release with its packages and the changelog since the previous tag (tools/changelog.py).
 # After Neotokyo: Rebuild's cibuild.yml, on the SDK's VPC build instead of CMake.
 
 # Pushes and pull requests only build when something that goes into the build changed: the code, the
-# mod folder, or the build and packaging scripts and this workflow.
+# mod folder, or the build and packaging scripts and this workflow. Tags always build (GitHub doesn't
+# apply path filters to tags).
 on:
   push:
+    branches: ['**']
+    tags: ['v*']
     paths:
       - 'src/**'
       - 'game/**'
       - 'tools/build.ps1'
       - 'tools/build_shaders.ps1'
       - 'tools/package.py'
+      - 'tools/changelog.py'
       - '.github/workflows/build.yml'
   pull_request:
     paths:
@@ -22,10 +27,9 @@ on:
       - 'tools/build.ps1'
       - 'tools/build_shaders.ps1'
       - 'tools/package.py'
+      - 'tools/changelog.py'
       - '.github/workflows/build.yml'
   workflow_dispatch:
-  release:
-    types: [published]
 
 jobs:
   windows:
@@ -101,10 +105,20 @@ jobs:
           name: linux-release
           path: game/hidden2013/bin/linux64
 
+      # A release tag must name the version the build carries.
+      - name: Check the tag against steam.inf
+        if: startsWith(github.ref, 'refs/tags/v')
+        run: |
+          patch="$(sed -n 's/^PatchVersion=//p' game/hidden2013/steam.inf | tr -d '\r')"
+          if [ "v$patch" != "$GITHUB_REF_NAME" ]; then
+            echo "::error::tag $GITHUB_REF_NAME doesn't match steam.inf's PatchVersion $patch"
+            exit 1
+          fi
+
       - name: Package
         run: |
           version="$(date -u +%Y%m%d)-$(git rev-parse --short HEAD)"
-          if [ "${{ github.event_name }}" = release ]; then version="${{ github.ref_name }}"; fi
+          if [ "$GITHUB_REF_TYPE" = tag ]; then version="${GITHUB_REF_NAME#v}"; fi
           python3 tools/package.py windows --version "$version"
           python3 tools/package.py linux --version "$version"
 
@@ -139,20 +153,29 @@ jobs:
             --repo "$GITHUB_REPOSITORY"
 
   release:
-    name: Attach packages to the release
+    name: Release the tag
     needs: package
-    if: github.event_name == 'release'
+    if: startsWith(github.ref, 'refs/tags/v')
     runs-on: ubuntu-24.04
     permissions:
       contents: write
 
     steps:
+      # The whole history and tags, for the changelog since the previous tag.
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
       - uses: actions/download-artifact@v7
         with:
           name: packages
           path: dist
 
-      - name: Upload
+      - name: Create the release
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: gh release upload "${{ github.ref_name }}" dist/* --clobber --repo "$GITHUB_REPOSITORY"
+        run: |
+          python3 tools/changelog.py "$GITHUB_REF_NAME" > notes.md
+          printf '\nNeeds Hidden: Source Beta 4b installed; see the README.\n' >> notes.md
+          gh release create "$GITHUB_REF_NAME" dist/* --verify-tag --title "$GITHUB_REF_NAME" \
+            --notes-file notes.md --repo "$GITHUB_REPOSITORY"
