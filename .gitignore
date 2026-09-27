@@ -532,3 +532,11 @@ src/lib/public/linux64/vgui_controls.a
 # Project site build output (web/build.py)
 /web/_out/
 /web/_serve/
+
+# Dedicated server: the 64-bit launchers, and the _srv link libraries buildhidden makes
+/game/srcds_win64.exe
+/game/srcds_linux64
+/src/lib/public/linux64/*_srv.a
+/src/lib/public/linux64/*_srv.so
+/src/srcds_hidden/Release/
+/src/srcds_hidden/Debug/

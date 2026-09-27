@@ -30,4 +30,24 @@ fi
 
 ninja -f "$solution_out.ninja" -j"$(nproc)"
 
+# The dedicated server loads server_srv.so, built with /dedicated: it links the dedicated server's
+# libtier0_srv.so and libvstdlib_srv.so and the _srv static libraries, and loads _srv modules.
+# tier1 and mathlib build from source; for the libraries the SDK only has prebuilt, link the client
+# ones under their _srv names (none has a soname, so the name is what server_srv.so asks for).
+libdir=lib/public/linux64
+for lib in libtier0.so libvstdlib.so choreoobjects.a dmxloader.a particles.a tier2.a tier3.a; do
+    cp -u "$libdir/$lib" "$libdir/${lib%.*}_srv.${lib##*.}"
+done
+
+dedicated_out="_vpc_/ninja/hidden_dedicated_$VPC_NINJA_BUILD_MODE"
+
+if [[ ! -e "$dedicated_out.ninja" ]]; then
+    devtools/bin/vpc /hidden /linux64 /ninja /define:SOURCESDK /dedicated +server +tier1 +mathlib /mksln "$dedicated_out"
+fi
+
+ninja -f "$dedicated_out.ninja" -j"$(nproc)"
+
+# The 64-bit launcher SteamCMD's dedicated server lacks (srcds_hidden/srcds_main.cpp).
+g++ -O2 -Wall -o ../game/srcds_linux64 srcds_hidden/srcds_main.cpp -ldl
+
 popd

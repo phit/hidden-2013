@@ -27,5 +27,18 @@ try {
 	}
 	& $msbuild hidden.sln /m /nologo /v:minimal "/p:Configuration=$Configuration" /p:Platform=win64
 	if ($LASTEXITCODE) { throw "build failed ($LASTEXITCODE)" }
+
+	# The 64-bit dedicated server launcher SteamCMD's server lacks, built on its own without tier0.
+	$obj = Join-Path $src "srcds_hidden\$Configuration"
+	New-Item -ItemType Directory -Force $obj | Out-Null
+	$vcvars = Join-Path $vs 'VC\Auxiliary\Build\vcvars64.bat'
+	$exe = Join-Path $src '..\game\srcds_win64.exe'
+	$bat = Join-Path $obj 'build.cmd'
+	Set-Content $bat -Encoding ascii @(
+		"@call `"$vcvars`" >nul || exit /b 1",
+		"cl /nologo /O2 /MT /W3 /Zi /Fo`"$obj\\`" /Fd`"$obj\\`" /Fe`"$exe`" srcds_hidden\srcds_main.cpp user32.lib /link /SUBSYSTEM:WINDOWS"
+	)
+	& cmd /c $bat
+	if ($LASTEXITCODE) { throw "srcds_win64.exe failed ($LASTEXITCODE)" }
 }
 finally { Pop-Location }
