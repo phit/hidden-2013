@@ -3,8 +3,12 @@
 
 Makes, in dist/:
   hidden2013-<version>-<platform>.<zip|tar.gz>          the hidden2013/ folder to extract into
-                                                        steamapps/sourcemods (or a server's game dir)
-  hidden2013-<version>-<platform>-symbols.<zip|tar.gz>  debug information (.pdb, or .dbg split from
+                                                        steamapps/sourcemods
+  hidden2013-<version>-<platform>-server.<zip|tar.gz>   for the folder of Source SDK Base 2013
+                                                        Dedicated Server (SteamCMD 244310): the
+                                                        64-bit launcher it lacks and hidden2013/
+                                                        with the dedicated server library
+  hidden2013-<version>-<...>-symbols.<zip|tar.gz>       debug information (.pdb, or .dbg split from
                                                         the .so files), for crash stacks
 
 The mod folder holds the files tracked in git under game/hidden2013, the compiled shaders and the
@@ -13,7 +17,7 @@ game/hidden2013/shaders/fxc (in CI the build jobs' artifacts are unpacked there)
 content: players mount their own install (see gameinfo.txt).
 
 Usage:
-  py tools/package.py windows|linux [--version V] [--out DIR]
+  py tools/package.py windows|linux|windows-server|linux-server [--version V] [--out DIR]
 """
 
 import argparse
@@ -30,11 +34,21 @@ ROOT = Path(__file__).resolve().parent.parent
 MOD = "hidden2013"
 GAME = ROOT / "game" / MOD
 
+# "root": files that go next to hidden2013/, in the dedicated server's folder: (source, destination).
 PLATFORMS = {
     "windows": {"bin": "x64", "libs": ["client.dll", "server.dll", "game_shader_generic_hidden.dll"],
-                "symbols": ".pdb", "archive": "zip"},
+                "symbols": ".pdb", "archive": "zip", "shaders": True, "root": []},
     "linux": {"bin": "linux64", "libs": ["client.so", "server.so", "game_shader_generic_hidden.so"],
-              "symbols": ".dbg", "archive": "tar.gz"},
+              "symbols": ".dbg", "archive": "tar.gz", "shaders": True, "root": []},
+    # SteamCMD's dedicated server has 64-bit engine libraries but only 32-bit launchers; on Linux it
+    # also lacks the 64-bit Steamworks library, and loads the game's server_srv.so.
+    "windows-server": {"bin": "x64", "libs": ["server.dll"], "symbols": ".pdb", "archive": "zip",
+                       "shaders": False, "root": [(ROOT / "game" / "srcds_win64.exe", "srcds_win64.exe")]},
+    "linux-server": {"bin": "linux64", "libs": ["server_srv.so"], "symbols": ".dbg", "archive": "tar.gz",
+                     "shaders": False,
+                     "root": [(ROOT / "game" / "srcds_linux64", "srcds_linux64"),
+                              (ROOT / "src" / "lib" / "public" / "linux64" / "libsteam_api.so",
+                               "bin/linux64/libsteam_api.so")]},
 }
 
 
@@ -54,6 +68,10 @@ def split_debug_info(lib, dbg):
                    check=True, cwd=dbg.parent)
 
 
+# Files other than libraries that get the executable bit in tars.
+EXECUTABLES = {"srcds_linux64"}
+
+
 def write_archive(path, kind, root, files):
     """Write files (paths relative to root) into a zip or tar.gz, keeping executable bits in tars."""
     if kind == "zip":
@@ -65,7 +83,7 @@ def write_archive(path, kind, root, files):
             for rel in files:
                 info = tf.gettarinfo(root / rel, rel.as_posix())
                 info.uid = info.gid = 0
-                info.mode = 0o755 if rel.suffix == ".so" else 0o644
+                info.mode = 0o755 if rel.suffix == ".so" or rel.name in EXECUTABLES else 0o644
                 info.uname = info.gname = ""
                 with open(root / rel, "rb") as f:
                     tf.addfile(info, f)
@@ -82,11 +100,12 @@ def main():
     version = args.version or default_version()
     bindir = GAME / "bin" / plat["bin"]
 
-    missing = [lib for lib in plat["libs"] if not (bindir / lib).exists()]
-    shaders = sorted((GAME / "shaders" / "fxc").glob("*.vcs"))
+    missing = [str(bindir / lib) for lib in plat["libs"] if not (bindir / lib).exists()]
+    missing += [str(src) for src, _ in plat["root"] if not src.exists()]
+    shaders = sorted((GAME / "shaders" / "fxc").glob("*.vcs")) if plat["shaders"] else []
     if missing:
-        sys.exit(f"not built: {', '.join(missing)} in {bindir}")
-    if not shaders:
+        sys.exit(f"not built: {', '.join(missing)}")
+    if plat["shaders"] and not shaders:
         sys.exit("no compiled shaders in shaders/fxc (tools/build_shaders.ps1, on Windows)")
 
     with tempfile.TemporaryDirectory() as tmp:
@@ -106,13 +125,19 @@ def main():
             shutil.copy2(vcs, dst)
             game_files.append(dst.relative_to(stage.parent))
 
+        for src, rel in plat["root"]:
+            dst = stage.parent / rel
+            dst.parent.mkdir(parents=True, exist_ok=True)
+            shutil.copy2(src, dst)
+            game_files.append(dst.relative_to(stage.parent))
+
         outbin = stage / "bin" / plat["bin"]
         outbin.mkdir(parents=True, exist_ok=True)
         for lib in plat["libs"]:
             dst = outbin / lib
             shutil.copy2(bindir / lib, dst)
             game_files.append(dst.relative_to(stage.parent))
-            if args.platform == "windows":
+            if plat["symbols"] == ".pdb":
                 pdb = bindir / (Path(lib).stem + ".pdb")
                 if pdb.exists():
                     shutil.copy2(pdb, outbin / pdb.name)

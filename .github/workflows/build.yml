@@ -59,6 +59,7 @@ jobs:
             game/hidden2013/bin/x64/*.dll
             game/hidden2013/bin/x64/*.pdb
             game/hidden2013/shaders/fxc/*.vcs
+            game/srcds_win64.exe
           if-no-files-found: error
 
   linux:
@@ -83,7 +84,9 @@ jobs:
         uses: actions/upload-artifact@v7
         with:
           name: linux-${{ matrix.configuration }}
-          path: game/hidden2013/bin/linux64/*.so
+          path: |
+            game/hidden2013/bin/linux64/*.so
+            game/srcds_linux64
           if-no-files-found: error
 
   package:
@@ -94,16 +97,16 @@ jobs:
     steps:
       - uses: actions/checkout@v6
 
-      # The artifacts keep their paths below game/hidden2013 (the common root of each upload).
+      # The artifacts keep their paths below game/ (the common root of each upload).
       - uses: actions/download-artifact@v7
         with:
           name: windows-Release
-          path: game/hidden2013
+          path: game
 
       - uses: actions/download-artifact@v7
         with:
           name: linux-release
-          path: game/hidden2013/bin/linux64
+          path: game
 
       # A release tag must name the version the build carries.
       - name: Check the tag against steam.inf
@@ -119,8 +122,10 @@ jobs:
         run: |
           version="$(date -u +%Y%m%d)-$(git rev-parse --short HEAD)"
           if [ "$GITHUB_REF_TYPE" = tag ]; then version="${GITHUB_REF_NAME#v}"; fi
-          python3 tools/package.py windows --version "$version"
-          python3 tools/package.py linux --version "$version"
+          chmod +x game/srcds_linux64
+          for platform in windows linux windows-server linux-server; do
+            python3 tools/package.py "$platform" --version "$version"
+          done
 
       - name: Upload packages
         uses: actions/upload-artifact@v7
