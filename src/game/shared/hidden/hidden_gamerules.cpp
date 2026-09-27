@@ -8,6 +8,7 @@
 #include "cbase.h"
 #include "hidden_gamerules.h"
 #include "ammodef.h"
+#include "checksum_crc.h"
 
 #ifndef CLIENT_DLL
 	#include "team.h"
@@ -16,7 +17,6 @@
 	#include "hidden_cvars.h"
 	#include "mapentities.h"
 	#include "eventqueue.h"
-	#include "checksum_crc.h"
 	#include "viewport_panel_names.h"
 	#include "gameinterface.h"
 #endif
@@ -118,8 +118,22 @@ static const char *s_HiddenPreserveEnts[] =
 extern bool FindInList( const char **pStrings, const char *pToFind );
 extern ConVar mp_chattime;
 
-// CRC of a file as the client sees it, for the material_check event.
-static CRC32_t MaterialCRC( const char *pszPath )
+// The map name's prefix (the text before the first '_') picks the game type.
+static HiddenGameType_t GameTypeForMap( const char *pszMap )
+{
+	if ( !Q_strnicmp( pszMap, "ovr_", 4 ) )
+		return HIDDEN_GAMETYPE_OVERRUN;
+	if ( !Q_strnicmp( pszMap, "mtr_", 4 ) )
+		return HIDDEN_GAMETYPE_MARINE_TUTORIAL;
+	if ( !Q_strnicmp( pszMap, "htr_", 4 ) )
+		return HIDDEN_GAMETYPE_HIDDEN_TUTORIAL;
+	return HIDDEN_GAMETYPE_HIDDEN;
+}
+#endif
+
+// Beta 4b's GetMaterialCRC: the CRC of a file (lower-cased path) as this side sees it, 0 if it's
+// missing. The server sends its cloak material CRCs in material_check; clients compare their own.
+CRC32_t GetMaterialCRC( const char *pszPath )
 {
 	char szPath[MAX_PATH];
 	Q_strncpy( szPath, pszPath, sizeof( szPath ) );
@@ -134,19 +148,6 @@ static CRC32_t MaterialCRC( const char *pszPath )
 	UTIL_FreeFile( pData );
 	return nCRC;
 }
-
-// The map name's prefix (the text before the first '_') picks the game type.
-static HiddenGameType_t GameTypeForMap( const char *pszMap )
-{
-	if ( !Q_strnicmp( pszMap, "ovr_", 4 ) )
-		return HIDDEN_GAMETYPE_OVERRUN;
-	if ( !Q_strnicmp( pszMap, "mtr_", 4 ) )
-		return HIDDEN_GAMETYPE_MARINE_TUTORIAL;
-	if ( !Q_strnicmp( pszMap, "htr_", 4 ) )
-		return HIDDEN_GAMETYPE_HIDDEN_TUTORIAL;
-	return HIDDEN_GAMETYPE_HIDDEN;
-}
-#endif
 
 CHiddenRules::CHiddenRules()
 {
@@ -171,8 +172,8 @@ CHiddenRules::CHiddenRules()
 	m_iHiddenCount = 0;
 	m_bLastRoundAnnounced = false;
 	m_bLevelChanged = false;
-	m_nMaterialCRC = MaterialCRC( "materials/models/manor/mn_tapestry.vmt" );
-	m_nMaterialDX7CRC = MaterialCRC( "materials/models/manor/mn_tapestry_dx7.vmt" );
+	m_nMaterialCRC = GetMaterialCRC( "materials/models/manor/mn_tapestry.vmt" );
+	m_nMaterialDX7CRC = GetMaterialCRC( "materials/models/manor/mn_tapestry_dx7.vmt" );
 
 	m_iSurvivalLeft = 0;
 
@@ -332,6 +333,14 @@ bool CHiddenRules::ClientCommand( CBaseEntity *pEdict, const CCommand &args )
 	// In a tutorial, joining ends the intermission at once.
 	if ( IsTutorial() && pEdict->IsPlayer() && FStrEq( args[0], "enter" ) )
 		m_flIntermissionEnd = gpGlobals->curtime;
+
+	// A client that failed the material check (material_check) disconnects, unless it hosts.
+	if ( FStrEq( args[0], "materialCRC" ) )
+	{
+		if ( engine->IsDedicatedServer() || pEdict != UTIL_GetListenServerHost() )
+			engine->ClientCommand( pEdict->edict(), "disconnect\n" );
+		return true;
+	}
 
 	return BaseClass::ClientCommand( pEdict, args );
 }

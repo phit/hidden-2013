@@ -11,6 +11,7 @@
 
 #include "hl2mp_gamerules.h"
 #include "hidden_shareddefs.h"
+#include "checksum_crc.h"
 
 #ifndef CLIENT_DLL
 	#include "hidden_selector.h"
@@ -132,6 +133,9 @@ protected:
 	CNetworkVar( int, m_iRoundDuration );		// seconds
 	CNetworkArray( bool, m_bCharacterTaken, HIDDEN_NUM_CHARACTERS );
 };
+
+// The CRC of a file as this side sees it, 0 if it's missing (the material check).
+CRC32_t GetMaterialCRC( const char *pszPath );
 
 inline CHiddenRules *HiddenRules()
 {
