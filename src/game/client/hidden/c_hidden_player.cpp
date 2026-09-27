@@ -66,6 +66,7 @@ IMPLEMENT_CLIENTCLASS_DT( C_Hidden_Player, DT_Hidden_Player, CHidden_Player )
 	RecvPropBool( RECVINFO( m_bClinging ) ),
 	RecvPropBool( RECVINFO( m_bAura ) ),
 	RecvPropBool( RECVINFO( m_bRequestAmmo ) ),
+	RecvPropBool( RECVINFO( m_bRevealed ) ),
 	RecvPropInt( RECVINFO( m_iSpeedMode ) ),
 	RecvPropBool( RECVINFO( m_bWalking ) ),
 	RecvPropFloat( RECVINFO( m_flBoostEnd ) ),
@@ -108,6 +109,7 @@ C_Hidden_Player::C_Hidden_Player()
 	m_flBoostEnd = 0.0f;
 	m_bAura = false;
 	m_bRequestAmmo = false;
+	m_bRevealed = false;
 	m_iThrowGrenadeCounter = 0;
 	m_szCurrentLocation[0] = '\0';
 

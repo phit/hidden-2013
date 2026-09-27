@@ -58,6 +58,9 @@ public:
 	bool IsViewing( void ) const { return m_bAura; }
 	bool IsAuraActive( void );
 
+	// Shown as another model by the Visibility plugin (hsm_vis).
+	bool IsRevealed( void ) const { return m_bRevealed; }
+
 	virtual void ClientThink( void );
 
 	virtual ShadowType_t ShadowCastType( void );
@@ -99,6 +102,7 @@ private:
 	float m_flBoostEnd;
 	bool m_bAura;
 	bool m_bRequestAmmo;
+	bool m_bRevealed;
 
 	CSmartPtr<CHiddenAuraEmitter> m_pAuraEmitter;
 	int m_iThrowGrenadeCounter;

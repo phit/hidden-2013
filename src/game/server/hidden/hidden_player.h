@@ -151,6 +151,10 @@ public:
 	bool IsViewing( void ) const { return m_bAura; }
 	void SetAura( bool bAura ) { m_bAura = bAura; }
 
+	// Shown as another model by the Visibility plugin (hsm_vis); the player sees the helmet cam overlay.
+	bool IsRevealed( void ) const { return m_bRevealed; }
+	void SetRevealed( bool bRevealed ) { m_bRevealed = bRevealed; }
+
 	// Wall cling, Beta 4b's movetype 12 (see hidden_gamemovement.cpp).
 	bool IsClinging( void ) const { return m_bClinging; }
 	void SetClinging( bool bClinging ) { m_bClinging = bClinging; }
@@ -200,6 +204,7 @@ private:
 	CNetworkVar( bool, m_bClinging );
 	CNetworkVar( bool, m_bAura );
 	CNetworkVar( bool, m_bRequestAmmo );
+	CNetworkVar( bool, m_bRevealed );
 	CNetworkVar( int, m_iSpeedMode );	// HIDDEN_SPEED_*: run, walk or boost, whichever came last
 	CNetworkVar( bool, m_bWalking );
 	CNetworkVar( float, m_flBoostEnd );	// 0 when not boosted

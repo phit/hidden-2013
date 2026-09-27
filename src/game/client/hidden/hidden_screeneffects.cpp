@@ -140,6 +140,11 @@ void CHiddenScreenEffects::Render( int x, int y, int w, int h )
 		else if ( cl_hvision.GetBool() )
 			DrawOverlay( OVERLAY_HVISION, x, y, w, h );
 	}
+
+	// A Hidden the Visibility plugin shows to everyone looks through the helmet cam overlay, which
+	// the plugin put up with r_screenoverlay.
+	if ( pPlayer->IsAlive() && pPlayer->IsRevealed() )
+		DrawOverlay( OVERLAY_HELMETCAM, x, y, w, h );
 }
 
 void CHiddenScreenEffects::DrawOverlay( HiddenOverlay_t nOverlay, int x, int y, int w, int h )
