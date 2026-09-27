@@ -440,7 +440,7 @@ void CHud::Init( void )
 				if ( !key )
 				{
 					KeyValuesAD kvHidden( "layout" );
-					if ( kvHidden->LoadFromFile( filesystem, "scripts/HudLayout_hidden.res" ) )
+					if ( kvHidden->LoadFromFile( filesystem, "scripts/hudlayout_hidden.res" ) )
 						key = kvHidden->FindKey( pPanel->GetName(), false );
 				}
 #endif

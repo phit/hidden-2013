@@ -357,7 +357,7 @@ void ClientModeShared::Init()
 	m_pViewport->LoadControlSettings( "scripts/HudLayout.res", NULL, NULL, pConditions );
 #ifdef HIDDEN
 	// Beta 4b's layout predates some SDK 2013 HUD elements; ours places them.
-	m_pViewport->LoadControlSettings( "scripts/HudLayout_hidden.res", NULL, NULL, pConditions );
+	m_pViewport->LoadControlSettings( "scripts/hudlayout_hidden.res", NULL, NULL, pConditions );
 #endif
 
 #if defined( REPLAY_ENABLED )
