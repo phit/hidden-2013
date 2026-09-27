@@ -1,16 +1,10 @@
 name: Site
 
-# Builds the project site (web/build.py) and publishes it to GitHub Pages: on changes to the site or
-# to the game code its cvar and plugin tables are read from, and after a release tag's build, so the
-# home page offers the new release.
+# Builds the project site (web/build.py) and publishes it to GitHub Pages after a release tag's
+# build, so the site (its guides and the cvar tables read from the code) always describes the current
+# release. Run it by hand on the release tag (or main) to publish a fix to the site between releases.
 
 on:
-  push:
-    branches: [main]
-    paths:
-      - 'web/**'
-      - 'src/game/*/hidden/**'
-      - '.github/workflows/pages.yml'
   workflow_run:
     workflows: [Build]
     types: [completed]
@@ -29,14 +23,15 @@ jobs:
   build:
     name: Build the site
     if: >-
-      github.event_name != 'workflow_run' ||
+      github.event_name == 'workflow_dispatch' ||
       (github.event.workflow_run.conclusion == 'success' && startsWith(github.event.workflow_run.head_branch, 'v'))
     runs-on: ubuntu-24.04
 
     steps:
+      # The release's own files, not whatever main has moved on to.
       - uses: actions/checkout@v6
         with:
-          ref: main
+          ref: ${{ github.event_name == 'workflow_run' && github.event.workflow_run.head_sha || github.ref }}
 
       - uses: actions/setup-python@v6
         with:

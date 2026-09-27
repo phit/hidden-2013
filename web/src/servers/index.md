@@ -2,24 +2,61 @@ title: Servers
 
 # Running a server
 
-A dedicated server needs the same two folders as a player: Hidden: Rebuild's `hidden2013` and
-Hidden: Source Beta 4b's `hidden` next to it (see [Install]({{root}}install/)). Put both in the
-server's folder, then start the server with `-game hidden2013`.
+A dedicated server runs on **Source SDK Base 2013 Dedicated Server** from
+[SteamCMD](https://developer.valvesoftware.com/wiki/SteamCMD) (app 244310), with Hidden: Rebuild's
+**server package** and Hidden: Source Beta 4b next to it. SteamCMD's server has the 64-bit engine but
+only 32-bit launchers, which can't load the mod; the server package brings the 64-bit launcher.
+
+1. Install the dedicated server:
+
+   ```
+   steamcmd +force_install_dir /path/to/server +login anonymous +app_update 244310 validate +quit
+   ```
+
+2. Download the server package for your system from the
+   [releases](https://github.com/phit/hidden-2013/releases) (`hidden2013-<version>-windows-server.zip`
+   or `-linux-server.tar.gz`) and extract it into the server's folder.
+3. Put Beta 4b's `hidden` folder there too ([hsb4b-full.zip](https://www.hidden-source.com/downloads/hsb4b-full.zip)
+   has it). The server's folder then has:
+
+   ```
+   bin/  hl2/  hl2mp/  platform/    from SteamCMD
+   hidden/                          Hidden: Source Beta 4b
+   hidden2013/                      Hidden: Rebuild
+   srcds_win64.exe or srcds_linux64 Hidden: Rebuild's 64-bit launcher
+   ```
 
 ## Windows
 
-Use `srcds_win64.exe` from the **Source SDK Base 2013 Multiplayer** install. The `srcds.exe` of the
-dedicated server app from SteamCMD (244310) is 32-bit and can't load the mod.
-
 ```
-srcds_win64.exe -console -game "C:\server\hidden2013" +maxplayers 12 +map hdn_docks
+srcds_win64.exe -console -game hidden2013 +maxplayers 12 +map hdn_docks
 ```
 
 ## Linux
 
-The dedicated server from SteamCMD, app 244310, with `-game hidden2013`; the package has native
-64-bit Linux builds. This isn't tested yet, so please
-[report how it goes](https://github.com/phit/hidden-2013/issues).
+The Steamworks library looks for the 64-bit `steamclient.so` in `~/.steam/sdk64`. SteamCMD has it;
+link it there once:
+
+```
+mkdir -p ~/.steam/sdk64
+ln -s /path/to/steamcmd/linux64/steamclient.so ~/.steam/sdk64/steamclient.so
+```
+
+Then start the server from anywhere:
+
+```
+/path/to/server/srcds_linux64 -console -game hidden2013 +maxplayers 12 +map hdn_docks
+```
+
+## Being found
+
+- **LAN:** players on your network see the server under Find Servers, LAN.
+- **Internet:** the server registers with Steam's master server by itself, but players can only
+  reach it once UDP port 27015 is forwarded to it on your router (TCP 27015 too, for rcon).
+- **More than one network adapter** (VPNs, virtual machines, WSL): the server may pick the wrong one
+  and not be reachable. Add `+ip 0.0.0.0` to listen on all of them, or `+ip <address>` for one.
+- **Listen servers** (Create Server in the game) answer on your LAN, and over the internet they run
+  through Steam's relay network instead of your IP. Other players joining one isn't tested yet.
 
 ## Configuring
 
