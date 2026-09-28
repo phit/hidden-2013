@@ -37,7 +37,7 @@
             "default_value": "release",
             "user_viewable": true,
             "user_editable": true,
-            "rules": "required|string|regex:/^(release|snapshot|v[0-9.]+)$/",
+            "rules": "required|string|regex:/^[a-z0-9.]+$/",
             "field_type": "text"
         },
         {
