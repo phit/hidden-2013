@@ -206,6 +206,7 @@ private:
 	CNetworkVar( bool, m_bAura );
 	CNetworkVar( bool, m_bRequestAmmo );
 	CNetworkVar( bool, m_bRevealed );
+	CNetworkVar( int, m_iSpawnCount );	// counts spawns, so the client can tell the loadout from pickups
 	CNetworkVar( int, m_iSpeedMode );	// HIDDEN_SPEED_*: run, walk or boost, whichever came last
 	CNetworkVar( bool, m_bWalking );
 	CNetworkVar( float, m_flBoostEnd );	// 0 when not boosted

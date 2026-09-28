@@ -61,6 +61,11 @@ public:
 	// Shown as another model by the Visibility plugin (hsm_vis).
 	bool IsRevealed( void ) const { return m_bRevealed; }
 
+	// The weapons and ammo handed out at spawn arrive as pickups. Beta 4b showed them neither in the
+	// pickup history nor with the pickup sound, so both skip what comes this soon after a spawn.
+	bool JustSpawned( void ) const { return m_flSpawnTime >= 0.0f && gpGlobals->curtime - m_flSpawnTime < 1.0f; }
+	virtual void PostDataUpdate( DataUpdateType_t updateType );
+
 	virtual void ClientThink( void );
 
 	virtual ShadowType_t ShadowCastType( void );
@@ -103,6 +108,9 @@ private:
 	bool m_bAura;
 	bool m_bRequestAmmo;
 	bool m_bRevealed;
+	int m_iSpawnCount;
+	int m_iSpawnCountCache;
+	float m_flSpawnTime;
 
 	CSmartPtr<CHiddenAuraEmitter> m_pAuraEmitter;
 	int m_iThrowGrenadeCounter;

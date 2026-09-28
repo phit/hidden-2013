@@ -67,6 +67,7 @@ IMPLEMENT_CLIENTCLASS_DT( C_Hidden_Player, DT_Hidden_Player, CHidden_Player )
 	RecvPropBool( RECVINFO( m_bAura ) ),
 	RecvPropBool( RECVINFO( m_bRequestAmmo ) ),
 	RecvPropBool( RECVINFO( m_bRevealed ) ),
+	RecvPropInt( RECVINFO( m_iSpawnCount ) ),
 	RecvPropInt( RECVINFO( m_iSpeedMode ) ),
 	RecvPropBool( RECVINFO( m_bWalking ) ),
 	RecvPropFloat( RECVINFO( m_flBoostEnd ) ),
@@ -110,6 +111,9 @@ C_Hidden_Player::C_Hidden_Player()
 	m_bAura = false;
 	m_bRequestAmmo = false;
 	m_bRevealed = false;
+	m_iSpawnCount = 0;
+	m_iSpawnCountCache = 0;
+	m_flSpawnTime = -1.0f;
 	m_iThrowGrenadeCounter = 0;
 	m_szCurrentLocation[0] = '\0';
 
@@ -119,6 +123,17 @@ C_Hidden_Player::C_Hidden_Player()
 C_Hidden_Player::~C_Hidden_Player()
 {
 	m_pHiddenAnimState->Release();
+}
+
+void C_Hidden_Player::PostDataUpdate( DataUpdateType_t updateType )
+{
+	if ( m_iSpawnCount != m_iSpawnCountCache )
+	{
+		m_iSpawnCountCache = m_iSpawnCount;
+		m_flSpawnTime = gpGlobals->curtime;
+	}
+
+	BaseClass::PostDataUpdate( updateType );
 }
 
 void C_Hidden_Player::UpdateClientSideAnimation( void )

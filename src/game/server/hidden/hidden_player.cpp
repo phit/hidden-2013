@@ -153,6 +153,7 @@ IMPLEMENT_SERVERCLASS_ST( CHidden_Player, DT_Hidden_Player )
 	SendPropBool( SENDINFO( m_bAura ) ),
 	SendPropBool( SENDINFO( m_bRequestAmmo ) ),
 	SendPropBool( SENDINFO( m_bRevealed ) ),
+	SendPropInt( SENDINFO( m_iSpawnCount ), 3, SPROP_UNSIGNED ),
 	SendPropInt( SENDINFO( m_iSpeedMode ), 2, SPROP_UNSIGNED ),
 	SendPropBool( SENDINFO( m_bWalking ) ),
 	SendPropFloat( SENDINFO( m_flBoostEnd ), 0, SPROP_NOSCALE ),
@@ -268,6 +269,7 @@ void CHidden_Player::Spawn( void )
 	m_bRequestAmmo = false;
 	m_bAmmoReceived = false;
 	m_bRevealed = false;
+	m_iSpawnCount = ( m_iSpawnCount + 1 ) % 8;
 	ResetStun();
 
 	const int iTeam = GetTeamNumber();

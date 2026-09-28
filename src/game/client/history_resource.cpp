@@ -12,6 +12,9 @@
 #include <vgui/ISurface.h>
 #include "iclientmode.h"
 #include "vgui_controls/AnimationController.h"
+#ifdef HIDDEN
+#include "c_hidden_player.h"
+#endif
 
 // memdbgon must be the last include file in a .cpp file!!!
 #include "tier0/memdbgon.h"
@@ -116,6 +119,13 @@ void CHudHistoryResource::AddToHistory( int iType, int iId, int iCount )
 	{
 		if ( !iCount )
 			return;
+
+#ifdef HIDDEN
+		// Not the ammo handed out at spawn: Beta 4b didn't list the loadout.
+		C_Hidden_Player *pLocal = ToHiddenPlayer( C_BasePlayer::GetLocalPlayer() );
+		if ( pLocal && pLocal->JustSpawned() )
+			return;
+#endif
 
 #if defined( CSTRIKE_DLL )
 		// don't leave blank gaps for ammo we're not going to display

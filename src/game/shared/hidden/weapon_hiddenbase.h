@@ -46,6 +46,9 @@ public:
 	virtual void ItemPostFrame( void );
 #ifndef CLIENT_DLL
 	virtual void UpdateOnRemove( void );
+#else
+	// No pickup icon or sound for the loadout handed out at spawn (C_Hidden_Player::JustSpawned).
+	virtual bool ShouldDrawPickup( void );
 #endif
 
 	// A reload always fills the clip and uses up one spare magazine; what was left in the old one

@@ -53,6 +53,17 @@ CWeaponHiddenBase::CWeaponHiddenBase()
 	m_bDeployed = false;
 }
 
+#ifdef CLIENT_DLL
+bool CWeaponHiddenBase::ShouldDrawPickup( void )
+{
+	CHidden_Player *pOwner = GetHiddenPlayerOwner();
+	if ( pOwner && pOwner->JustSpawned() )
+		return false;
+
+	return BaseClass::ShouldDrawPickup();
+}
+#endif
+
 const CHiddenWeaponInfo &CWeaponHiddenBase::GetHiddenWpnData( void ) const
 {
 	return static_cast<const CHiddenWeaponInfo &>( GetWpnData() );
