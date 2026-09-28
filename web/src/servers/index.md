@@ -64,7 +64,8 @@ Then start the server from anywhere:
 - **More than one network adapter** (VPNs, virtual machines, WSL): the server may pick the wrong one
   and not be reachable. Add `+ip 0.0.0.0` to listen on all of them, or `+ip <address>` for one.
 - **Listen servers** (Create Server in the game) answer on your LAN, and over the internet they run
-  through Steam's relay network instead of your IP. Other players joining one isn't tested yet.
+  through Steam's relay network instead of your IP, so no ports need forwarding: friends join
+  through the Friends tab or a Steam invite.
 
 ## Configuring
 
