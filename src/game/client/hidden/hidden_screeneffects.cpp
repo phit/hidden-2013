@@ -16,7 +16,7 @@
 // memdbgon must be the last include file in a .cpp file!!!
 #include "tier0/memdbgon.h"
 
-ConVar cl_hvision( "cl_hvision", "1", FCVAR_ARCHIVE, "toggles the hiddens view shader." );
+ConVar cl_hvision( "cl_hvision", "1", FCVAR_ARCHIVE, "Draw the Hidden's vision effect when playing the Hidden" );
 
 #define HIDDEN_BLUR_TRAIL_INTERVAL	0.05f	// how often the stun trail takes a frame
 

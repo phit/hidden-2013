@@ -10,14 +10,14 @@
 // memdbgon must be the last include file in a .cpp file!!!
 #include "tier0/memdbgon.h"
 
-ConVar mp_roundtime( "mp_roundtime", "240", FCVAR_REPLICATED | FCVAR_NOTIFY, "length of a round in seconds", true, 1.0f, false, 0.0f );
-ConVar hdn_jointime( "hdn_jointime", "15", FCVAR_REPLICATED | FCVAR_NOTIFY, "delay, in seconds, before attempting to start the first round after a map change", true, 0.0f, false, 0.0f );
-ConVar hdn_hiddenrounds( "hdn_hiddenrounds", "5", FCVAR_REPLICATED | FCVAR_NOTIFY, "0 is unlimited", true, 0.0f, false, 0.0f );
-ConVar hdn_selectmethod( "hdn_selectmethod", "0", FCVAR_REPLICATED | FCVAR_NOTIFY, "0 = weighted, 1 = classic, 2 = random - defaults to weighted", true, 0.0f, true, 2.0f );
-ConVar hdn_staminadrain( "hdn_staminadrain", "-0.095", FCVAR_REPLICATED | FCVAR_NOTIFY, "should be negative" );
-ConVar hdn_limitbombs( "hdn_limitbombs", "1", FCVAR_REPLICATED | FCVAR_NOTIFY, "limits the number of hidden bombs if enabled" );
-ConVar hdn_radio_limit( "hdn_radio_limit", "5", FCVAR_REPLICATED | FCVAR_NOTIFY, "time limit, in seconds, between radio messages / taunts", true, 0.0f, false, 0.0f );
-ConVar hdn_deathnotices( "hdn_deathnotices", "0", FCVAR_REPLICATED | FCVAR_NOTIFY, "display death notices" );
-ConVar sv_pigstick( "sv_pigstick", "1", FCVAR_REPLICATED | FCVAR_NOTIFY, "enables the Hidden's pigstick attack" );
-ConVar hdn_deathwait( "hdn_deathwait", "5", FCVAR_REPLICATED | FCVAR_NOTIFY, "Time between respawns in OverRun" );
-ConVar hdn_survivaltime( "hdn_survivaltime", "15", FCVAR_REPLICATED | FCVAR_NOTIFY, "survival time limit" );
+ConVar mp_roundtime( "mp_roundtime", "240", FCVAR_REPLICATED | FCVAR_NOTIFY, "Length of a round, in seconds", true, 1.0f, false, 0.0f );
+ConVar hdn_jointime( "hdn_jointime", "15", FCVAR_REPLICATED | FCVAR_NOTIFY, "Seconds to wait after a map change before the first round starts", true, 0.0f, false, 0.0f );
+ConVar hdn_hiddenrounds( "hdn_hiddenrounds", "5", FCVAR_REPLICATED | FCVAR_NOTIFY, "Rounds in a row the same player can be the Hidden before someone else is picked; 0 is unlimited", true, 0.0f, false, 0.0f );
+ConVar hdn_selectmethod( "hdn_selectmethod", "0", FCVAR_REPLICATED | FCVAR_NOTIFY, "How the Hidden is picked: 0 by weighting points, 1 classic (whoever killed the Hidden), 2 random", true, 0.0f, true, 2.0f );
+ConVar hdn_staminadrain( "hdn_staminadrain", "-0.095", FCVAR_REPLICATED | FCVAR_NOTIFY, "Stamina the Hidden gains per tick while clinging to a wall; negative, so clinging drains it" );
+ConVar hdn_limitbombs( "hdn_limitbombs", "1", FCVAR_REPLICATED | FCVAR_NOTIFY, "Give the Hidden half as many pipe bombs as there are marines (rounded up), less one, instead of 3" );
+ConVar hdn_radio_limit( "hdn_radio_limit", "5", FCVAR_REPLICATED | FCVAR_NOTIFY, "Seconds a player has to wait between radio messages and taunts", true, 0.0f, false, 0.0f );
+ConVar hdn_deathnotices( "hdn_deathnotices", "0", FCVAR_REPLICATED | FCVAR_NOTIFY, "Show the Hidden's kills in the kill feed (the server log always has them)" );
+ConVar sv_pigstick( "sv_pigstick", "1", FCVAR_REPLICATED | FCVAR_NOTIFY, "Enables the Hidden's pigstick attack" );
+ConVar hdn_deathwait( "hdn_deathwait", "5", FCVAR_REPLICATED | FCVAR_NOTIFY, "OverRun: seconds before a killed player comes back (four times as long after a marine's suicide)" );
+ConVar hdn_survivaltime( "hdn_survivaltime", "15", FCVAR_REPLICATED | FCVAR_NOTIFY, "OverRun: seconds the last marine standing has to survive" );

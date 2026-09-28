@@ -17,7 +17,7 @@
 
 extern ConVar cl_ejectbrass;
 
-ConVar cl_brasslife( "cl_brasslife", "90" );
+ConVar cl_brasslife( "cl_brasslife", "90", 0, "Seconds ejected shell casings stay on the ground" );
 ConVar cl_jimmeh( "cl_jimmeh", "0" );
 
 // Hit sounds (CTempEnts::PlaySound)

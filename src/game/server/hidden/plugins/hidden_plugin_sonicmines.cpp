@@ -34,10 +34,10 @@
 #define MINES_BEAM_SPRITE		"sprites/combineball_trail_red_1.vmt"
 #define MINES_BEAM_HALO			"sprites/glow01.vmt"
 
-static ConVar sm_sonicmines_enable( "sm_sonicmines_enable", "0", FCVAR_NOTIFY, "Enable/disable phys kill ranking", true, 0.0f, true, 1.0f );
+static ConVar sm_sonicmines_enable( "sm_sonicmines_enable", "0", FCVAR_NOTIFY, "Sonic alarms only go off for the Hidden, and support marines can make trip mines? 0: Disable, 1: Enable", true, 0.0f, true, 1.0f );
 static ConVar sm_sonicmines_hiddencanhear( "sm_sonicmines_hiddencanhear", "0.0", FCVAR_NOTIFY, "Is the sonic alarm sound heard by the hidden?", true, 0.0f, false, 0.0f );
 static ConVar sm_sonicmines_tripmines( "sm_sonicmines_tripmines", "1.0", FCVAR_NOTIFY, "Enables the trip mine ability", true, 0.0f, false, 0.0f );
-static ConVar sm_sonicmines_notify( "sm_sonicmines_notify", "1.0", FCVAR_NOTIFY, "Notify clients that alarms are hidden only every fifth time an alarm is activated", true, 0.0f, false, 0.0f );
+static ConVar sm_sonicmines_notify( "sm_sonicmines_notify", "1.0", FCVAR_NOTIFY, "Tell marines, once every seven alarms that go off, that alarms only sound for the Hidden", true, 0.0f, false, 0.0f );
 
 struct ArmedAlarm_t
 {
