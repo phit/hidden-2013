@@ -361,6 +361,44 @@ bool Is64BitWindows()
 #endif
 }
 
+#ifdef HIDDEN
+// launcher.dll reads the process's own command line and adds -insecure when it has no -steam,
+// which keeps a double-clicked exe off VAC-secured servers. Returns false when -steam is there;
+// otherwise starts this exe again with it, waits, and returns true with the exit code.
+static bool RelaunchWithSteam( int *pExitCode )
+{
+	int nArgs = 0;
+	LPWSTR *pArgs = CommandLineToArgvW( GetCommandLineW(), &nArgs );
+	bool bHasSteam = false;
+	for ( int i = 1; i < nArgs; i++ )
+	{
+		if ( !_wcsicmp( pArgs[i], L"-steam" ) )
+		{
+			bHasSteam = true;
+		}
+	}
+	LocalFree( pArgs );
+	if ( bHasSteam )
+		return false;
+
+	std::wstring sCmdLine = GetCommandLineW();
+	sCmdLine += L" -steam";
+
+	STARTUPINFOW si = { sizeof( si ) };
+	PROCESS_INFORMATION pi;
+	if ( !CreateProcessW( GetExePath().c_str(), (LPWSTR)sCmdLine.c_str(), NULL, NULL, FALSE, 0, NULL, NULL, &si, &pi ) )
+		return false;
+
+	WaitForSingleObject( pi.hProcess, INFINITE );
+	DWORD dwExitCode = 0;
+	GetExitCodeProcess( pi.hProcess, &dwExitCode );
+	CloseHandle( pi.hThread );
+	CloseHandle( pi.hProcess );
+	*pExitCode = (int)dwExitCode;
+	return true;
+}
+#endif
+
 static void HandleRelaunching()
 {
 #ifndef _WIN64
@@ -431,6 +469,12 @@ static void HandleRelaunching()
 int APIENTRY WinMain( HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int nCmdShow )
 {
 	HandleRelaunching();
+
+#ifdef HIDDEN
+	int nExitCode;
+	if ( RelaunchWithSteam( &nExitCode ) )
+		return nExitCode;
+#endif
 
 	// Must add 'bin' to the path....
 	char* pPath = getenv("PATH");
@@ -635,15 +679,32 @@ int main( int argc, char *argv[] )
 	new_argv.push_back( szExecutable );
 
 	bool bHasGame = false;
+#ifdef HIDDEN
+	// As on Windows, pass -steam: without it the launcher adds -insecure.
+	bool bHasSteam = false;
+#endif
 	for ( int i = 1; i < argc; i++ )
 	{
 		if ( !strcmp( argv[i], "-game" ) )
 		{
 			bHasGame = true;
 		}
+#ifdef HIDDEN
+		if ( !strcasecmp( argv[i], "-steam" ) )
+		{
+			bHasSteam = true;
+		}
+#endif
 
 		new_argv.push_back(argv[i]);
 	}
+
+#ifdef HIDDEN
+	if ( !bHasSteam )
+	{
+		new_argv.push_back( (char *)"-steam" );
+	}
+#endif
 
 	char szGamePath[8192];
 	if ( !bHasGame )
