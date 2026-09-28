@@ -56,6 +56,19 @@ Then start the server from anywhere:
 /path/to/server/srcds_linux64 -console -game hidden2013 +maxplayers 12 +map hdn_docks
 ```
 
+## Pterodactyl
+
+For a [Pterodactyl](https://pterodactyl.io/) panel there's an egg,
+[egg-hidden-rebuild.json](https://raw.githubusercontent.com/phit/hidden-2013/main/tools/pterodactyl/egg-hidden-rebuild.json)
+(Admin, Nests, Import Egg). A server made from it installs everything above by itself: the SteamCMD
+server, Beta 4b from its official download, and Hidden: Rebuild. With **Auto update** on it updates
+on every start. **Release channel** picks what it installs: `release` (the newest release), `snapshot`
+(the newest test build) or a release tag such as `v1.0.1.0` to stay on it. An edited
+`cfg/mapcycle.txt` survives updates.
+
+Outside Pterodactyl, the Linux server package's `hidden_update.sh` does the same updating:
+`HIDDEN_CHANNEL=snapshot ./hidden_update.sh` in the server folder.
+
 ## Being found
 
 - **LAN:** players on your network see the server under Find Servers, LAN.

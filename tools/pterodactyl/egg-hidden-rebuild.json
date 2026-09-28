@@ -1,0 +1,94 @@
+{
+    "_comment": "DO NOT EDIT: FILE GENERATED AUTOMATICALLY BY PTERODACTYL PANEL - PTERODACTYL.IO",
+    "meta": {
+        "version": "PTDL_v2",
+        "update_url": "https://raw.githubusercontent.com/phit/hidden-2013/main/tools/pterodactyl/egg-hidden-rebuild.json"
+    },
+    "exported_at": "2026-09-28T20:30:00+00:00",
+    "name": "Hidden: Rebuild",
+    "author": "2097483+phit@users.noreply.github.com",
+    "description": "Dedicated server for Hidden: Rebuild, Hidden: Source Beta 4b rebuilt on Source SDK 2013 (https://phit.github.io/hidden-2013/). Installs Source SDK Base 2013's dedicated server, Beta 4b and the mod, and updates the mod from GitHub's releases or snapshots on every start.",
+    "features": [
+        "steam_disk_space"
+    ],
+    "docker_images": {
+        "ghcr.io/ptero-eggs/games:source": "ghcr.io/ptero-eggs/games:source"
+    },
+    "file_denylist": [],
+    "startup": "if [ \"{{AUTO_UPDATE}}\" != \"0\" ]; then ./hidden_update.sh; fi; ./srcds_linux64 -game hidden2013 -console -port {{SERVER_PORT}} +ip 0.0.0.0 -strictportbind +maxplayers {{MAX_PLAYERS}} +map {{SRCDS_MAP}}",
+    "config": {
+        "files": "{}",
+        "startup": "{\n    \"done\": \"gameserver Steam ID\"\n}",
+        "logs": "{}",
+        "stop": "quit"
+    },
+    "scripts": {
+        "installation": {
+            "script": "#!/bin/bash\n# Hidden: Rebuild dedicated server: Source SDK Base 2013's dedicated server (SteamCMD app 244310),\n# Hidden: Source Beta 4b from its official download, and the mod from GitHub.\n#\n# Server files: /mnt/server\nset -e\n\n## SteamCMD and the dedicated server\nmkdir -p /mnt/server/steamcmd /mnt/server/steamapps\t# steamcmd fails to write without steamapps\ncd /tmp\ncurl -sSL -o steamcmd.tar.gz https://steamcdn-a.akamaihd.net/client/installer/steamcmd_linux.tar.gz\ntar -xzf steamcmd.tar.gz -C /mnt/server/steamcmd\nchown -R root:root /mnt\t# SteamCMD fails otherwise; the panel hands the files back afterwards\nexport HOME=/mnt/server\ncd /mnt/server/steamcmd\n./steamcmd.sh +force_install_dir /mnt/server +login anonymous +app_update ${SRCDS_APPID} validate +quit\nmkdir -p /mnt/server/.steam/sdk32 /mnt/server/.steam/sdk64\ncp -v linux32/steamclient.so /mnt/server/.steam/sdk32/steamclient.so\ncp -v linux64/steamclient.so /mnt/server/.steam/sdk64/steamclient.so\n\n## Hidden: Source Beta 4b, which the mod loads its content from (kept on reinstalls)\ncd /mnt/server\nif [ ! -f hidden/gameinfo.txt ]; then\n    echo \"Downloading Hidden: Source Beta 4b\"\n    curl -fSL -o /tmp/hsb4b.zip \"${BETA4B_URL}\"\n    rm -rf /tmp/hsb4b && mkdir -p /tmp/hsb4b\n    unzip -q /tmp/hsb4b.zip -d /tmp/hsb4b\n    gameinfo=$(find /tmp/hsb4b -maxdepth 3 -name gameinfo.txt | head -n 1)\n    if [ -z \"$gameinfo\" ]; then\n        echo \"The Beta 4b download has no gameinfo.txt\" >&2\n        exit 1\n    fi\n    rm -rf hidden\n    mv \"$(dirname \"$gameinfo\")\" hidden\n    rm -rf /tmp/hsb4b /tmp/hsb4b.zip\nfi\n\n## Hidden: Rebuild, from the chosen channel; the start command keeps it updated\ncurl -fsSL -o hidden_update.sh https://raw.githubusercontent.com/phit/hidden-2013/main/tools/hidden_update.sh\nchmod +x hidden_update.sh\nrm -f .hidden_package\t# a reinstall always extracts the package again\n./hidden_update.sh\n\n## Linux file names are case-sensitive, Beta 4b's have capitals\nsh hidden2013/lowercase_beta4b.sh\n\necho \"Hidden: Rebuild is installed\"\n",
+            "container": "ghcr.io/pterodactyl/installers:debian",
+            "entrypoint": "bash"
+        }
+    },
+    "variables": [
+        {
+            "name": "Release channel",
+            "description": "release: the newest release. snapshot: the newest build of main, for testing. Or a release tag such as v1.0.1.0 to stay on it. Players need the same version as the server.",
+            "env_variable": "HIDDEN_CHANNEL",
+            "default_value": "release",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string|regex:/^(release|snapshot|v[0-9.]+)$/",
+            "field_type": "text"
+        },
+        {
+            "name": "Auto update",
+            "description": "Update Hidden: Rebuild and the Source SDK Base 2013 server on every start. 1: on, 0: off.",
+            "env_variable": "AUTO_UPDATE",
+            "default_value": "1",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|boolean",
+            "field_type": "text"
+        },
+        {
+            "name": "Map",
+            "description": "The map the server starts on.",
+            "env_variable": "SRCDS_MAP",
+            "default_value": "hdn_docks",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string|alpha_dash",
+            "field_type": "text"
+        },
+        {
+            "name": "Max players",
+            "description": "Player slots.",
+            "env_variable": "MAX_PLAYERS",
+            "default_value": "12",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|integer|between:2,32",
+            "field_type": "text"
+        },
+        {
+            "name": "Game ID",
+            "description": "SteamCMD app of the dedicated server: Source SDK Base 2013 Dedicated Server. The image's auto update uses it.",
+            "env_variable": "SRCDS_APPID",
+            "default_value": "244310",
+            "user_viewable": true,
+            "user_editable": false,
+            "rules": "required|numeric|in:244310",
+            "field_type": "text"
+        },
+        {
+            "name": "Beta 4b download",
+            "description": "Where the install gets Hidden: Source Beta 4b from; the official release by default.",
+            "env_variable": "BETA4B_URL",
+            "default_value": "https://www.hidden-source.com/downloads/hsb4b-full.zip",
+            "user_viewable": true,
+            "user_editable": false,
+            "rules": "required|url",
+            "field_type": "text"
+        }
+    ]
+}

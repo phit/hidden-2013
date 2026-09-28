@@ -50,7 +50,8 @@ PLATFORMS = {
                      "root": [(ROOT / "game" / "srcds_linux64", "srcds_linux64"),
                               (ROOT / "src" / "lib" / "public" / "linux64" / "libsteam_api.so",
                                "bin/linux64/libsteam_api.so"),
-                              (ROOT / "tools" / "lowercase_beta4b.sh", "hidden2013/lowercase_beta4b.sh")]},
+                              (ROOT / "tools" / "lowercase_beta4b.sh", "hidden2013/lowercase_beta4b.sh"),
+                              (ROOT / "tools" / "hidden_update.sh", "hidden_update.sh")]},
 }
 
 
@@ -71,7 +72,7 @@ def split_debug_info(lib, dbg):
 
 
 # Files other than libraries that get the executable bit in tars.
-EXECUTABLES = {"srcds_linux64", "lowercase_beta4b.sh"}
+EXECUTABLES = {"srcds_linux64", "lowercase_beta4b.sh", "hidden_update.sh"}
 
 
 def write_archive(path, kind, root, files):
