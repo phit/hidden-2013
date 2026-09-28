@@ -13,6 +13,7 @@ class CHidden_Player;
 class CTakeDamageInfo;
 class CHiddenSonicAlarm;
 class CRecipientFilter;
+class CBasePlayer;
 
 // One static instance per plugin. The hooks stand in for the SourceMod events and callbacks the
 // plugins used; each plugin checks its own on/off cvar.
@@ -36,6 +37,15 @@ public:
 
 	virtual void PlayerSay( CHidden_Player *pPlayer, const char *pszText ) {}	// player_say
 	virtual void Radio( CHidden_Player *pPlayer, int iMessage ) {}				// iris_radio
+	virtual void PlayerTeam( CHidden_Player *pPlayer ) {}						// player_team
+	virtual void PlayerLocation( CHidden_Player *pPlayer ) {}					// player_location
+
+	// The Hidden taunted, with the sound file its taunt's sound script picked (the plugins hooked the
+	// sound itself).
+	virtual void HiddenTaunt( CHidden_Player *pPlayer, const char *pszWave ) {}
+
+	// The player picked item iItem (1 to 10) of a menu this plugin showed with HiddenPlugins_ShowMenu.
+	virtual void MenuSelect( CHidden_Player *pPlayer, int iItem ) {}
 
 	// A sonic alarm's beam was broken, by pBreaker if it was something (the plugins listened for the
 	// alarm's sound). A plugin may take players out of filter, who hear it, or return false to keep
@@ -49,6 +59,13 @@ public:
 bool HiddenPlugins_OnTakeDamage( CHidden_Player *pVictim, CTakeDamageInfo &info );
 void HiddenPlugins_PlayerHurt( CHidden_Player *pVictim, const CTakeDamageInfo &info );
 bool HiddenPlugins_AlarmTriggered( CHiddenSonicAlarm *pAlarm, CBaseEntity *pBreaker, CRecipientFilter &filter );
+void HiddenPlugins_HiddenTaunt( CHidden_Player *pPlayer, const char *pszWave );
+bool HiddenPlugins_MenuSelect( CHidden_Player *pPlayer, int iItem );
+
+// SourceMod's menu panels: HL2's numbered HUD menu. iValidSlots has bit n - 1 set for each item n
+// the player may pick (menuselect n); iTime is in seconds, 0 for no limit. The choice goes to
+// pOwner's MenuSelect.
+void HiddenPlugins_ShowMenu( CHiddenPlugin *pOwner, CBasePlayer *pPlayer, int iValidSlots, int iTime, const char *pszText );
 
 // SourceMod's PrintCenterText, PrintToChat and PrintToConsole for one player.
 void HiddenPlugins_PrintCenter( CBasePlayer *pPlayer, const char *pszFormat, ... ) FMTFUNCTION( 2, 3 );

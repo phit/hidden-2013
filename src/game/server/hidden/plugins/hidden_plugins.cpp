@@ -50,6 +50,50 @@ bool HiddenPlugins_AlarmTriggered( CHiddenSonicAlarm *pAlarm, CBaseEntity *pBrea
 	return true;
 }
 
+void HiddenPlugins_HiddenTaunt( CHidden_Player *pPlayer, const char *pszWave )
+{
+	FOR_EACH_HIDDEN_PLUGIN( pPlugin )
+		pPlugin->HiddenTaunt( pPlayer, pszWave );
+}
+
+static CHiddenPlugin *s_pMenuOwner[MAX_PLAYERS + 1];
+
+void HiddenPlugins_ShowMenu( CHiddenPlugin *pOwner, CBasePlayer *pPlayer, int iValidSlots, int iTime, const char *pszText )
+{
+	s_pMenuOwner[pPlayer->entindex()] = pOwner;
+
+	// The client appends the parts of a long menu until one says there's no more.
+	CSingleUserRecipientFilter filter( pPlayer );
+	filter.MakeReliable();
+	const int iChunk = 240;
+	const int iLength = Q_strlen( pszText );
+	int iPos = 0;
+	do
+	{
+		char szPart[iChunk + 1];
+		Q_strncpy( szPart, pszText + iPos, sizeof( szPart ) );
+		iPos += iChunk;
+
+		UserMessageBegin( filter, "ShowMenu" );
+			WRITE_SHORT( iValidSlots );
+			WRITE_CHAR( iTime );
+			WRITE_BYTE( iPos < iLength ? 1 : 0 );
+			WRITE_STRING( szPart );
+		MessageEnd();
+	} while ( iPos < iLength );
+}
+
+bool HiddenPlugins_MenuSelect( CHidden_Player *pPlayer, int iItem )
+{
+	CHiddenPlugin *pOwner = s_pMenuOwner[pPlayer->entindex()];
+	if ( !pOwner )
+		return false;
+
+	s_pMenuOwner[pPlayer->entindex()] = NULL;
+	pOwner->MenuSelect( pPlayer, iItem );
+	return true;
+}
+
 class CHiddenPluginSystem : public CAutoGameSystemPerFrame, public CGameEventListener
 {
 public:
@@ -62,6 +106,11 @@ public:
 		ListenForGameEvent( "player_say" );
 		ListenForGameEvent( "iris_radio" );
 		ListenForGameEvent( "player_disconnect" );
+		ListenForGameEvent( "player_team" );
+		ListenForGameEvent( "player_location" );
+
+		for ( int i = 0; i < ARRAYSIZE( s_pMenuOwner ); i++ )
+			s_pMenuOwner[i] = NULL;
 
 		FOR_EACH_HIDDEN_PLUGIN( pPlugin )
 			pPlugin->LevelInit();
@@ -111,8 +160,19 @@ public:
 		}
 		else if ( !Q_strcmp( pszName, "player_disconnect" ) )
 		{
+			s_pMenuOwner[pPlayer->entindex()] = NULL;
 			FOR_EACH_HIDDEN_PLUGIN( pPlugin )
 				pPlugin->ClientDisconnect( pPlayer );
+		}
+		else if ( !Q_strcmp( pszName, "player_team" ) )
+		{
+			FOR_EACH_HIDDEN_PLUGIN( pPlugin )
+				pPlugin->PlayerTeam( pPlayer );
+		}
+		else if ( !Q_strcmp( pszName, "player_location" ) )
+		{
+			FOR_EACH_HIDDEN_PLUGIN( pPlugin )
+				pPlugin->PlayerLocation( pPlayer );
 		}
 	}
 };

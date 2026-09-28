@@ -3,6 +3,22 @@
 
 "Resource/HudLayout_hidden.res"
 {
+	// The numbered menu (plugin menus such as HandiCap's). Beta 4b's scheme has none of the fonts
+	// and colours SDK 2013's menu takes by default, so it drew nothing.
+	HudMenu
+	{
+		"fieldName"		"HudMenu"
+		"visible"		"1"
+		"enabled"		"1"
+		"wide"			"640"
+		"tall"			"480"
+		"TextFont"		"HudSelectionText"
+		"ItemFont"		"HudSelectionText"
+		"ItemFontPulsing"	"HudSelectionText"
+		"MenuColor"		"BrightFg"
+		"MenuItemColor"	"Orange"
+		"MenuBoxColor"	"0 0 0 128"
+	}
 	AchievementNotificationPanel
 	{
 		"fieldName"		"AchievementNotificationPanel"

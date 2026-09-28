@@ -19,6 +19,7 @@
 	#include "eventqueue.h"
 	#include "viewport_panel_names.h"
 	#include "gameinterface.h"
+	#include "plugins/hidden_plugins.h"
 #endif
 
 // memdbgon must be the last include file in a .cpp file!!!
@@ -333,6 +334,14 @@ bool CHiddenRules::ClientCommand( CBaseEntity *pEdict, const CCommand &args )
 	// In a tutorial, joining ends the intermission at once.
 	if ( IsTutorial() && pEdict->IsPlayer() && FStrEq( args[0], "enter" ) )
 		m_flIntermissionEnd = gpGlobals->curtime;
+
+	// A pick from a plugin's menu (HiddenPlugins_ShowMenu). CTeamplayRules would swallow it.
+	if ( FStrEq( args[0], "menuselect" ) && args.ArgC() > 1 )
+	{
+		CHidden_Player *pPlayer = ToHiddenPlayer( pEdict );
+		if ( pPlayer && HiddenPlugins_MenuSelect( pPlayer, atoi( args[1] ) ) )
+			return true;
+	}
 
 	// A client that failed the material check (material_check) disconnects, unless it hosts.
 	if ( FStrEq( args[0], "materialCRC" ) )
