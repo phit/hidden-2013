@@ -156,7 +156,9 @@ def command_table(commands):
 def cvars_block():
     plugin_dir = GAME_SRC / "server" / "hidden" / "plugins"
     files = [p for p in hidden_sources() if plugin_dir not in p.parents]
-    return cvar_table(read_cvars(files))
+    # A plugin cvar the client predicts with has a copy there; it's listed with its plugin.
+    plugin_names = {c["name"] for c in read_cvars(plugin_dir.glob("hidden_plugin_*.cpp"))}
+    return cvar_table([c for c in read_cvars(files) if c["name"] not in plugin_names])
 
 
 def commands_block():

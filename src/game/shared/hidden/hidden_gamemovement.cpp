@@ -20,6 +20,13 @@
 
 extern bool g_bMovementOptimizations;
 
+float HiddenStaminaTickScale( void )
+{
+	static ConVarRef hsm_fr_tick( "hsm_fr_tick" );
+	const float flTick = hsm_fr_tick.IsValid() ? hsm_fr_tick.GetFloat() : 0.0f;
+	return ( flTick >= 1.0f ) ? flTick * TICK_INTERVAL : 1.0f;
+}
+
 #ifdef GAME_DLL
 static ConVar hdn_debug_movement( "hdn_debug_movement", "0", FCVAR_CHEAT, "Print the Hidden's wall cling and pounce events" );
 #define HIDDEN_MOVEMENT_DEBUG( ... ) do { if ( hdn_debug_movement.GetBool() ) Msg( __VA_ARGS__ ); } while ( 0 )
@@ -317,7 +324,7 @@ void CHiddenGameMovement::WallCling( void )
 		return;
 	}
 
-	pHidden->SetStamina( hdn_staminadrain.GetFloat() );
+	pHidden->SetStamina( hdn_staminadrain.GetFloat() * HiddenStaminaTickScale() );
 
 	// Holding jump costs stamina every tick, even when the jump doesn't fire (Beta 4b).
 	if ( mv->m_nButtons & IN_JUMP )

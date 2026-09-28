@@ -709,7 +709,17 @@ bool CHidden_Player::Radio( int iMessage )
 		static const char *s_pszTaunts[] = { "Hidden.BehindYou", "Hidden.ImHere", "Hidden.ISeeYou", "Hidden.LookUp",
 			"Hidden.TurnAround", "Hidden.OverHere", "Hidden.FreshMeat", "Hidden.YouAreNext" };
 		if ( iMessage >= 0 && iMessage < ARRAYSIZE( s_pszTaunts ) )
-			EmitSound( s_pszTaunts[iMessage] );
+		{
+			// The sound script's random pick, made here so the plugins learn which line it was.
+			CSoundParameters params;
+			if ( GetParametersForSound( s_pszTaunts[iMessage], params, NULL ) )
+			{
+				CPASAttenuationFilter filter( this, params.soundlevel );
+				EmitSound_t ep( params );
+				EmitSound( filter, entindex(), ep );
+				HiddenPlugins_HiddenTaunt( this, params.soundname );
+			}
+		}
 		return true;
 	}
 
@@ -939,11 +949,11 @@ void CHidden_Player::ItemPostFrame( void )
 	// The Hidden gets stamina back on the ground unless the aura is on, which drains it instead
 	// (Beta 4b drains in PostThink, just after this).
 	if ( GetTeamNumber() == TEAM_HIDDEN && m_flStamina < HIDDEN_STAMINA_MAX && GetGroundEntity() != NULL && !m_bAura )
-		SetStamina( HIDDEN_STAMINA_REGEN );
+		SetStamina( HIDDEN_STAMINA_REGEN * HiddenStaminaTickScale() );
 
 	if ( m_bAura )
 	{
-		SetStamina( -HIDDEN_AURA_STAMINA );
+		SetStamina( -HIDDEN_AURA_STAMINA * HiddenStaminaTickScale() );
 		if ( m_flStamina < 1.0f )
 			m_bAura = false;
 	}

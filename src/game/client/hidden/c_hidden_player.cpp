@@ -18,6 +18,10 @@
 // memdbgon must be the last include file in a .cpp file!!!
 #include "tier0/memdbgon.h"
 
+// The Fake Tickrate plugin's cvar (server/hidden/plugins/hidden_plugin_fakerate.cpp), for predicting
+// the stamina it scales.
+ConVar hsm_fr_tick( "hsm_fr_tick", "0", FCVAR_REPLICATED, "The effective tickrate the Hidden's stamina flows at." );
+
 LINK_ENTITY_TO_CLASS( player, C_Hidden_Player );
 
 //-----------------------------------------------------------------------------
@@ -150,11 +154,11 @@ void C_Hidden_Player::ItemPostFrame( void )
 {
 	// Predict the Hidden's stamina, as CHidden_Player::ItemPostFrame does.
 	if ( GetTeamNumber() == TEAM_HIDDEN && m_flStamina < HIDDEN_STAMINA_MAX && GetGroundEntity() != NULL && !m_bAura )
-		SetStamina( HIDDEN_STAMINA_REGEN );
+		SetStamina( HIDDEN_STAMINA_REGEN * HiddenStaminaTickScale() );
 
 	if ( m_bAura )
 	{
-		SetStamina( -HIDDEN_AURA_STAMINA );
+		SetStamina( -HIDDEN_AURA_STAMINA * HiddenStaminaTickScale() );
 		if ( m_flStamina < 1.0f )
 			m_bAura = false;
 	}

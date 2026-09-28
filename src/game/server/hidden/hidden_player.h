@@ -62,6 +62,7 @@ public:
 	// be resupplied by a support marine's +use.
 	bool Radio( int iMessage );
 	bool IsRequestingAmmo( void ) const { return m_bRequestAmmo; }
+	void ClearBlur( void ) { m_flBlur = 0.0f; }
 	void GiveRequestedAmmo( CHidden_Player *pGiver );
 	virtual void PlayerRunCommand( CUserCmd *ucmd, IMoveHelper *moveHelper );
 	virtual void PreThink( void );

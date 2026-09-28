@@ -100,4 +100,8 @@ enum
 	HIDDEN_LOADOUT_RANDOM = 9,
 };
 
+// The Hidden's stamina changes per tick. The Fake Tickrate plugin (hsm_fr_tick) scales them to
+// flow as at another tickrate; 1 when it's off.
+float HiddenStaminaTickScale( void );
+
 #endif // HIDDEN_SHAREDDEFS_H
