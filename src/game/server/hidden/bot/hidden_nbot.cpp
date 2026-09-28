@@ -13,6 +13,8 @@
 #include "hidden_corpse.h"
 #include "NextBotManager.h"
 #include "func_break.h"
+#include "triggers.h"
+#include "collisionutils.h"
 
 // memdbgon must be the last include file in a .cpp file!!!
 #include "tier0/memdbgon.h"
@@ -49,9 +51,48 @@ void CHiddenNavMesh::AddWalkableSeeds( void )
 //-----------------------------------------------------------------------------
 // Locomotion
 //-----------------------------------------------------------------------------
+#define HIDDEN_BOT_LEDGE_PROBE	40.0f	// how far ahead a move is checked, plus 0.3 s at the bot's speed
+
+extern ConVar sv_gravity;
+extern ConVar hdn_bot_debug;
+
+// Enabled trigger_hurts: void pits, kill zones, fire. Bots neither path through them nor step in.
+static bool OverlapsHurtTrigger( const Vector &vecMins, const Vector &vecMaxs )
+{
+	const CUtlVector< ITriggerHurtAutoList * > &triggers = ITriggerHurtAutoList::AutoList();
+	for ( int i = 0; i < triggers.Count(); i++ )
+	{
+		CTriggerHurt *pHurt = static_cast< CTriggerHurt * >( triggers[i] );
+		if ( pHurt->m_bDisabled || pHurt->m_flDamage <= 0.0f )
+			continue;
+
+		Vector vecLo, vecHi;
+		pHurt->CollisionProp()->WorldSpaceAABB( &vecLo, &vecHi );
+		if ( IsBoxIntersectingBox( vecMins, vecMaxs, vecLo, vecHi ) )
+			return true;
+	}
+	return false;
+}
+
+// Marines take fall damage from PLAYER_MAX_SAFE_FALL_SPEED on, a drop of about 230 units at the
+// default gravity, so their bots keep a little under that. The Hidden takes none.
+float CHiddenBotLocomotion::GetDeathDropHeight( void ) const
+{
+	if ( GetBot()->GetEntity()->GetTeamNumber() == TEAM_HIDDEN )
+		return 1000.0f;
+
+	const float g = MAX( 1.0f, sv_gravity.GetFloat() );
+	return 0.9f * PLAYER_MAX_SAFE_FALL_SPEED * PLAYER_MAX_SAFE_FALL_SPEED / ( 2.0f * g );
+}
+
 bool CHiddenBotLocomotion::IsAreaTraversable( const CNavArea *area ) const
 {
-	return !area->IsBlocked( GetBot()->GetEntity()->GetTeamNumber() );
+	if ( area->IsBlocked( GetBot()->GetEntity()->GetTeamNumber() ) )
+		return false;
+
+	Extent extent;
+	area->GetExtent( &extent );
+	return !OverlapsHurtTrigger( extent.lo, extent.hi + Vector( 0.0f, 0.0f, HumanHeight ) );
 }
 
 bool CHiddenBotLocomotion::IsEntityTraversable( CBaseEntity *obstacle, TraverseWhenType when ) const
@@ -198,6 +239,188 @@ float CHiddenBotPathCost::operator()( CNavArea *area, CNavArea *fromArea, const 
 //-----------------------------------------------------------------------------
 LINK_ENTITY_TO_CLASS( hidden_bot, CHiddenBot );
 
+void CHiddenBot::Update( void )
+{
+	BaseClass::Update();
+	GuardLedges();
+}
+
+// The path keeps to safe drops, but strafing, dodging and chasing press the move buttons directly,
+// and a bot that stops pressing them still slides on. Before the buttons turn into movement, drop any
+// that head off a ledge the bot can't take or into a trigger_hurt, also in the air (a jump steered
+// over the edge), and brake when the bot's own momentum carries it there.
+void CHiddenBot::GuardLedges( void )
+{
+	if ( !IsAlive() )
+		return;
+
+	if ( GetGroundEntity() )
+	{
+		m_flLeftGround = -1.0f;
+		m_vecLastGround = GetAbsOrigin();
+		m_vecLastGroundVel = GetAbsVelocity();
+		m_iLastGroundButtons = m_inputButtons;
+	}
+	else if ( m_flLeftGround < 0.0f )
+	{
+		m_flLeftGround = gpGlobals->curtime;
+	}
+
+	QAngle angMove = EyeAngles();
+	angMove.x = angMove.z = 0.0f;
+	Vector vecForward, vecRight;
+	AngleVectors( angMove, &vecForward, &vecRight, NULL );
+
+	if ( ( m_inputButtons & IN_FORWARD ) && !IsStepSafe( vecForward ) )
+		ReleaseForwardButton();
+	if ( ( m_inputButtons & IN_BACK ) && !IsStepSafe( -vecForward ) )
+		ReleaseBackwardButton();
+	if ( ( m_inputButtons & IN_MOVERIGHT ) && !IsStepSafe( vecRight ) )
+		ReleaseRightButton();
+	if ( ( m_inputButtons & IN_MOVELEFT ) && !IsStepSafe( -vecRight ) )
+		ReleaseLeftButton();
+
+	Vector vecVel = GetAbsVelocity();
+	vecVel.z = 0.0f;
+	if ( !GetGroundEntity() || vecVel.NormalizeInPlace() < 50.0f || IsStepSafe( vecVel ) )
+		return;
+
+	const float flAhead = DotProduct( vecVel, vecForward );
+	const float flSide = DotProduct( vecVel, vecRight );
+	if ( flAhead > 0.3f )
+	{
+		ReleaseForwardButton();
+		PressBackwardButton();
+	}
+	else if ( flAhead < -0.3f )
+	{
+		ReleaseBackwardButton();
+		PressForwardButton();
+	}
+	if ( flSide > 0.3f )
+	{
+		ReleaseRightButton();
+		PressLeftButton();
+	}
+	else if ( flSide < -0.3f )
+	{
+		ReleaseLeftButton();
+		PressRightButton();
+	}
+}
+
+bool CHiddenBot::LedgeDebug( const char *pszWhy, const Vector &vecWhere ) const
+{
+	if ( hdn_bot_debug.GetBool() && gpGlobals->curtime >= m_flNextLedgeDebug )
+	{
+		m_flNextLedgeDebug = gpGlobals->curtime + 2.0f;
+		Msg( "%.1f %s: ledge (" "%s) at %.0f %.0f %.0f, from %.0f %.0f %.0f" "\n", gpGlobals->curtime, const_cast< CHiddenBot * >( this )->GetPlayerName(), pszWhy,
+			vecWhere.x, vecWhere.y, vecWhere.z, GetAbsOrigin().x, GetAbsOrigin().y, GetAbsOrigin().z );
+	}
+	return false;
+}
+
+bool CHiddenBot::IsStepSafe( const Vector &vecDir ) const
+{
+	const Vector vecMins = WorldAlignMins(), vecMaxs = WorldAlignMaxs();
+	const float flStep = GetLocomotionInterface()->GetStepHeight();
+
+	// Where the move gets to, a stopping distance further at speed; a wall stops it by itself.
+	const float flProbe = HIDDEN_BOT_LEDGE_PROBE + 0.3f * GetAbsVelocity().Length2D();
+	const Vector vecFrom = GetAbsOrigin() + Vector( 0.0f, 0.0f, flStep );
+	trace_t tr;
+	UTIL_TraceHull( vecFrom, vecFrom + vecDir * flProbe, vecMins, vecMaxs, MASK_PLAYERSOLID, this, COLLISION_GROUP_PLAYER_MOVEMENT, &tr );
+	if ( tr.startsolid )
+		return true;	// wedged under something: no way to judge, so don't stop it
+	const Vector vecAhead = tr.endpos;
+
+	// Ground below it, no deeper than the bot may drop, and no trigger_hurt on the way down. On a
+	// cliff the hull finds the rock face under the edge, so the middle mustn't be over a slope too
+	// steep to stand on; over nothing is fine, the hull is carried by a plank or a ledge's lip.
+	const Vector vecDown( 0.0f, 0.0f, flStep + GetLocomotionInterface()->GetDeathDropHeight() );
+	UTIL_TraceHull( vecAhead, vecAhead - vecDown, vecMins, vecMaxs, MASK_PLAYERSOLID, this, COLLISION_GROUP_PLAYER_MOVEMENT, &tr );
+	if ( tr.fraction >= 1.0f )
+		return LedgeDebug( "no ground", vecAhead );
+	const Vector vecGround = tr.endpos;
+
+	UTIL_TraceLine( vecAhead, vecAhead - vecDown, MASK_PLAYERSOLID, this, COLLISION_GROUP_PLAYER_MOVEMENT, &tr );
+	if ( tr.fraction < 1.0f && tr.plane.normal.z < 0.7f )
+		return LedgeDebug( "steep", tr.endpos );
+
+	if ( OverlapsHurtTrigger( vecGround + vecMins, vecAhead + vecMaxs ) )
+		return LedgeDebug( "hurt trigger", vecGround );
+	return true;
+}
+
+void CHiddenBot::PressPounceButton( void )
+{
+	if ( !IsLeapSafe() )
+	{
+		if ( hdn_bot_debug.GetBool() )
+			Msg( "%.1f %s: not pouncing, the leap ends in the void\n", gpGlobals->curtime, GetPlayerName() );
+		return;
+	}
+
+	m_inputButtons |= IN_BULLRUSH;
+}
+
+// Follows the pounce (HIDDEN_POUNCE_SPEED along the aim, then gravity) until it lands. Hitting a
+// wall is fine, the Hidden clings, but the bot is assumed to drop from there.
+bool CHiddenBot::IsLeapSafe( void )
+{
+	const Vector vecMins = WorldAlignMins(), vecMaxs = WorldAlignMaxs();
+	const float g = sv_gravity.GetFloat();
+	const float flStep = 0.05f;
+
+	Vector vecAim;
+	AngleVectors( EyeAngles(), &vecAim );
+	Vector vecVel = vecAim * HIDDEN_POUNCE_SPEED;
+	Vector vecPos = GetAbsOrigin();
+
+	for ( float t = 0.0f; t < 2.5f; t += flStep )
+	{
+		const Vector vecNext = vecPos + vecVel * flStep;
+		vecVel.z -= g * flStep;
+
+		trace_t tr;
+		UTIL_TraceHull( vecPos, vecNext, vecMins, vecMaxs, MASK_PLAYERSOLID, this, COLLISION_GROUP_PLAYER_MOVEMENT, &tr );
+
+		Vector vecLo = vecPos, vecHi = vecPos;
+		VectorMin( vecLo, tr.endpos, vecLo );
+		VectorMax( vecHi, tr.endpos, vecHi );
+		if ( OverlapsHurtTrigger( vecLo + vecMins, vecHi + vecMaxs ) )
+			return false;
+
+		vecPos = tr.endpos;
+		if ( tr.fraction < 1.0f )
+		{
+			if ( tr.plane.normal.z > 0.7f )
+				return true;	// on the ground
+
+			vecVel.x = vecVel.y = 0.0f;	// against a wall: down from here
+			vecVel.z = MIN( vecVel.z, 0.0f );
+		}
+	}
+
+	return false;	// still falling
+}
+
+void CHiddenBot::Event_Killed( const CTakeDamageInfo &info )
+{
+	if ( hdn_bot_debug.GetBool() )
+	{
+		const Vector &vecPos = GetAbsOrigin();
+		Msg( "%.1f %s: killed at %.0f %.0f %.0f by %s (%.0f damage, type %d), %s\n", gpGlobals->curtime, GetPlayerName(),
+			vecPos.x, vecPos.y, vecPos.z, info.GetAttacker() ? info.GetAttacker()->GetClassname() : "nothing",
+			info.GetDamage(), info.GetDamageType(), GetGroundEntity() ? "on the ground" : "in the air" );
+		Msg( "    last on the ground at %.0f %.0f %.0f, %.1f s before, velocity %.0f %.0f %.0f, buttons %x\n",
+			m_vecLastGround.x, m_vecLastGround.y, m_vecLastGround.z, m_flLeftGround >= 0.0f ? gpGlobals->curtime - m_flLeftGround : 0.0f,
+			m_vecLastGroundVel.x, m_vecLastGroundVel.y, m_vecLastGroundVel.z, m_iLastGroundButtons );
+	}
+
+	BaseClass::Event_Killed( info );
+}
+
 CBasePlayer *CHiddenBot::AllocatePlayerEntity( edict_t *edict, const char *playerName )
 {
 	CBasePlayer::s_PlayerEdict = edict;
@@ -213,6 +436,10 @@ CHiddenBot::CHiddenBot()
 
 	m_difficulty = (DifficultyType)hdn_bot_difficulty.GetInt();
 	m_bLoner = RandomFloat() < 0.35f;
+	m_flLeftGround = -1.0f;
+	m_vecLastGround = m_vecLastGroundVel = vec3_origin;
+	m_iLastGroundButtons = 0;
+	m_flNextLedgeDebug = 0.0f;
 	m_bFireToggle = false;
 }
 

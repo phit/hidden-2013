@@ -40,7 +40,7 @@ public:
 	CHiddenBotLocomotion( INextBot *bot ) : PlayerLocomotion( bot ) {}
 
 	virtual float GetMaxJumpHeight( void ) const { return 56.0f; }
-	virtual float GetDeathDropHeight( void ) const { return 400.0f; }
+	virtual float GetDeathDropHeight( void ) const;
 	virtual bool IsAreaTraversable( const CNavArea *area ) const;
 	virtual bool IsEntityTraversable( CBaseEntity *obstacle, TraverseWhenType when = EVENTUALLY ) const;
 
@@ -114,8 +114,9 @@ public:
 
 	bool IsOnPlayingTeam( void ) const { return GetTeamNumber() == TEAM_IRIS || GetTeamNumber() == TEAM_HIDDEN; }
 
-	// The Hidden's pounce key (IN_BULLRUSH), for one tick.
-	void PressPounceButton( void ) { m_inputButtons |= IN_BULLRUSH; }
+	// The Hidden's pounce key (IN_BULLRUSH), for one tick, unless the leap along the current aim
+	// would end in the void or a trigger_hurt.
+	void PressPounceButton( void );
 
 	// Marine weapons: pick a gun with ammo, reload, and fire it the way it wants.
 	void EquipBestGun( void );
@@ -125,7 +126,16 @@ public:
 
 	bool IsLineOfFireClear( const Vector &where );
 
+	virtual void Update( void );
+	virtual void Event_Killed( const CTakeDamageInfo &info );
+
 private:
+	// Keeps the bot from stepping off a drop it can't take or into a trigger_hurt.
+	void GuardLedges( void );
+	bool IsStepSafe( const Vector &vecDir ) const;
+	bool IsLeapSafe( void );
+	bool LedgeDebug( const char *pszWhy, const Vector &vecWhere ) const;
+
 	CHiddenBotLocomotion *m_locomotor;
 	CHiddenBotBody *m_body;
 	CHiddenBotVision *m_vision;
@@ -133,6 +143,11 @@ private:
 	DifficultyType m_difficulty;
 	bool m_bLoner;
 	bool m_bFireToggle;
+	float m_flLeftGround;	// debug: when and how the bot last left the ground
+	Vector m_vecLastGround;
+	Vector m_vecLastGroundVel;
+	int m_iLastGroundButtons;
+	mutable float m_flNextLedgeDebug;
 };
 
 inline CHiddenBot *ToHiddenBot( CBaseEntity *pEntity )
