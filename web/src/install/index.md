@@ -33,7 +33,16 @@ steamapps/sourcemods/
   hidden2013/    Hidden: Rebuild
 ```
 
-Restart Steam, and **Hidden: Rebuild** shows up in your Library.
+Restart Steam, and **Hidden: Rebuild** shows up in your Library. Right-click it, open
+**Properties**, and put this in **Launch Options**:
+
+```
+-sacrifice -steam
+```
+
+The engine loses the first launch option the way Steam starts mods, so `-sacrifice` goes and
+`-steam` survives. Without `-steam` the game runs in insecure mode, which keeps you off VAC-secured
+servers.
 
 **On Linux**, run this once as well. Beta 4b has file and folder names with capitals, which the
 game looks up in lower case, and Linux file names are case-sensitive; the script lower-cases the
@@ -66,6 +75,8 @@ server offers downloads.
   `sourcemods/hidden2013` (not `sourcemods/hidden2013/hidden2013`), then restart Steam.
 - **Missing textures, errors about models or maps:** Beta 4b isn't where Hidden: Rebuild looks for
   it. It must be in `sourcemods/hidden`, right next to `hidden2013`.
+- **"You are in insecure mode" when joining a server:** the `-sacrifice -steam` launch options
+  from step 3 are missing.
 - **"Server is running a newer/older version":** you and the server have different releases;
   update to the newest.
 - Anything else: [open an issue on GitHub](https://github.com/phit/hidden-2013/issues).
