@@ -56,7 +56,7 @@ class CHiddenMenu : public Frame, public IViewPortPanel
 public:
 	CHiddenMenu( IViewPort *pViewPort, const char *pszName, const char *pszResName, const char *pszResFile ) :
 		Frame( NULL, pszResName ), m_pViewPort( pViewPort ), m_pszPanelName( pszName ),
-		m_iResX( 0 ), m_iResY( 0 ), m_iResWide( 640 ), m_iResTall( 480 )
+		m_iResX( 0 ), m_iResY( 0 ), m_iResWide( 640 ), m_iResTall( 480 ), m_bCenter( false )
 	{
 		SetScheme( "ClientScheme" );
 		SetMoveable( false );
@@ -131,8 +131,20 @@ protected:
 	void ApplyResBounds( void )
 	{
 		HScheme hScheme = GetScheme();
-		SetBounds( scheme()->GetProportionalScaledValueEx( hScheme, m_iResX ), scheme()->GetProportionalScaledValueEx( hScheme, m_iResY ),
-			scheme()->GetProportionalScaledValueEx( hScheme, m_iResWide ), scheme()->GetProportionalScaledValueEx( hScheme, m_iResTall ) );
+		int x = scheme()->GetProportionalScaledValueEx( hScheme, m_iResX );
+		const int wide = scheme()->GetProportionalScaledValueEx( hScheme, m_iResWide );
+
+		// Proportional layouts scale with the screen's height, so on a screen wider than 4:3 the
+		// 640-wide layout leaves a gap on the right. Centred menus split it.
+		if ( m_bCenter )
+		{
+			int iScreenWide, iScreenTall;
+			surface()->GetScreenSize( iScreenWide, iScreenTall );
+			x += MAX( 0, ( iScreenWide - scheme()->GetProportionalScaledValueEx( hScheme, 640 ) ) / 2 );
+		}
+
+		SetBounds( x, scheme()->GetProportionalScaledValueEx( hScheme, m_iResY ),
+			wide, scheme()->GetProportionalScaledValueEx( hScheme, m_iResTall ) );
 	}
 
 	void Close( void ) { m_pViewPort->ShowPanel( this, false ); }
@@ -159,6 +171,7 @@ protected:
 	IViewPort *m_pViewPort;
 	const char *m_pszPanelName;
 	int m_iResX, m_iResY, m_iResWide, m_iResTall;	// the frame's own .res entry, in 640x480 units
+	bool m_bCenter;	// centred on screens wider than 4:3
 };
 
 //-----------------------------------------------------------------------------
@@ -209,6 +222,7 @@ public:
 	CHiddenTeamMenu( IViewPort *pViewPort ) : CHiddenMenu( pViewPort, PANEL_HIDDEN_TEAM, "team", "Resource/UI/Teammenu.res" ),
 		m_iClass( -2 ), m_iCharacter( -2 )
 	{
+		m_bCenter = true;
 		m_pAssault = FindControl<Button>( "AssaultButton" );
 		m_pSupport = FindControl<Button>( "SupportButton" );
 		m_pPortrait = FindControl<ImagePanel>( "Marine_Pic" );
@@ -412,6 +426,7 @@ class CHiddenWeaponMenu : public CHiddenMenu
 public:
 	CHiddenWeaponMenu( IViewPort *pViewPort ) : CHiddenMenu( pViewPort, PANEL_HIDDEN_WEAPON, "team", "Resource/UI/Weaponmenu.res" )
 	{
+		m_bCenter = true;
 		for ( int i = 0; i < ARRAYSIZE( s_Loadout ); i++ )
 			m_pButtons[i] = FindControl<Button>( s_Loadout[i].pszButton );
 
