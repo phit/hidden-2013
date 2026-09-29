@@ -16,7 +16,7 @@ small{color:#999}
 </style>
 </head>
 <body>
-<img src="https://phit.github.io/hidden-2013/img/header.jpg" alt="">
+<img src="https://phit.github.io/hidden-2013/img/logo.png" width="763" alt="">
 <h1>Welcome to Hidden: Rebuild</h1>
 <p>Hidden: Source Beta 4b, rebuilt on today's Source SDK 2013.</p>
 <p><b>IRIS:</b> find the Hidden and take it down together.<br>

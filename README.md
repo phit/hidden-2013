@@ -59,6 +59,7 @@ engine looks paths up in lower case) and link SteamCMD's 64-bit `steamclient.so`
 | `game/hidden2013/` | The mod folder the game runs from |
 | `src/srcds_hidden/` | The 64-bit dedicated server launchers |
 | `web/` | The project site (GitHub Pages) |
+| `branding/` | Logo, banner and icons, and the script that builds them |
 | `tools/` | Build, packaging and asset scripts |
 | `.github/workflows/build.yml` | CI: Windows and Linux builds, packages, releases |
 

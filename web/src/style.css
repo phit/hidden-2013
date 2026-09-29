@@ -60,7 +60,7 @@ img {
   height: auto;
 }
 
-/* hidden-source.com's banner (img/header.jpg, Calibre's, used as fair use). */
+/* The Hidden: Rebuild banner (img/logo.png, built by branding/build.py). */
 .banner {
   display: block;
   width: 763px;
