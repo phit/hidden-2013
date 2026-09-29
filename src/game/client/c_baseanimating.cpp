@@ -1388,8 +1388,14 @@ float C_BaseAnimating::GetPoseParameter( int iPoseParameter )
 	if ( pStudioHdr == NULL )
 		return 0.0f;
 
+#ifdef HIDDEN
+	// Past the model's parameters, or past the array (Mapbase's fix).
+	if ( iPoseParameter >= pStudioHdr->GetNumPoseParameters() || iPoseParameter >= MAXSTUDIOPOSEPARAM )
+		return 0.0f;
+#else
 	if ( pStudioHdr->GetNumPoseParameters() < iPoseParameter )
 		return 0.0f;
+#endif
 
 	if ( iPoseParameter < 0 )
 		return 0.0f;
