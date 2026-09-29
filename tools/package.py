@@ -4,6 +4,9 @@
 Makes, in dist/:
   hidden2013-<version>-<platform>.<zip|tar.gz>          the hidden2013/ folder to extract into
                                                         steamapps/sourcemods
+  hidden2013-<version>-<platform>-standalone.<...>      the same with the mod's own launcher, for a
+                                                        folder outside sourcemods (the launcher app
+                                                        installs this, next to Beta 4b's hidden/)
   hidden2013-<version>-<platform>-server.<zip|tar.gz>   for the folder of Source SDK Base 2013
                                                         Dedicated Server (SteamCMD 244310): the
                                                         64-bit launcher it lacks and hidden2013/
@@ -41,6 +44,18 @@ PLATFORMS = {
     "linux": {"bin": "linux64", "libs": ["client.so", "server.so", "game_shader_generic_hidden.so"],
               "symbols": ".dbg", "archive": "tar.gz", "shaders": True,
               "root": [(ROOT / "tools" / "lowercase_beta4b.sh", "hidden2013/lowercase_beta4b.sh")]},
+    # Started from its own folder rather than by Steam, the launcher keeps its -steam and the game is
+    # VAC-secured without launch options. It finds SDK Base through the Steam API. The symbols are
+    # the same as the sourcemods package's.
+    "windows-standalone": {"bin": "x64", "libs": ["client.dll", "server.dll", "game_shader_generic_hidden.dll"],
+                           "symbols": None, "archive": "zip", "shaders": True,
+                           "root": [(ROOT / "game" / "hidden2013_win64.exe", "hidden2013_win64.exe"),
+                                    (ROOT / "game" / "bin" / "x64" / "steam_api64.dll", "bin/x64/steam_api64.dll")]},
+    "linux-standalone": {"bin": "linux64", "libs": ["client.so", "server.so", "game_shader_generic_hidden.so"],
+                         "symbols": None, "archive": "tar.gz", "shaders": True,
+                         "root": [(ROOT / "game" / "hidden2013_linux64", "hidden2013_linux64"),
+                                  (ROOT / "game" / "bin" / "linux64" / "libsteam_api.so", "bin/linux64/libsteam_api.so"),
+                                  (ROOT / "tools" / "lowercase_beta4b.sh", "hidden2013/lowercase_beta4b.sh")]},
     # SteamCMD's dedicated server has 64-bit engine libraries but only 32-bit launchers; on Linux it
     # also lacks the 64-bit Steamworks library, and loads the game's server_srv.so.
     "windows-server": {"bin": "x64", "libs": ["server.dll"], "symbols": ".pdb", "archive": "zip",
@@ -72,7 +87,7 @@ def split_debug_info(lib, dbg):
 
 
 # Files other than libraries that get the executable bit in tars.
-EXECUTABLES = {"srcds_linux64", "lowercase_beta4b.sh", "hidden_update.sh"}
+EXECUTABLES = {"srcds_linux64", "hidden2013_linux64", "lowercase_beta4b.sh", "hidden_update.sh"}
 
 
 def write_archive(path, kind, root, files):
@@ -145,10 +160,12 @@ def main():
                 if pdb.exists():
                     shutil.copy2(pdb, outbin / pdb.name)
                     symbol_files.append((outbin / pdb.name).relative_to(stage.parent))
-            else:
+            elif lib.endswith(".so"):
+                # Stripped either way; only the platforms that name ".dbg" keep what was split off.
                 dbg = outbin / (lib + ".dbg")
                 split_debug_info(dst, dbg)
-                symbol_files.append(dbg.relative_to(stage.parent))
+                if plat["symbols"] == ".dbg":
+                    symbol_files.append(dbg.relative_to(stage.parent))
 
         args.out.mkdir(parents=True, exist_ok=True)
         ext = plat["archive"]

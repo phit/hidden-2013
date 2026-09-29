@@ -60,6 +60,7 @@ jobs:
             game/hidden2013/bin/x64/*.pdb
             game/hidden2013/shaders/fxc/*.vcs
             game/srcds_win64.exe
+            game/hidden2013_win64.exe
           if-no-files-found: error
 
   linux:
@@ -87,6 +88,7 @@ jobs:
           path: |
             game/hidden2013/bin/linux64/*.so
             game/srcds_linux64
+            game/hidden2013_linux64
           if-no-files-found: error
 
   package:
@@ -122,8 +124,8 @@ jobs:
         run: |
           version="$(date -u +%Y%m%d)-$(git rev-parse --short HEAD)"
           if [ "$GITHUB_REF_TYPE" = tag ]; then version="${GITHUB_REF_NAME#v}"; fi
-          chmod +x game/srcds_linux64
-          for platform in windows linux windows-server linux-server; do
+          chmod +x game/srcds_linux64 game/hidden2013_linux64
+          for platform in windows linux windows-server linux-server windows-standalone linux-standalone; do
             python3 tools/package.py "$platform" --version "$version"
           done
 
