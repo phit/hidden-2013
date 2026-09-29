@@ -13,7 +13,12 @@ ConVar hl2mp_bot_health_ok_ratio( "hl2mp_bot_health_ok_ratio", "0.65", FCVAR_CHE
 ConVar hl2mp_bot_health_search_near_range( "hl2mp_bot_health_search_near_range", "1000", FCVAR_CHEAT );
 ConVar hl2mp_bot_health_search_far_range( "hl2mp_bot_health_search_far_range", "2000", FCVAR_CHEAT );
 
+#ifdef HIDDEN
+// Valve registered it under the ammo cvar's name ("Parent cvar ... not allowed").
+ConVar hl2mp_bot_debug_health_scavenging( "hl2mp_bot_debug_health_scavenging", "0", FCVAR_CHEAT );
+#else
 ConVar hl2mp_bot_debug_health_scavenging( "hl2mp_bot_debug_ammo_scavenging", "0", FCVAR_CHEAT );
+#endif
 
 //---------------------------------------------------------------------------------------------
 class CHealthFilter : public INextBotFilter
