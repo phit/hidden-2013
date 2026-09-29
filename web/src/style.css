@@ -1,24 +1,24 @@
-/* After NEOTOKYO;REBUILD's site, in Beta 4b's orange. */
+/* After NEOTOKYO;REBUILD's site, in hidden-source.com's colours: white on black, red links. */
 body {
-  font-family: sans-serif;
+  font-family: verdana, tahoma, sans-serif;
   max-width: 70em;
   margin: 1em auto;
   padding: 0 16px;
-  background-color: #0b0b0b;
-  color: #e6e6e6;
+  background-color: #000;
+  color: #fff;
   line-height: 1.5;
 }
 
 a {
-  color: #f0a030;
+  color: #cc0000;
 }
 
 a:hover, a:active {
-  color: #ffd080;
+  color: #ff0000;
 }
 
 h1, h2, h3 {
-  color: #f0a030;
+  color: #fff;
 }
 
 hr {
@@ -27,7 +27,7 @@ hr {
 }
 
 code, pre {
-  background-color: #1a1a1a;
+  background-color: #1c1c1c;
   font-size: 0.95em;
 }
 
@@ -52,10 +52,22 @@ th, td {
 }
 
 th {
-  background-color: #1a1a1a;
+  background-color: #1c1c1c;
 }
 
 img {
   max-width: 100%;
   height: auto;
+}
+
+/* hidden-source.com's banner (img/header.jpg, Calibre's, used as fair use). */
+.banner {
+  display: block;
+  width: 763px;
+  max-width: 100%;
+  margin: 0 auto 0.5em;
+  font-size: 2em;
+  font-weight: bold;
+  letter-spacing: 0.2em;
+  text-align: center;
 }
