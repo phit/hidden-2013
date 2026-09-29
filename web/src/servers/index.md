@@ -64,7 +64,7 @@ For a [Pterodactyl](https://pterodactyl.io/) panel there's an egg,
 server, Beta 4b from its official download, and Hidden: Rebuild. With **Auto update** on it updates
 on every start. **Release channel** picks what it installs: `release` (the newest release), `snapshot`
 (the newest test build) or a release tag such as `v1.0.1.0` to stay on it. An edited
-`cfg/mapcycle.txt` survives updates.
+`cfg/mapcycle.txt` and your MOTD survive updates.
 
 Outside Pterodactyl, the Linux server package's `hidden_update.sh` does the same updating:
 `HIDDEN_CHANNEL=snapshot ./hidden_update.sh` in the server folder.
@@ -87,6 +87,10 @@ Outside Pterodactyl, the Linux server package's `hidden_update.sh` does the same
 - **`cfg/mapcycle.txt`** is the map rotation. The one that ships is Beta 4b's, with the fixed
   `hdn_decay` and `hdn_origin`. Maps the server doesn't have are skipped, and a missing `_fixed` map
   falls back to the original.
+- **`cfg/motd.txt`** is the message of the day players see on joining: HTML, up to 2 KB (the engine
+  skips a bigger one), and `cfg/motd_text.txt` for players who turned HTML messages off. Updates
+  never overwrite them: the packages' own is `cfg/motd_default.txt`, shown while you have none. A
+  `motd.txt` in `hidden2013/` itself works too.
 - **Bots** play both sides: `bot_add` adds one, `hdn_bot_quota` keeps the server topped up with them.
 - **Versions:** players can only join a server on the same release, so update the server when you
   update the game.

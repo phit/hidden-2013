@@ -2071,17 +2071,25 @@ void CServerGameDLL::LoadSpecificMOTDMsg( const ConVar &convar, const char *pszS
 	char szPreferredFilename[ MAX_PATH ];
 	V_sprintf_safe( szPreferredFilename, "cfg/%s", convar.GetString() );
 
+#ifdef HIDDEN
+	// The server's own MOTD only from the mod folder: GAME also searches Beta 4b's, whose root
+	// motd.txt would win over our cfg/motd_default.txt below.
+	const char *pszOwnPath = "MOD_WRITE";
+#else
+	const char *pszOwnPath = "GAME";
+#endif
+
 	// Check the preferred filename first
 	char szResolvedFilename[ MAX_PATH ];
 	V_strcpy_safe( szResolvedFilename, szPreferredFilename );
-	bool bFound = filesystem->ReadFile( szResolvedFilename, "GAME", buf );
+	bool bFound = filesystem->ReadFile( szResolvedFilename, pszOwnPath, buf );
 
 	// Not found?  Try in the root, which is the old place it used to go.
 	if ( !bFound )
 	{
 
 		V_strcpy_safe( szResolvedFilename, convar.GetString() );
-		bFound = filesystem->ReadFile( szResolvedFilename, "GAME", buf );
+		bFound = filesystem->ReadFile( szResolvedFilename, pszOwnPath, buf );
 	}
 
 	// Still not found?  See if we can try the default.

@@ -7,7 +7,8 @@
 #
 # release (the default) is the newest release, snapshot the newest build of main (the "latest"
 # prerelease), anything else a release tag. Nothing is downloaded when the installed package is
-# already the one the channel points to. An existing cfg/mapcycle.txt is kept.
+# already the one the channel points to. An existing cfg/mapcycle.txt is kept, and packages have no
+# cfg/motd.txt to overwrite (their default is cfg/motd_default.txt).
 set -eu
 
 cd "$(dirname "$(readlink -f "$0")")"
@@ -49,4 +50,10 @@ else
 	tar -xzf .hidden_download.tar.gz $keep || fail "extracting $name failed"
 	rm -f .hidden_download.tar.gz
 	echo "$name" > .hidden_package
+fi
+
+# Packages up to 1.0.1.1 shipped a motd.txt, which would hide the default; remove it unless edited.
+old_motd=5406c9a6a0ab3f43ae9bec0f488d4b4fa1ce86e9af360ad22653fee682affef5
+if [ -f hidden2013/motd.txt ] && [ "$(sha256sum < hidden2013/motd.txt | cut -d' ' -f1)" = "$old_motd" ]; then
+	rm -f hidden2013/motd.txt
 fi
