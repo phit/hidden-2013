@@ -19,8 +19,8 @@
 #include "tier0/memdbgon.h"
 
 // The Fake Tickrate plugin's cvar (server/hidden/plugins/hidden_plugin_fakerate.cpp), for predicting
-// the stamina it scales.
-ConVar hsm_fr_tick( "hsm_fr_tick", "0", FCVAR_REPLICATED, "The effective tickrate the Hidden's stamina flows at." );
+// the stamina it scales. Defined as there, or the engine warns about the mismatch.
+ConVar hsm_fr_tick( "hsm_fr_tick", "0", FCVAR_NOTIFY | FCVAR_REPLICATED, "The effective tickrate the Hidden's stamina flows at. 0: the server's own", true, 0.0f, true, 100.0f );
 
 LINK_ENTITY_TO_CLASS( player, C_Hidden_Player );
 
