@@ -54,6 +54,13 @@ public:
 	virtual bool OnLadder( trace_t &trace ) { return CGameMovement::OnLadder( trace ); }
 	virtual int GetCheckInterval( IntervalType_t type ) { return CGameMovement::GetCheckInterval( type ); }
 
+	// What the Hidden's movement runs into, for hdn_debug_movement.
+	virtual void OnTryPlayerMoveCollision( trace_t &tr )
+	{
+		if ( IsHidden() && tr.m_pEnt && !tr.m_pEnt->IsWorld() )
+			HIDDEN_MOVEMENT_DEBUG( "%.2f blocked by %s (group %d)\n", gpGlobals->curtime, tr.m_pEnt->GetClassname(), tr.m_pEnt->GetCollisionGroup() );
+	}
+
 private:
 	CHidden_Player *GetHiddenPlayer( void ) { return static_cast<CHidden_Player *>( player ); }
 
@@ -244,6 +251,8 @@ bool CHiddenGameMovement::CheckPounceButton( void )
 	if ( player->GetGroundEntity() == NULL && !pHidden->IsClinging() )
 		return false;
 
+	HIDDEN_MOVEMENT_DEBUG( "%.2f pounce from %s\n", gpGlobals->curtime,
+		player->GetGroundEntity() ? player->GetGroundEntity()->GetClassname() : "a wall" );
 	SetGroundEntity( NULL );
 	SetClinging( false, "pounce" );
 
