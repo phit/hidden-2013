@@ -14,6 +14,7 @@
 #include "iclientmode.h"
 #include "c_hidden_player.h"
 #include "hidden_gamerules.h"
+#include "hidden_cvars.h"
 #include <vgui/ISurface.h>
 #include <vgui/ILocalize.h>
 #include <vgui_controls/Panel.h>
@@ -322,6 +323,7 @@ DECLARE_HUDELEMENT( CHudRoundTimer );
 //-----------------------------------------------------------------------------
 // The player under the crosshair: the Hidden sees anyone within 256 units as
 // "Enemy", marines see other marines as "Friend" and nothing on the Hidden.
+// hdn_targetnames 0 turns it off.
 //-----------------------------------------------------------------------------
 class CHudName : public CHudElement, public Panel
 {
@@ -355,7 +357,7 @@ protected:
 
 		trace_t tr;
 		UTIL_TraceLine( vecEyes, vecEyes + vecForward * flRange, MASK_SHOT, pLocal, COLLISION_GROUP_NONE, &tr );
-		if ( tr.m_pEnt && tr.m_pEnt->IsPlayer() && tr.m_pEnt != pLocal )
+		if ( hdn_targetnames.GetBool() && tr.m_pEnt && tr.m_pEnt->IsPlayer() && tr.m_pEnt != pLocal )
 			m_hTarget = static_cast<C_BasePlayer *>( tr.m_pEnt );
 		else
 			Reset();
