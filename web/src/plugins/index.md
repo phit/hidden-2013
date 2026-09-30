@@ -1,4 +1,5 @@
 title: Plugins
+summary: The popular Hidden:SourceMod plugins, built into Hidden: Rebuild servers: what each does and its cvars.
 
 # Built-in server plugins
 

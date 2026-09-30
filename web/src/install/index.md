@@ -1,4 +1,5 @@
 title: Install
+summary: Install Hidden: Rebuild with the launcher, which sets up Beta 4b and Source SDK Base 2013 for you, or by hand.
 
 # Installing Hidden: Rebuild
 

@@ -1,4 +1,5 @@
 title: Servers
+summary: Run a Hidden: Rebuild dedicated server on Windows or Linux: installing, updating, configuring, and every server cvar.
 
 # Running a server
 

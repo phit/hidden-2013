@@ -2,8 +2,9 @@
 """Build the project site (GitHub Pages) into web/_out.
 
 After NEOTOKYO;REBUILD's site: Markdown pages under web/src with a few "key: value" metadata lines
-on top (title, and summary for blog posts), wrapped in _header.html and _footer.html. Blog posts are
-web/src/blog/<YYYY-MM-DD>/index.md; the home page lists them and atom.xml carries the newest.
+on top (title; summary, the description in link previews; image, their picture under img/),
+wrapped in _header.html and _footer.html. Blog posts are web/src/blog/<YYYY-MM-DD>/index.md; the
+home page lists them and atom.xml carries the newest.
 
 Placeholders filled in at build time, each alone on its line:
   <!-- LATEST_RELEASE -->  the newest release and its packages (GitHub API; a link if offline)
@@ -41,6 +42,9 @@ OUT = WEB / "_out"
 
 SITE_URL = "https://phit.github.io/hidden-2013/"
 SITE_TITLE = "Hidden: Rebuild"
+SITE_DESCRIPTION = "Hidden: Source Beta 4b, rebuilt on the current Source SDK 2013: the original game with native Linux servers, bots and the popular plugins built in."
+DEFAULT_IMAGE = "docks.jpg"
+THEME_COLOR = "#cc0000"
 REPO = "phit/hidden-2013"
 FEED_LIMIT = 5
 
@@ -179,10 +183,52 @@ def render(md_text):
     return markdown.markdown(md_text, extensions=["tables", "fenced_code", "toc", "md_in_html"])
 
 
-def page(md_path, header, footer):
+def social_meta(meta, url, date):
+    """Open Graph and Twitter tags for link previews (Discord, Steam, ...) and JSON-LD for search
+    engines. A page's "summary:" is its description, its "image:" (under img/) the preview picture."""
+    title = meta.get("title", SITE_TITLE)
+    if title == "Home":
+        title = SITE_TITLE
+    description = meta.get("summary", SITE_DESCRIPTION)
+    image = SITE_URL + "img/" + meta.get("image", DEFAULT_IMAGE)
+    tags = [
+        ("name", "description", description),
+        ("name", "theme-color", THEME_COLOR),
+        ("property", "og:site_name", SITE_TITLE),
+        ("property", "og:type", "article" if date else "website"),
+        ("property", "og:title", title),
+        ("property", "og:description", description),
+        ("property", "og:url", url),
+        ("property", "og:image", image),
+        ("name", "twitter:card", "summary_large_image"),
+    ]
+    if date:
+        tags.append(("property", "article:published_time", date))
+    lines = [f'<meta {kind}="{key}" content="{html.escape(value)}">' for kind, key, value in tags]
+    lines.append(f'<link rel="canonical" href="{url}">')
+
+    org = {"@type": "Organization", "name": SITE_TITLE, "url": SITE_URL, "logo": SITE_URL + "img/logo.png"}
+    if date:
+        data = {"@context": "https://schema.org", "@type": "BlogPosting", "headline": title,
+                "description": description, "datePublished": date, "url": url, "mainEntityOfPage": url,
+                "image": image, "author": org, "publisher": org}
+    elif url == SITE_URL:
+        data = {"@context": "https://schema.org", "@type": "WebSite", "name": SITE_TITLE, "url": url,
+                "description": description, "publisher": org}
+    else:
+        data = {"@context": "https://schema.org", "@type": "WebPage", "name": title, "url": url,
+                "description": description, "isPartOf": {"@type": "WebSite", "name": SITE_TITLE, "url": SITE_URL}}
+    # "</" can't appear inside the script element.
+    lines.append('<script type="application/ld+json">' + json.dumps(data).replace("</", "<\\/") + "</script>")
+    return "\n    ".join(lines)
+
+
+def page(md_path, header, footer, url):
     meta, body = split_meta(md_path.read_text(encoding="utf-8"))
     title = meta.get("title", SITE_TITLE)
-    head = header.replace("{{title}}", esc(title)).replace("{{root}}", SITE_PATH)
+    is_post = md_path.parent.parent == SRC / "blog"
+    head = (header.replace("{{title}}", esc(title)).replace("{{meta}}", social_meta(meta, url, md_path.parent.name if is_post else None))
+            .replace("{{root}}", SITE_PATH))
     return head + render(body) + footer.replace("{{root}}", SITE_PATH)
 
 
@@ -218,7 +264,9 @@ def build():
             # page.md and dir/index.md both become .../index.html, for clean URLs.
             dst = OUT / (rel.parent / "index.html" if src.name == "index.md" else rel.with_suffix("") / "index.html")
             dst.parent.mkdir(parents=True, exist_ok=True)
-            dst.write_text(page(src, header, footer), encoding="utf-8")
+            rel_dir = dst.parent.relative_to(OUT).as_posix()
+            url = SITE_URL if rel_dir == "." else f"{SITE_URL}{rel_dir}/"
+            dst.write_text(page(src, header, footer, url), encoding="utf-8")
         else:
             dst = OUT / rel
             dst.parent.mkdir(parents=True, exist_ok=True)
