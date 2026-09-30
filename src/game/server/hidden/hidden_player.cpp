@@ -10,6 +10,7 @@
 #include "hidden_corpse.h"
 #include "gib.h"
 #include "player_pickup.h"
+#include "vphysics/friction.h"
 #include "hidden_player.h"
 #include "plugins/hidden_plugins.h"
 #include "hidden_gamerules.h"
@@ -42,7 +43,46 @@ bool HiddenIsCommandIssuedByServerAdmin( const char *pszCommand )
 	return false;
 }
 
-CON_COMMAND_F( hdn_spec_unrestricted, "hdn_spec_unrestricted <name|#userid> [0|1]: let a player also watch the Hidden and use the chase and free cameras", FCVAR_GAMEDLL )
+extern CBaseEntity *HiddenGetHeldEntity( CBasePlayer *pPlayer );
+
+// What a carrying player holds and which physics objects touch their physics shadow (a carried
+// object pushing its carrier shows here), with collision groups.
+CON_COMMAND_F( hdn_debug_carry, "Print what you carry and what touches your physics shadow", FCVAR_GAMEDLL | FCVAR_CHEAT )
+{
+	CBasePlayer *pPlayer = UTIL_GetCommandClient();
+	if ( !pPlayer )
+		return;
+
+	Msg( "player %s: group %d, use entity %s\n", pPlayer->GetPlayerName(), pPlayer->GetCollisionGroup(),
+		pPlayer->GetUseEntity() ? pPlayer->GetUseEntity()->GetClassname() : "none" );
+
+	CBaseEntity *pHeld = HiddenGetHeldEntity( pPlayer );
+	if ( pHeld )
+		Msg( "  holding %s #%d: group %d\n", pHeld->GetClassname(), pHeld->entindex(), pHeld->GetCollisionGroup() );
+
+	IPhysicsObject *pShadow = pPlayer->VPhysicsGetObject();
+	if ( !pShadow )
+	{
+		Msg( "  no physics shadow\n" );
+		return;
+	}
+
+	IPhysicsFrictionSnapshot *pSnapshot = pShadow->CreateFrictionSnapshot();
+	int nContacts = 0;
+	while ( pSnapshot->IsValid() )
+	{
+		IPhysicsObject *pOther = pSnapshot->GetObject( 1 );
+		CBaseEntity *pEntity = pOther ? static_cast<CBaseEntity *>( pOther->GetGameData() ) : NULL;
+		Msg( "  touching %s #%d: group %d%s\n", pEntity ? pEntity->GetClassname() : "?", pEntity ? pEntity->entindex() : -1,
+			pEntity ? pEntity->GetCollisionGroup() : -1, pOther && !pOther->IsMoveable() ? " (static)" : "" );
+		nContacts++;
+		pSnapshot->NextFrictionData();
+	}
+	pShadow->DestroyFrictionSnapshot( pSnapshot );
+	Msg( "  %d contacts\n", nContacts );
+}
+
+CON_COMMAND_F( hdn_spec_unrestricted,"hdn_spec_unrestricted <name|#userid> [0|1]: let a player also watch the Hidden and use the chase and free cameras", FCVAR_GAMEDLL )
 {
 	if ( !HiddenIsCommandIssuedByServerAdmin( "hdn_spec_unrestricted" ) )
 		return;
