@@ -45,6 +45,7 @@ SITE_TITLE = "Hidden: Rebuild"
 SITE_DESCRIPTION = "Hidden: Source Beta 4b, rebuilt on the current Source SDK 2013: the original game with native Linux servers, bots and the popular plugins built in."
 DEFAULT_IMAGE = "docks.jpg"
 THEME_COLOR = "#cc0000"
+PREVIEW = "preview.jpg"
 REPO = "phit/hidden-2013"
 FEED_LIMIT = 5
 
@@ -183,14 +184,13 @@ def render(md_text):
     return markdown.markdown(md_text, extensions=["tables", "fenced_code", "toc", "md_in_html"])
 
 
-def social_meta(meta, url, date):
+def social_meta(meta, url, date, image):
     """Open Graph and Twitter tags for link previews (Discord, Steam, ...) and JSON-LD for search
-    engines. A page's "summary:" is its description, its "image:" (under img/) the preview picture."""
+    engines. A page's "summary:" is its description; image is the preview picture's URL."""
     title = meta.get("title", SITE_TITLE)
     if title == "Home":
         title = SITE_TITLE
     description = meta.get("summary", SITE_DESCRIPTION)
-    image = SITE_URL + "img/" + meta.get("image", DEFAULT_IMAGE)
     tags = [
         ("name", "description", description),
         ("name", "theme-color", THEME_COLOR),
@@ -227,7 +227,17 @@ def page(md_path, header, footer, url):
     meta, body = split_meta(md_path.read_text(encoding="utf-8"))
     title = meta.get("title", SITE_TITLE)
     is_post = md_path.parent.parent == SRC / "blog"
-    head = (header.replace("{{title}}", esc(title)).replace("{{meta}}", social_meta(meta, url, md_path.parent.name if is_post else None))
+    # A post's own screenshot, preview.jpg next to it, heads its link previews and follows its intro
+    # (before the first section); other pages use an image: under img/, or the default.
+    if is_post and (md_path.parent / PREVIEW).exists():
+        image = url + PREVIEW
+        figure = f"![{title}]({PREVIEW})\n\n"
+        m = re.search(r"^## ", body, re.M)
+        body = body[:m.start()] + figure + body[m.start():] if m else body.rstrip() + "\n\n" + figure
+    else:
+        image = SITE_URL + "img/" + meta.get("image", DEFAULT_IMAGE)
+    head = (header.replace("{{title}}", esc(title))
+            .replace("{{meta}}", social_meta(meta, url, md_path.parent.name if is_post else None, image))
             .replace("{{root}}", SITE_PATH))
     return head + render(body) + footer.replace("{{root}}", SITE_PATH)
 
