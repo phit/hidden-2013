@@ -82,8 +82,11 @@ Outside Pterodactyl, the Linux server package's `hidden_update.sh` does the same
 
 ## Configuring
 
-- **`cfg/server.cfg`** runs at every map start: hostname, passwords, and the cvars below. Old
-  Hidden: Source server configs work, including the [plugins]({{root}}plugins/)' cvars.
+- **`cfg/server.cfg`** runs at every map start: hostname, passwords, and the cvars below. Start
+  from **`cfg/server_example.cfg`**: every server cvar of the release and its plugins, with its
+  default and what it does. Copy it to `server.cfg`; updates replace the example, never your copy.
+  Until you have a `server.cfg`, the server runs the Beta 4b install's. Old Hidden: Source server
+  configs work, including the [plugins]({{root}}plugins/)' cvars.
 - **`cfg/mapcycle.txt`** is the map rotation. The one that ships is Beta 4b's, with the fixed
   `hdn_decay` and `hdn_origin`. Maps the server doesn't have are skipped, and a missing `_fixed` map
   falls back to the original.
