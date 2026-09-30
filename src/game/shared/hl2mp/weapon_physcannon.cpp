@@ -680,9 +680,21 @@ public:
 private:
 	CGrabController		m_grabController;
 	CBasePlayer			*m_pPlayer;
+#ifdef HIDDEN
+	int					m_iOldCollisionGroup;
+#endif
 };
 
 LINK_ENTITY_TO_CLASS( player_pickup, CPlayerPickupController );
+
+#if defined( HIDDEN ) && !defined( CLIENT_DLL )
+// What a player carries (hdn_debug_carry).
+CBaseEntity *HiddenGetHeldEntity( CBasePlayer *pPlayer )
+{
+	CPlayerPickupController *pController = dynamic_cast<CPlayerPickupController *>( pPlayer->GetUseEntity() );
+	return pController ? pController->GetGrabController().GetAttached() : NULL;
+}
+#endif
 
 //-----------------------------------------------------------------------------
 // Purpose: 
@@ -709,12 +721,20 @@ void CPlayerPickupController::Init( CBasePlayer *pPlayer, CBaseEntity *pObject )
 		pOwner->EnableSprint( false );
 	}
 
+#ifdef HIDDEN
+	// Beta 4b carried everything as debris, so nothing held blocks a player (least of all its
+	// carrier, pouncing), and put the old group back on release. HL2MP's interactive debris
+	// collides with players.
+	m_iOldCollisionGroup = pObject->GetCollisionGroup();
+	pObject->SetCollisionGroup( COLLISION_GROUP_DEBRIS );
+#else
 	// If the target is debris, convert it to non-debris
 	if ( pObject->GetCollisionGroup() == COLLISION_GROUP_DEBRIS )
 	{
 		// Interactive debris converts back to debris when it comes to rest
 		pObject->SetCollisionGroup( COLLISION_GROUP_INTERACTIVE_DEBRIS );
 	}
+#endif
 
 	// done so I'll go across level transitions with the player
 	SetParent( pPlayer );
@@ -740,6 +760,11 @@ void CPlayerPickupController::Shutdown( bool bThrown )
 {
 #ifndef CLIENT_DLL
 	CBaseEntity *pObject = m_grabController.GetAttached();
+
+#ifdef HIDDEN
+	if ( pObject )
+		pObject->SetCollisionGroup( m_iOldCollisionGroup );
+#endif
 
 	bool bClearVelocity = false;
 	if ( !bThrown && pObject && pObject->VPhysicsGetObject() && pObject->VPhysicsGetObject()->GetContactPoint(NULL,NULL) )
