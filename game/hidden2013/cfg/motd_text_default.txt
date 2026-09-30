@@ -5,5 +5,5 @@ Hidden: Source Beta 4b, rebuilt on today's Source SDK 2013.
 IRIS: find the Hidden and take it down together.
 The Hidden: pick them off one by one.
 
-Website: https://phit.github.io/hidden-2013/
+Website: https://www.hidden-rebuild.com/
 Discord: https://discord.gg/8fvmPxjfaF
