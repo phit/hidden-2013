@@ -40,7 +40,7 @@ ROOT = WEB.parent
 SRC = WEB / "src"
 OUT = WEB / "_out"
 
-SITE_URL = "https://phit.github.io/hidden-2013/"
+SITE_URL = "https://www.hidden-rebuild.com/"
 SITE_TITLE = "Hidden: Rebuild"
 SITE_DESCRIPTION = "Hidden: Source Beta 4b, rebuilt on the current Source SDK 2013: the original game with native Linux servers, bots and the popular plugins built in."
 DEFAULT_IMAGE = "docks.jpg"
@@ -154,7 +154,7 @@ def blog_posts():
 
 
 def blog_list_block():
-    items = [f'<li><a href="{SITE_PATH}blog/{p["date"]}/">{p["date"]} - {esc(p["title"])}</a></li>' for p in blog_posts()]
+    items = [f'<li><a href="{{{{root}}}}blog/{p["date"]}/">{p["date"]} - {esc(p["title"])}</a></li>' for p in blog_posts()]
     return "<ul>\n" + "\n".join(items) + "\n</ul>"
 
 
@@ -166,11 +166,10 @@ BLOCKS = {
     "PLUGINS": plugins_block,
 }
 
-# The site's path below the host ("/hidden-2013/" on GitHub Pages), for absolute links.
-SITE_PATH = "/" + SITE_URL.split("://", 1)[1].split("/", 1)[1]
 
 
-def render(md_text):
+def render(md_text, root):
+    """root: the site's root relative to the page ("../" and so on), or SITE_URL for the feed."""
     cache = {}
 
     def fill(m):
@@ -180,7 +179,7 @@ def render(md_text):
         return cache[name]
 
     md_text = re.sub(r"^<!-- (" + "|".join(BLOCKS) + r") -->$", fill, md_text, flags=re.M)
-    md_text = md_text.replace("{{root}}", SITE_PATH)
+    md_text = md_text.replace("{{root}}", root)
     return markdown.markdown(md_text, extensions=["tables", "fenced_code", "toc", "md_in_html"])
 
 
@@ -227,6 +226,8 @@ def page(md_path, header, footer, url):
     meta, body = split_meta(md_path.read_text(encoding="utf-8"))
     title = meta.get("title", SITE_TITLE)
     is_post = md_path.parent.parent == SRC / "blog"
+    # Links are relative, so the site works wherever it's served; only previews and the feed need SITE_URL.
+    root = "../" * url[len(SITE_URL):].count("/") or "./"
     # A post's own screenshot, preview.jpg next to it, heads its link previews and follows its intro
     # (before the first section); other pages use an image: under img/, or the default.
     if is_post and (md_path.parent / PREVIEW).exists():
@@ -238,8 +239,8 @@ def page(md_path, header, footer, url):
         image = SITE_URL + "img/" + meta.get("image", DEFAULT_IMAGE)
     head = (header.replace("{{title}}", esc(title))
             .replace("{{meta}}", social_meta(meta, url, md_path.parent.name if is_post else None, image))
-            .replace("{{root}}", SITE_PATH))
-    return head + render(body) + footer.replace("{{root}}", SITE_PATH)
+            .replace("{{root}}", root))
+    return head + render(body, root) + footer.replace("{{root}}", root)
 
 
 def atom_feed():
@@ -255,7 +256,7 @@ def atom_feed():
         _, body = split_meta(p["path"].read_text(encoding="utf-8"))
         out += ["<entry>", f'<title>{esc(p["title"])}</title>', f'<link rel="alternate" type="text/html" href="{url}"/>',
                 f'<updated>{p["date"]}T00:00:00Z</updated>', f'<published>{p["date"]}T00:00:00Z</published>',
-                f'<summary>{esc(p["summary"])}</summary>', f'<content type="html">{html.escape(render(body))}</content>',
+                f'<summary>{esc(p["summary"])}</summary>', f'<content type="html">{html.escape(render(body, SITE_URL))}</content>',
                 f"<id>{url}</id>", "</entry>"]
     out.append("</feed>")
     return "\n".join(out) + "\n"
@@ -294,13 +295,8 @@ def main():
     build()
     if args.serve:
         import functools, http.server
-        # Serve so that SITE_PATH works locally: _out appears at /hidden-2013/.
-        root = OUT.parent / "_serve"
-        if root.exists():
-            shutil.rmtree(root)
-        shutil.copytree(OUT, root / SITE_PATH.strip("/"))
-        handler = functools.partial(http.server.SimpleHTTPRequestHandler, directory=str(root))
-        print(f"serving http://localhost:8000{SITE_PATH}")
+        handler = functools.partial(http.server.SimpleHTTPRequestHandler, directory=str(OUT))
+        print("serving http://localhost:8000/")
         http.server.ThreadingHTTPServer(("localhost", 8000), handler).serve_forever()
 
 

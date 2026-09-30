@@ -7,7 +7,7 @@
     "exported_at": "2026-09-28T20:30:00+00:00",
     "name": "Hidden: Rebuild",
     "author": "2097483+phit@users.noreply.github.com",
-    "description": "Dedicated server for Hidden: Rebuild, Hidden: Source Beta 4b rebuilt on Source SDK 2013 (https://phit.github.io/hidden-2013/). Installs Source SDK Base 2013's dedicated server, Beta 4b and the mod, and updates the mod from GitHub's releases or snapshots on every start.",
+    "description": "Dedicated server for Hidden: Rebuild, Hidden: Source Beta 4b rebuilt on Source SDK 2013 (https://www.hidden-rebuild.com/). Installs Source SDK Base 2013's dedicated server, Beta 4b and the mod, and updates the mod from GitHub's releases or snapshots on every start.",
     "features": [
         "steam_disk_space"
     ],
