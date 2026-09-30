@@ -45,6 +45,34 @@ bool HiddenIsCommandIssuedByServerAdmin( const char *pszCommand )
 
 extern CBaseEntity *HiddenGetHeldEntity( CBasePlayer *pPlayer );
 
+// Runs a client command as bots, as TF's bot_command does (not built for HL2MP): tests of what
+// marines do for each other, such as "bot_command all radio 3" for an ammo request.
+CON_COMMAND_F( bot_command, "<bot name|all> <command...>: run a client command as that bot", FCVAR_GAMEDLL | FCVAR_CHEAT )
+{
+	if ( args.ArgC() < 3 )
+	{
+		Msg( "Usage: bot_command <bot name|all> <command...>\n" );
+		return;
+	}
+
+	char szLine[512] = "";
+	for ( int i = 2; i < args.ArgC(); i++ )
+	{
+		V_strncat( szLine, args[i], sizeof( szLine ) );
+		V_strncat( szLine, " ", sizeof( szLine ) );
+	}
+	CCommand command;
+	command.Tokenize( szLine );
+
+	const bool bAll = FStrEq( args[1], "all" );
+	for ( int i = 1; i <= gpGlobals->maxClients; i++ )
+	{
+		CBasePlayer *pBot = UTIL_PlayerByIndex( i );
+		if ( pBot && pBot->IsBot() && ( bAll || !V_stricmp( pBot->GetPlayerName(), args[1] ) ) )
+			g_pGameRules->ClientCommand( pBot, command );
+	}
+}
+
 // What a carrying player holds and which physics objects touch their physics shadow (a carried
 // object pushing its carrier shows here), with collision groups.
 CON_COMMAND_F( hdn_debug_carry, "Print what you carry and what touches your physics shadow", FCVAR_GAMEDLL | FCVAR_CHEAT )
