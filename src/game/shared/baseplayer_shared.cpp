@@ -256,7 +256,14 @@ void CBasePlayer::ItemPostFrame()
 
 
 	// check if the player is using something
+#if defined( HIDDEN ) && defined( CLIENT_DLL )
+	// What's used (HL2's pickup controller, for a carried prop or corpse) is server-only, so the
+	// handle doesn't resolve here. That it's set is what counts: otherwise the client predicts the
+	// weapon the server holds still, and every tick is a prediction error.
+	if ( m_hUseEntity.IsValid() )
+#else
 	if ( m_hUseEntity != NULL )
+#endif
 	{
 #if !defined( CLIENT_DLL )
 		Assert( !IsInAVehicle() );
