@@ -17,6 +17,7 @@ extern ConVar hdn_selectmethod;
 extern ConVar hdn_staminadrain;
 extern ConVar hdn_limitbombs;
 extern ConVar hdn_radio_limit;
+extern ConVar hdn_hidehiddendecals;
 extern ConVar hdn_deathnotices;
 extern ConVar sv_pigstick;
 extern ConVar hdn_deathwait;

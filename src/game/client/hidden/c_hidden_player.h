@@ -69,6 +69,10 @@ public:
 	virtual void ClientThink( void );
 
 	virtual ShadowType_t ShadowCastType( void );
+	virtual void AddDecal( const Vector &rayStart, const Vector &rayEnd, const Vector &decalCenter, int hitbox,
+		int decalIndex, bool doTrace, trace_t &tr, int maxLODToDecal = ADDDECAL_TO_ALL_LODS );
+	virtual void AddColoredDecal( const Vector &rayStart, const Vector &rayEnd, const Vector &decalCenter, int hitbox,
+		int decalIndex, bool doTrace, trace_t &tr, Color cColor, int maxLODToDecal = ADDDECAL_TO_ALL_LODS );
 
 	// hidden_player_shared.cpp
 	virtual void PlayStepSound( Vector &vecOrigin, surfacedata_t *psurface, float fvol, bool force );

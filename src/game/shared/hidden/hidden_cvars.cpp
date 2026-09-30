@@ -17,6 +17,7 @@ ConVar hdn_selectmethod( "hdn_selectmethod", "0", FCVAR_REPLICATED | FCVAR_NOTIF
 ConVar hdn_staminadrain( "hdn_staminadrain", "-0.095", FCVAR_REPLICATED | FCVAR_NOTIFY, "Stamina the Hidden gains per tick while clinging to a wall; negative, so clinging drains it" );
 ConVar hdn_limitbombs( "hdn_limitbombs", "1", FCVAR_REPLICATED | FCVAR_NOTIFY, "Give the Hidden half as many pipe bombs as there are marines (rounded up), less one, instead of 3" );
 ConVar hdn_radio_limit( "hdn_radio_limit", "5", FCVAR_REPLICATED | FCVAR_NOTIFY, "Seconds a player has to wait between radio messages and taunts", true, 0.0f, false, 0.0f );
+ConVar hdn_hidehiddendecals( "hdn_hidehiddendecals", "0", FCVAR_REPLICATED | FCVAR_NOTIFY, "Keep blood and bullet impact decals off the Hidden; Beta 4b let them show where he'd been hit" );
 ConVar hdn_deathnotices( "hdn_deathnotices", "0", FCVAR_REPLICATED | FCVAR_NOTIFY, "Show the Hidden's kills in the kill feed (the server log always has them)" );
 ConVar sv_pigstick( "sv_pigstick", "1", FCVAR_REPLICATED | FCVAR_NOTIFY, "Enables the Hidden's pigstick attack" );
 ConVar hdn_deathwait( "hdn_deathwait", "5", FCVAR_REPLICATED | FCVAR_NOTIFY, "OverRun: seconds before a killed player comes back (four times as long after a marine's suicide)" );

@@ -10,6 +10,7 @@
 #include "weapon_hiddenbase.h"
 #include "hidden_auratrail.h"
 #include "in_buttons.h"
+#include "hidden_cvars.h"
 
 // hidden_player_shared.h maps CHidden_Player to this class, but the network class name below must
 // stay the server's.
@@ -203,6 +204,26 @@ ShadowType_t C_Hidden_Player::ShadowCastType( void )
 		return SHADOWS_NONE;
 
 	return BaseClass::ShadowCastType();
+}
+
+// Blood and impact decals draw on top of the Hidden's cloak and give him away, as in Beta 4b;
+// hdn_hidehiddendecals 1 keeps them off.
+void C_Hidden_Player::AddDecal( const Vector &rayStart, const Vector &rayEnd, const Vector &decalCenter, int hitbox,
+	int decalIndex, bool doTrace, trace_t &tr, int maxLODToDecal )
+{
+	if ( GetTeamNumber() == TEAM_HIDDEN && hdn_hidehiddendecals.GetBool() )
+		return;
+
+	BaseClass::AddDecal( rayStart, rayEnd, decalCenter, hitbox, decalIndex, doTrace, tr, maxLODToDecal );
+}
+
+void C_Hidden_Player::AddColoredDecal( const Vector &rayStart, const Vector &rayEnd, const Vector &decalCenter, int hitbox,
+	int decalIndex, bool doTrace, trace_t &tr, Color cColor, int maxLODToDecal )
+{
+	if ( GetTeamNumber() == TEAM_HIDDEN && hdn_hidehiddendecals.GetBool() )
+		return;
+
+	BaseClass::AddColoredDecal( rayStart, rayEnd, decalCenter, hitbox, decalIndex, doTrace, tr, cColor, maxLODToDecal );
 }
 
 const QAngle &C_Hidden_Player::GetRenderAngles( void )
