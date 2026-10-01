@@ -6,6 +6,7 @@ The Hidden: Rebuild logo, banner and icon.
 |---|---|
 | `logo.svg` / `.png` | HIDDEN REBUILD, transparent background |
 | `logo-stacked.svg` / `.png` | HIDDEN over REBUILD, transparent background |
+| `logo-splash.svg` / `.png` | The banner without its black: HIDDEN REBUILD on the blood splash, transparent (PNG at 2x) |
 | `banner.svg` / `.png` | 763×174 header for the site and launcher, on black with a blood splash (PNG at 2x) |
 | `icon.svg` / `.png` / `.ico` | The knife alone; the `.ico` is the game launcher's and the Hidden: Rebuild Launcher's icon |
 

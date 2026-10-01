@@ -207,6 +207,17 @@ def main():
     banner_png = png(banner, width=763 * 2).convert("RGB")
     banner_png.save(HERE / "banner.png")
 
+    # The banner's logo and splash without the black, for light and dark pages (the README), cut
+    # down to the artwork's width: the banner's own sides are empty.
+    splash = logo(763, 174, size=92, splash=True)
+    alpha = png(splash, width=763).getchannel("A").point(lambda a: 255 if a > 8 else 0)
+    left, _, right, _ = alpha.getbbox()
+    left, right = max(left - 2, 0), min(right + 2, 763)
+    splash = splash.replace('viewBox="0 0 763.0 174.0" width="763.0"',
+                            f'viewBox="{left} 0 {right - left} 174.0" width="{right - left}"', 1)
+    (HERE / "logo-splash.svg").write_text(splash + "\n")
+    png(splash, width=(right - left) * 2).save(HERE / "logo-splash.png")
+
     all_sizes = [16, 24, 32, 48, 64, 128, 256]
     ico(HERE / "icon.ico", all_sizes)
     ico(ROOT / "src" / "launcher_main" / "res" / "hidden2013.ico", all_sizes)
