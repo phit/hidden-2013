@@ -74,7 +74,7 @@ static bool OverlapsHurtTrigger( const Vector &vecMins, const Vector &vecMaxs )
 	return false;
 }
 
-// Marines take fall damage from PLAYER_MAX_SAFE_FALL_SPEED on, a drop of about 230 units at the
+// Marines take fall damage from PLAYER_MAX_SAFE_FALL_SPEED on, a drop of about 210 units at the
 // default gravity, so their bots keep a little under that. The Hidden takes none.
 float CHiddenBotLocomotion::GetDeathDropHeight( void ) const
 {
