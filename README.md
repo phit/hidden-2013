@@ -1,54 +1,47 @@
-# Hidden: Source on Source SDK 2013
+<p align="center">
+  <a href="https://www.hidden-rebuild.com/"><img src="branding/logo-splash.png" alt="Hidden: Rebuild" width="600"></a>
+</p>
 
-A reimplementation of [Hidden: Source](http://www.hidden-source.com) (Calibre Studios, Beta 4b, 2006) on
-the current Source SDK 2013 Multiplayer, reusing the original mod's content.
+<p align="center">
+  <b><a href="https://www.hidden-rebuild.com/">www.hidden-rebuild.com</a></b>
+  · <a href="https://www.hidden-rebuild.com/install/">Install</a>
+  · <a href="https://www.hidden-rebuild.com/servers/">Servers</a>
+  · <a href="https://www.hidden-rebuild.com/plugins/">Plugins</a>
+  · <a href="../../releases/latest">Latest release</a>
+</p>
 
-The original game code was lost; this is a full rebuild of the game on the modern SDK
-with the old assets. This repository is a fork of
-[ValveSoftware/source-sdk-2013](https://github.com/ValveSoftware/source-sdk-2013) with a `HIDDEN` game
-target built on the HL2MP code base. Valve's original README is in [README.sdk.md](README.sdk.md).
+# Hidden: Rebuild
 
-## Status
+[Hidden: Source](http://www.hidden-source.com) (Calibre Studios, Beta 4b, 2006), rebuilt on the
+current Source SDK 2013 Multiplayer with the original mod's content: the same game, on a maintained
+engine, with 64-bit Windows and Linux builds, native Linux dedicated servers, bots, and the popular
+server plugins built in.
 
-Playable test builds. The Hidden and IRIS play full rounds on the Beta 4b maps: weapons and
-equipment, the Hidden's pounce, cling, aura and pigstick, the HUD, menus and spectating, and bots for
-both teams (`bot_add`). The goal is to match Beta 4b first; differences are listed in the docs.
+The original game code was lost, so this is a full rebuild of the game code on the modern SDK. This
+repository is a fork of [ValveSoftware/source-sdk-2013](https://github.com/ValveSoftware/source-sdk-2013)
+with a `HIDDEN` game target built on the HL2MP code base. Valve's original README is in
+[README.sdk.md](README.sdk.md).
 
-## Installing
+## Playing
 
-1. Install **Source SDK Base 2013 Multiplayer** from Steam (Library, Tools).
-2. Install **Hidden: Source Beta 4b** into `steamapps/sourcemods/hidden`, as the original installer
-   does. Its maps, models, sounds and materials are used from there; this mod ships none of them.
-3. Download a build from the [releases](../../releases) (`latest` is the newest `main` build) and
-   extract it into `steamapps/sourcemods`, next to `hidden`:
+Get the **[Hidden: Rebuild Launcher](https://github.com/phit/hidden-2013-launcher/releases/latest)**
+([Windows](https://github.com/phit/hidden-2013-launcher/releases/latest/download/HiddenLauncher.exe),
+[Linux](https://github.com/phit/hidden-2013-launcher/releases/latest/download/HiddenLauncher-linux)).
+It installs the game and keeps it updated, sets up Hidden: Source Beta 4b (whose maps, models and
+sounds the game uses) and Source SDK Base 2013 Multiplayer, and starts the game ready for
+VAC-secured servers.
 
-   ```
-   steamapps/sourcemods/
-     hidden/        Hidden: Source Beta 4b
-     hidden2013/    this mod
-   ```
+The [install page](https://www.hidden-rebuild.com/install/) covers the launcher and installing by
+hand from the [releases](../../releases). The [blog](https://www.hidden-rebuild.com/) has what's new
+in each release.
 
-4. Restart Steam and start **Hidden: Rebuild** from the library.
+## Running a server
 
-The Windows and Linux builds are 64-bit only. The `-symbols` archives hold debug information for
-crash reports; players don't need them.
-
-### Dedicated server
-
-Install Source SDK Base 2013 Dedicated Server with SteamCMD (app 244310), then extract the **server
-package** (`hidden2013-<version>-windows-server.zip` or `-linux-server.tar.gz`) into its folder and
-put Beta 4b's `hidden` folder there too. SteamCMD's server only has 32-bit launchers; the package
-brings 64-bit ones, `srcds_win64.exe` and `srcds_linux64`:
-
-```
-srcds_win64.exe -console -game hidden2013 +maxplayers 12 +map hdn_docks
-./srcds_linux64 -console -game hidden2013 +maxplayers 12 +map hdn_docks
-```
-
-On Linux, first lower-case the Beta 4b folder's names (`sh hidden2013/lowercase_beta4b.sh`; the
-engine looks paths up in lower case) and link SteamCMD's 64-bit `steamclient.so` into
-`~/.steam/sdk64`. The
-[servers page](https://www.hidden-rebuild.com/servers/) has the details.
+Each release has server packages for Source SDK Base 2013 Dedicated Server (SteamCMD app 244310) on
+Windows and Linux, and there's an egg for Pterodactyl panels. The
+[servers page](https://www.hidden-rebuild.com/servers/) explains installing, updating and
+configuring, and lists every cvar; the [plugins page](https://www.hidden-rebuild.com/plugins/)
+lists the built-in plugins.
 
 ## Layout
 
