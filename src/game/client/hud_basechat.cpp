@@ -1168,7 +1168,14 @@ void CBaseHudChat::Printf( int iFilter, const char *fmt, ... )
 	Q_vsnprintf(msg, sizeof( msg), fmt, marker);
 	va_end(marker);
 
+#ifdef HIDDEN
+	// Beta 4b drew what the game prints here (joins, leaves, team changes, server text) in the chat
+	// line's text colour, its ClientScheme's base FgColor "184 224 232 150": a translucent pale grey,
+	// not the console's green and yellow.
+	ChatPrintf( 0, iFilter, "%cB8E0E896%s", COLOR_HEXCODE_ALPHA, msg );
+#else
 	ChatPrintf( 0, iFilter, "%s", msg );
+#endif
 }
 
 //-----------------------------------------------------------------------------
@@ -1571,6 +1578,13 @@ void CBaseHudChatLine::Colorize( int alpha )
 			{
 				color[3] = alpha;
 			}
+#ifdef HIDDEN
+			else
+			{
+				// Translucent text (the game's notices) still fades out with the line.
+				color[3] = MIN( color[3], alpha );
+			}
+#endif
 
 			InsertColorChange( color );
 			InsertString( wText );
