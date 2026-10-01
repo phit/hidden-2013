@@ -238,6 +238,22 @@ const char *HiddenGetDeadChatPrefix( bool bTeamOnly, CBasePlayer *pPlayer )
 	}
 }
 
+static ConVar hdn_teamchat_prefix( "hdn_teamchat_prefix", "1", FCVAR_NOTIFY, "Mark team chat with \"(Team)\" in front of the sender; Beta 4b didn't, so team and public lines looked the same" );
+
+// Host_Say's prefix with the team chat marker added.
+const char *HiddenTeamChatPrefix( bool bTeamOnly, const char *pszPrefix )
+{
+	if ( !bTeamOnly || !hdn_teamchat_prefix.GetBool() )
+		return pszPrefix;
+
+	static char s_szPrefix[64];
+	if ( pszPrefix && *pszPrefix )
+		Q_snprintf( s_szPrefix, sizeof( s_szPrefix ), "(Team) %s", pszPrefix );
+	else
+		Q_strncpy( s_szPrefix, "(Team)", sizeof( s_szPrefix ) );
+	return s_szPrefix;
+}
+
 extern bool g_bHiddenDeadSay;
 extern void Host_Say( edict_t *pEdict, const CCommand &args, bool teamonly );
 
