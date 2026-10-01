@@ -854,6 +854,58 @@ void CHidden_Player::PickupObject( CBaseEntity *pObject, bool bLimitMassAndSize 
 	PlayerPickupObject( this, pObject );
 }
 
+// In Beta 4b an object let go of while it overlaps the Hidden only collides with him again once
+// he's clear of it (reported by players; the game code is the same as ours, so it came from the 2006
+// engine). Owning it does that for him alone, in movement and physics, here and in prediction.
+void CHidden_Player::OnObjectReleased( CBaseEntity *pObject )
+{
+	if ( !pObject || !IsAlive() || !IsInsideObject( pObject ) )
+		return;
+
+	FOR_EACH_VEC( m_ReleasedObjects, i )
+	{
+		if ( m_ReleasedObjects[i].hObject == pObject )
+			return;	// still ours from an earlier release
+	}
+
+	ReleasedObject_t &released = m_ReleasedObjects[ m_ReleasedObjects.AddToTail() ];
+	released.hObject = pObject;
+	released.hOldOwner = pObject->GetOwnerEntity();
+	pObject->SetOwnerEntity( this );
+	DevMsg( 2, "Released %s inside %s: no collisions between them until clear\n", pObject->GetDebugName(), GetPlayerName() );
+}
+
+bool CHidden_Player::IsInsideObject( CBaseEntity *pObject )
+{
+	Ray_t ray;
+	ray.Init( GetAbsOrigin(), GetAbsOrigin(), GetPlayerMins(), GetPlayerMaxs() );
+	trace_t tr;
+	enginetrace->ClipRayToEntity( ray, PlayerSolidMask(), pObject, &tr );
+	return tr.startsolid;
+}
+
+void CHidden_Player::UpdateReleasedObjects( void )
+{
+	FOR_EACH_VEC_BACK( m_ReleasedObjects, i )
+	{
+		CBaseEntity *pObject = m_ReleasedObjects[i].hObject;
+		if ( pObject )
+		{
+			// Something else took it over meanwhile: leave its owner be.
+			if ( pObject->GetOwnerEntity() != this )
+				pObject = NULL;
+			else if ( IsAlive() && IsInsideObject( pObject ) )
+				continue;
+			else
+			{
+				pObject->SetOwnerEntity( m_ReleasedObjects[i].hOldOwner );
+				DevMsg( 2, "%s and %s are clear: they collide again\n", GetPlayerName(), pObject->GetDebugName() );
+			}
+		}
+		m_ReleasedObjects.Remove( i );
+	}
+}
+
 // Beta 4b had only its two spectator modes; anything else (roaming, chase, the last mode HL2MP
 // remembers) becomes the cameras.
 bool CHidden_Player::SetObserverMode( int mode )
@@ -1039,6 +1091,9 @@ void CHidden_Player::PostThink( void )
 
 	if ( m_bStunned )
 		UpdateStun();
+
+	if ( m_ReleasedObjects.Count() )
+		UpdateReleasedObjects();
 }
 
 void CHidden_Player::SetAnimation( PLAYER_ANIM playerAnim )

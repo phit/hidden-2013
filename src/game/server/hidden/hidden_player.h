@@ -57,6 +57,8 @@ public:
 	virtual void GetStepSoundVelocities( float *velwalk, float *velrun );
 	float UpdateMaxSpeed( int nButtons, int nOldButtons );
 	virtual void PickupObject( CBaseEntity *pObject, bool bLimitMassAndSize = true );
+	// The pickup controller let go of pObject (its collision group is back already).
+	void OnObjectReleased( CBaseEntity *pObject );
 
 	// radio <n>: voice calls and taunts (docs/spec/teams-classes.md). Marines who call for ammo can
 	// be resupplied by a support marine's +use.
@@ -219,6 +221,16 @@ private:
 	int m_iBoostCount;
 	CTakeDamageInfo m_KillInfo;	// for the corpse
 	bool m_bUseDroppedObject;	// this +use press let go of what we held
+
+	// Objects let go of inside us, which we own (so neither collides with the other) until we're clear.
+	struct ReleasedObject_t
+	{
+		EHANDLE hObject;
+		EHANDLE hOldOwner;
+	};
+	CUtlVector<ReleasedObject_t> m_ReleasedObjects;
+	bool IsInsideObject( CBaseEntity *pObject );
+	void UpdateReleasedObjects( void );
 	bool m_bAmmoReceived;		// resupplied this life; no more ammo calls
 	CUtlVector<EHANDLE> m_Cameras;	// the map's info_spectator cameras, in map order
 	float m_flRadioTimer;		// no radio before this

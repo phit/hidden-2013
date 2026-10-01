@@ -27,6 +27,9 @@
 	#include "props.h"
 	#include "te_effect_dispatch.h"
 	#include "util.h"
+#ifdef HIDDEN
+	#include "hidden_player.h"
+#endif
 #endif
 
 #include "gamerules.h"
@@ -763,7 +766,12 @@ void CPlayerPickupController::Shutdown( bool bThrown )
 
 #ifdef HIDDEN
 	if ( pObject )
+	{
 		pObject->SetCollisionGroup( m_iOldCollisionGroup );
+		CHidden_Player *pHidden = ToHiddenPlayer( m_pPlayer );
+		if ( pHidden )
+			pHidden->OnObjectReleased( pObject );
+	}
 #endif
 
 	bool bClearVelocity = false;
