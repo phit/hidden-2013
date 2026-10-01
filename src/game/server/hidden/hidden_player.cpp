@@ -977,8 +977,9 @@ void CHidden_Player::PlayerDeathThink( void )
 {
 	BaseClass::PlayerDeathThink();
 
-	// No respawning during a round: the dead watch until the next one.
-	if ( !IsObserver() && gpGlobals->curtime > GetDeathTime() + DEATH_ANIMATION_TIME )
+	// No respawning during a round: the dead watch until the next one. Beta 4b starts observing as
+	// soon as the dying ends (the base class marks the player dead), without the SDK's 3 seconds.
+	if ( !IsObserver() && m_lifeState != LIFE_DYING )
 		BecomeObserver();
 }
 
