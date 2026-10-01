@@ -385,6 +385,7 @@ void CHidden_Player::SetupMarine( void )
 	m_nBody = m_iCharacter;
 	SetBodygroup( 2, 2 );
 	SetMaxSpeed( HIDDEN_MARINE_SPEED );
+	SetDefaultFOV( 0 );
 	SetFOV( this, 0 );
 	SetCollisionGroup( HIDDEN_COLLISION_GROUP_MARINE );
 
@@ -397,7 +398,11 @@ void CHidden_Player::SetupHidden( void )
 	m_nBody = 1;
 	SetMaxSpeed( HIDDEN_HIDDEN_SPEED );
 	m_flStamina = HIDDEN_STAMINA_MAX;
-	SetFOV( this, HIDDEN_HIDDEN_FOV );
+	// Beta 4b sets the Hidden's 110 as a zoom (SetFOV). Here HL2's player would undo that on every
+	// weapon switch (CHL2_Player::Weapon_Switch stops any "zoom"), the knife's first of all, so make
+	// it his default instead: same view, and the viewmodel widens with it as in Beta 4b.
+	SetDefaultFOV( HIDDEN_HIDDEN_FOV );
+	SetFOV( this, 0 );
 	SetCollisionGroup( HIDDEN_COLLISION_GROUP_HIDDEN );
 
 	GiveHiddenLoadout();
@@ -514,6 +519,7 @@ void CHidden_Player::BecomeObserver( void )
 		return;
 
 	RemoveAllItems( true );
+	SetDefaultFOV( 0 );	// a dead Hidden's 110 doesn't carry over to spectating
 	State_Transition( STATE_OBSERVER_MODE );
 }
 
