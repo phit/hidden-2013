@@ -19,6 +19,22 @@
 		"MenuItemColor"	"Orange"
 		"MenuBoxColor"	"0 0 0 128"
 	}
+	// The kill feed. SDK 2013's sizes itself to the whole screen and draws from its right edge, so
+	// Beta 4b's xpos ("r640", for a 628-wide panel) put the notices off-screen on widescreens.
+	HudDeathNotice
+	{
+		"fieldName"		"HudDeathNotice"
+		"visible"		"1"
+		"enabled"		"1"
+		"xpos"			"0"
+		"ypos"			"12"
+		"wide"			"628"
+		"tall"			"468"
+		"MaxDeathNotices"	"4"
+		"LineHeight"	"22"
+		"RightJustify"	"1"
+		"TextFont"		"Default"
+	}
 	AchievementNotificationPanel
 	{
 		"fieldName"		"AchievementNotificationPanel"
