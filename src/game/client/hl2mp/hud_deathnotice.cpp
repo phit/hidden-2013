@@ -282,10 +282,17 @@ void CHudDeathNotice::FireGameEvent( IGameEvent * event )
 	int victim = engine->GetPlayerForUserID( event->GetInt("userid") );
 	const char *killedwith = event->GetString( "weapon" );
 
+#ifdef HIDDEN
+	// Beta 4b's kill icons are hud_textures.txt's d_<weapon> sprites (d_shotgun, d_fn2000, ...), as
+	// in the 2006 SDK; HL2MP's death_<weapon> ones are characters of a font Beta 4b doesn't have.
+	const char *pszIconPrefix = "d_";
+#else
+	const char *pszIconPrefix = "death_";
+#endif
 	char fullkilledwith[128];
 	if ( killedwith && *killedwith )
 	{
-		Q_snprintf( fullkilledwith, sizeof(fullkilledwith), "death_%s", killedwith );
+		Q_snprintf( fullkilledwith, sizeof(fullkilledwith), "%s%s", pszIconPrefix, killedwith );
 	}
 	else
 	{
@@ -350,7 +357,7 @@ void CHudDeathNotice::FireGameEvent( IGameEvent * event )
 
 		if ( fullkilledwith && *fullkilledwith && (*fullkilledwith > 13 ) )
 		{
-			Q_strncat( sDeathMsg, VarArgs( " with %s.\n", fullkilledwith+6 ), sizeof( sDeathMsg ), COPY_ALL_CHARACTERS );
+			Q_strncat( sDeathMsg, VarArgs( " with %s.\n", fullkilledwith+strlen( pszIconPrefix ) ), sizeof( sDeathMsg ), COPY_ALL_CHARACTERS );
 		}
 	}
 
