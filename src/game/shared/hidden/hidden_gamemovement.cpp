@@ -83,11 +83,10 @@ void CHiddenGameMovement::CheckParameters( void )
 	mv->m_flMaxSpeed = mv->m_flClientMaxSpeed = MIN( GetHiddenPlayer()->UpdateMaxSpeed( mv->m_nButtons, mv->m_nOldButtons ), sv_maxspeed.GetFloat() );
 
 	CGameMovement::CheckParameters();
-	CheckBack();
 }
 
-// Marines on the ground walk backwards at 80 %. It counts as the speed crop, so a marine who
-// crouches while backing off isn't slowed to a third as well (as in Beta 4b).
+// Marines on the ground walk backwards at 80 %. Beta 4b checks this right after the duck, and it
+// counts as the speed crop, so a crouching marine backing off gets the crouch's third instead.
 void CHiddenGameMovement::CheckBack( void )
 {
 	if ( player->GetTeamNumber() != TEAM_IRIS || m_iSpeedCropped != SPEED_CROPPED_RESET )
@@ -363,6 +362,7 @@ void CHiddenGameMovement::Duck( void )
 	}
 
 	BaseClass::Duck();
+	CheckBack();
 }
 
 bool CHiddenGameMovement::LadderMove( void )
