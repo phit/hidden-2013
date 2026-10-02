@@ -46,6 +46,11 @@ public:
 	virtual void ItemPostFrame( void );
 #ifndef CLIENT_DLL
 	virtual void UpdateOnRemove( void );
+
+	// Beta 4b's weapons kept +use, which HL2MP's base takes away. CBaseCombatWeapon::Use equips a
+	// weapon the game rules allow and otherwise hands it to PickupObject: the Hidden carries and
+	// throws the marines' guns like props.
+	virtual int ObjectCaps( void ) { return CBaseCombatWeapon::ObjectCaps(); }
 #else
 	// No pickup icon or sound for the loadout handed out at spawn (C_Hidden_Player::JustSpawned).
 	virtual bool ShouldDrawPickup( void );
