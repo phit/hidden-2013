@@ -47,6 +47,7 @@ public:
 	virtual void WalkMove( void );
 	virtual void AirMove( void );
 	virtual void Duck( void );
+	virtual void FinishDuck( void );
 
 	// Brush ladders, as in the SDK, instead of HL2's useable ladders.
 	virtual bool LadderMove( void );
@@ -363,6 +364,23 @@ void CHiddenGameMovement::Duck( void )
 
 	BaseClass::Duck();
 	CheckBack();
+}
+
+// Crouching again while still standing up (FL_DUCKING stays set until the stand-up ends) finishes
+// the duck. SDK 2013's FinishDuck returns early then and leaves the eye wherever the stand-up had
+// got to, up to standing height, for as long as duck is held; Beta 4b's (the 2006 SDK's) has no
+// such return and puts the eye back down. The hull is already the ducked one, so nothing moves.
+void CHiddenGameMovement::FinishDuck( void )
+{
+	if ( ( player->GetFlags() & FL_DUCKING ) && player->m_Local.m_bDucking )
+	{
+		player->m_Local.m_bDucked = true;
+		player->m_Local.m_bDucking = false;
+		player->SetViewOffset( GetPlayerViewOffset( true ) );
+		return;
+	}
+
+	BaseClass::FinishDuck();
 }
 
 bool CHiddenGameMovement::LadderMove( void )
