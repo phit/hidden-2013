@@ -59,6 +59,10 @@
 #include "c_prop_portal.h" //portal surface rendering functions
 #endif
 
+#ifdef HIDDEN
+#include "hidden_shareddefs.h"
+#endif
+
 	
 // memdbgon must be the last include file in a .cpp file!!!
 #include "tier0/memdbgon.h"
@@ -83,7 +87,12 @@ extern bool g_bRenderingScreenshot;
 extern ConVar sensitivity;
 #endif
 
+#ifdef HIDDEN
+// Beta 4b's default and flags: 0.4, not saved. It scales a marine's scoped sensitivity only (below)
+ConVar zoom_sensitivity_ratio( "zoom_sensitivity_ratio", "0.4", 0, "Additional mouse sensitivity scale factor applied when FOV is zoomed in." );
+#else
 ConVar zoom_sensitivity_ratio( "zoom_sensitivity_ratio", "1.0", FCVAR_ARCHIVE, "Additional mouse sensitivity scale factor applied when FOV is zoomed in." );
+#endif
 
 CViewRender g_DefaultViewRender;
 IViewRender *view = NULL;	// set in cldll_client_init.cpp if no mod creates their own
@@ -545,6 +554,11 @@ void CViewRender::OnRenderStart()
 				gHUD.m_flFOVSensitivityAdjust = 
 					((float)localFOV / (float)iDefaultFOV) * // linear fov downscale
 					zoom_sensitivity_ratio.GetFloat(); // sensitivity scale factor
+#ifdef HIDDEN
+				// Beta 4b applies the ratio to marines only: the Hidden's 110 turns at 110/90
+				if ( player->GetTeamNumber() != TEAM_IRIS )
+					gHUD.m_flFOVSensitivityAdjust = (float)localFOV / (float)iDefaultFOV;
+#endif
 #ifndef _XBOX
 				gHUD.m_flMouseSensitivity = gHUD.m_flFOVSensitivityAdjust * sensitivity.GetFloat(); // regular sensitivity
 #endif
