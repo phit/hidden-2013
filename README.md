@@ -12,7 +12,7 @@
 
 # Hidden: Rebuild
 
-[Hidden: Source](http://www.hidden-source.com) (Calibre Studios, Beta 4b, 2006), rebuilt on the
+[Hidden: Source](http://www.hidden-source.com) (Calibre Studios, Beta 4b), rebuilt on the
 current Source SDK 2013 Multiplayer with the original mod's content: the same game, on a maintained
 engine, with 64-bit Windows and Linux builds, native Linux dedicated servers, bots, and the popular
 server plugins built in.
