@@ -271,11 +271,7 @@ inline bool IsIndexIntoPlayerArrayValid( int iIndex )
 
 #define MAX_PLACE_NAME_LENGTH		18
 
-#ifdef HIDDEN
-#define MAX_FOV						110	// the Hidden's default FOV (Beta 4b's CSDKPlayer::Spawn)
-#else
 #define MAX_FOV						90
-#endif
 
 //===================================================================================================================
 // Team Defines

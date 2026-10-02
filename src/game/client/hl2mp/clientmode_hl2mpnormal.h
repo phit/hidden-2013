@@ -32,6 +32,11 @@ public:
 
 	virtual void	Init();
 	virtual int		GetDeathMessageStartHeight( void );
+#ifdef HIDDEN
+	// Beta 4b's client mode (the 2006 SDK template's ClientModeSDKNormal) draws viewmodels at 74,
+	// whatever viewmodel_fov says; HL2MP's 54 shows them too close and too low.
+	virtual float	GetViewModelFOV( void ) { return 74.0f; }
+#endif
 };
 
 extern IClientMode *GetClientModeNormal();

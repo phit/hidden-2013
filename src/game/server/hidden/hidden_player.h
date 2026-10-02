@@ -68,6 +68,7 @@ public:
 	void GiveRequestedAmmo( CHidden_Player *pGiver );
 	virtual void PlayerRunCommand( CUserCmd *ucmd, IMoveHelper *moveHelper );
 	virtual void PreThink( void );
+	virtual bool Weapon_Switch( CBaseCombatWeapon *pWeapon, int viewmodelindex = 0 );
 	virtual void PostThink( void );
 	virtual void ItemPostFrame( void );
 	virtual void ImpulseCommands( void );

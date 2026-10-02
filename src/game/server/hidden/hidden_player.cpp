@@ -385,7 +385,6 @@ void CHidden_Player::SetupMarine( void )
 	m_nBody = m_iCharacter;
 	SetBodygroup( 2, 2 );
 	SetMaxSpeed( HIDDEN_MARINE_SPEED );
-	SetDefaultFOV( 0 );
 	SetFOV( this, 0 );
 	SetCollisionGroup( HIDDEN_COLLISION_GROUP_MARINE );
 
@@ -398,14 +397,24 @@ void CHidden_Player::SetupHidden( void )
 	m_nBody = 1;
 	SetMaxSpeed( HIDDEN_HIDDEN_SPEED );
 	m_flStamina = HIDDEN_STAMINA_MAX;
-	// Beta 4b sets the Hidden's 110 as a zoom (SetFOV). Here HL2's player would undo that on every
-	// weapon switch (CHL2_Player::Weapon_Switch stops any "zoom"), the knife's first of all, so make
-	// it his default instead: same view, and the viewmodel widens with it as in Beta 4b.
-	SetDefaultFOV( HIDDEN_HIDDEN_FOV );
-	SetFOV( this, 0 );
 	SetCollisionGroup( HIDDEN_COLLISION_GROUP_HIDDEN );
 
 	GiveHiddenLoadout();
+
+	// After the knife, as in Beta 4b: his 110 is a zoom over the default 90, so the viewmodel widens
+	// with it and the mouse turns faster (CViewRender::OnRenderStart). Weapon_Switch keeps it.
+	SetFOV( this, HIDDEN_HIDDEN_FOV );
+}
+
+bool CHidden_Player::Weapon_Switch( CBaseCombatWeapon *pWeapon, int viewmodelindex )
+{
+	const bool bRet = BaseClass::Weapon_Switch( pWeapon, viewmodelindex );
+
+	// CHL2_Player::Weapon_Switch ends HL2's suit zoom, which the Hidden's FOV counts as.
+	if ( GetTeamNumber() == TEAM_HIDDEN && IsAlive() )
+		SetFOV( this, HIDDEN_HIDDEN_FOV );
+
+	return bRet;
 }
 
 void CHidden_Player::GiveMarineLoadout( void )
@@ -519,7 +528,6 @@ void CHidden_Player::BecomeObserver( void )
 		return;
 
 	RemoveAllItems( true );
-	SetDefaultFOV( 0 );	// a dead Hidden's 110 doesn't carry over to spectating
 	State_Transition( STATE_OBSERVER_MODE );
 }
 
