@@ -1,7 +1,8 @@
 //========= Hidden: Source =====================================================//
 //
 // Purpose: What Beta 4b's client mode did with game events: the marines' radio
-//			calls, round sounds, the new round's clean-up and the material check. See docs/spec/client.md.
+//			calls, round sounds, the damage report, the new round's clean-up and the
+//			material check. See docs/spec/client.md.
 //
 //=============================================================================//
 
@@ -15,6 +16,8 @@
 #include "physpropclientside.h"
 #include "c_te_legacytempents.h"
 #include "c_soundscape.h"
+#include "c_hidden_player.h"
+#include "c_playerresource.h"
 
 // memdbgon must be the last include file in a .cpp file!!!
 #include "tier0/memdbgon.h"
@@ -22,7 +25,7 @@
 class CHiddenClientEvents : public CAutoGameSystem, public CGameEventListener
 {
 public:
-	CHiddenClientEvents() : CAutoGameSystem( "CHiddenClientEvents" ) {}
+	CHiddenClientEvents() : CAutoGameSystem( "CHiddenClientEvents" ), m_bDamageReported( false ) {}
 
 	virtual bool Init( void )
 	{
@@ -31,13 +34,30 @@ public:
 		ListenForGameEvent( "game_round_start" );
 		ListenForGameEvent( "game_round_end" );
 		ListenForGameEvent( "material_check" );
+		ListenForGameEvent( "player_hurt" );
+		ListenForGameEvent( "player_death" );
 		return true;
 	}
+
+	virtual void LevelInitPreEntity( void ) { m_Damage.RemoveAll(); m_bDamageReported = false; }
 
 	virtual void FireGameEvent( IGameEvent *event );
 
 private:
 	void MaterialCheck( C_BasePlayer *pLocal, IGameEvent *event );
+	void AddDamage( int iAttacker, int iVictim, float flDamage );
+	void DamageReport( C_BasePlayer *pLocal );
+
+	// The hits the local player gave or took this round, summed per attacker and victim (user IDs).
+	struct DamageEntry_t
+	{
+		int iAttacker;
+		int iVictim;
+		float flDamage;
+		int iShots;
+	};
+	CUtlVector<DamageEntry_t> m_Damage;
+	bool m_bDamageReported;
 
 	void PlayLocalSound( const char *pszSound )
 	{
@@ -65,6 +85,23 @@ void CHiddenClientEvents::FireGameEvent( IGameEvent *event )
 		tempents->Clear();
 		enginesound->StopAllSounds( true );
 		Soundscape_OnStopAllSounds();
+		m_Damage.RemoveAll();
+		return;
+	}
+
+	if ( FStrEq( pszName, "player_hurt" ) )
+	{
+		const int iAttacker = event->GetInt( "attacker" );
+		const int iVictim = event->GetInt( "userid" );
+		if ( iAttacker == pLocal->GetUserID() || iVictim == pLocal->GetUserID() )
+			AddDamage( iAttacker, iVictim, event->GetFloat( "damage" ) );
+		return;
+	}
+
+	if ( FStrEq( pszName, "player_death" ) )
+	{
+		if ( event->GetInt( "userid" ) == pLocal->GetUserID() )
+			DamageReport( pLocal );
 		return;
 	}
 
@@ -87,6 +124,10 @@ void CHiddenClientEvents::FireGameEvent( IGameEvent *event )
 	{
 		if ( bMarine && pLocal->IsAlive() )
 			PlayLocalSound( "IRIS.RoundEnd" );
+
+		// The survivors' report; the dead had theirs when they died.
+		DamageReport( pLocal );
+		m_bDamageReported = false;
 		return;
 	}
 
@@ -109,6 +150,61 @@ void CHiddenClientEvents::FireGameEvent( IGameEvent *event )
 		break;
 	case 10: PlayLocalSound( "IRIS.ReportingIn" ); break;
 	}
+}
+
+void CHiddenClientEvents::AddDamage( int iAttacker, int iVictim, float flDamage )
+{
+	DevMsg( 1, "damage done : %f\n", flDamage );
+
+	for ( int i = 0; i < m_Damage.Count(); i++ )
+	{
+		if ( m_Damage[i].iAttacker == iAttacker && m_Damage[i].iVictim == iVictim )
+		{
+			m_Damage[i].flDamage += flDamage;
+			m_Damage[i].iShots++;
+			return;
+		}
+	}
+
+	DamageEntry_t entry = { iAttacker, iVictim, flDamage, 1 };
+	m_Damage.AddToTail( entry );
+}
+
+static const char *DamageReportName( int iUserID )
+{
+	// Deviation: Beta 4b printed ERRORNAME for the world (falls).
+	const int iPlayer = engine->GetPlayerForUserID( iUserID );
+	return ( iPlayer && g_PR ) ? g_PR->GetPlayerName( iPlayer ) : "world";
+}
+
+// Beta 4b's damage report, in the console once a round: when the local player dies, or when the
+// round ends for the survivors. Nothing when they neither hurt anyone nor got hurt.
+void CHiddenClientEvents::DamageReport( C_BasePlayer *pLocal )
+{
+	if ( m_bDamageReported || !m_Damage.Count() )
+		return;
+
+	const int iLocal = pLocal->GetUserID();
+
+	Msg( "Damage List - \n\n" );
+	for ( int i = 0; i < m_Damage.Count(); i++ )
+	{
+		if ( m_Damage[i].iAttacker == iLocal )
+			Msg( "You did %f to %s in %i shots\n", m_Damage[i].flDamage, DamageReportName( m_Damage[i].iVictim ), m_Damage[i].iShots );
+	}
+	Msg( "\n-------------------------------\n\n" );
+	for ( int i = 0; i < m_Damage.Count(); i++ )
+	{
+		if ( m_Damage[i].iVictim == iLocal )
+			Msg( "%s did %i to you in %i shots\n", DamageReportName( m_Damage[i].iAttacker ), (int)m_Damage[i].flDamage, m_Damage[i].iShots );
+	}
+	Msg( "\n-------------------------------\n\n" );
+
+	C_Hidden_Player *pHidden = ToHiddenPlayer( pLocal );
+	Msg( "Weighting : %i\n", pHidden ? pHidden->GetWeighting() : 0 );
+
+	m_Damage.RemoveAll();
+	m_bDamageReported = true;
 }
 
 // Beta 4b's anti-cheat: the server sends the CRCs of its cloak materials at every round start. A
