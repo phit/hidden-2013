@@ -25,6 +25,8 @@ public:
 	// The player loses their place as the carried-over Hidden (death by the world, suicide, leaving).
 	void ForfeitHidden( CHidden_Player *pPlayer );
 	void ClearHidden( void );
+	// The round ended: tell each player their weighting in chat, if hdn_weightreport asks for it.
+	void ReportWeighting( void );
 	CHidden_Player *GetCurrentHidden( void ) const { return m_hCurrentHidden.Get(); }
 
 private:

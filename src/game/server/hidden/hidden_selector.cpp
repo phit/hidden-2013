@@ -9,6 +9,9 @@
 #include "hidden_player.h"
 #include "hidden_cvars.h"
 
+// Deviation: Beta 4b showed the weighting only in the console.
+static ConVar hdn_weightreport( "hdn_weightreport", "0", FCVAR_NOTIFY, "Weighting in chat, with weighted selection (hdn_selectmethod 0): 1 tells each player their own weighting when the round ends, 2 shows everyone's chance in chat when the next Hidden is picked, 3 both. 0: only the console, as in Beta 4b" );
+
 // memdbgon must be the last include file in a .cpp file!!!
 #include "tier0/memdbgon.h"
 
@@ -208,7 +211,7 @@ CHidden_Player *CHiddenSelector::SelectWeightedHidden( CUtlVector<CHidden_Player
 	{
 		Q_snprintf( szMessage, sizeof( szMessage ), "%s has a %.2f percent chance of weighted selection\n",
 			eligible[i]->GetPlayerName(), 100.0f * eligible[i]->GetWeighting() / iTotal );
-		UTIL_ClientPrintAll( HUD_PRINTNOTIFY, szMessage );
+		UTIL_ClientPrintAll( ( hdn_weightreport.GetInt() & 2 ) ? HUD_PRINTTALK : HUD_PRINTNOTIFY, szMessage );
 	}
 
 	int iTicket = random->RandomInt( 0, iTotal - 1 );
@@ -234,6 +237,23 @@ void CHiddenSelector::ForfeitHidden( CHidden_Player *pPlayer )
 {
 	if ( pPlayer && pPlayer == m_hCurrentHidden.Get() )
 		ClearHidden();
+}
+
+void CHiddenSelector::ReportWeighting( void )
+{
+	if ( !( hdn_weightreport.GetInt() & 1 ) || hdn_selectmethod.GetInt() != SELECT_WEIGHTED )
+		return;
+
+	for ( int i = 1; i <= gpGlobals->maxClients; i++ )
+	{
+		CHidden_Player *pPlayer = ToHiddenPlayer( UTIL_PlayerByIndex( i ) );
+		if ( !pPlayer || pPlayer->IsBot() || ( pPlayer->GetTeamNumber() != TEAM_IRIS && pPlayer->GetTeamNumber() != TEAM_HIDDEN ) )
+			continue;
+
+		char szMessage[64];
+		Q_snprintf( szMessage, sizeof( szMessage ), "Your weighting: %i\n", pPlayer->GetWeighting() );
+		ClientPrint( pPlayer, HUD_PRINTTALK, szMessage );
+	}
 }
 
 void CHiddenSelector::ClearHidden( void )

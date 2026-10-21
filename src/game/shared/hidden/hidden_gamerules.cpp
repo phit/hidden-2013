@@ -455,6 +455,7 @@ void CHiddenRules::Think( void )
 	case ROUND_ENDING:
 		FireSimpleEvent( "game_round_end" );
 		ClearHiddenWeighting();
+		m_Selector.ReportWeighting();
 		GoToIntermission();
 		break;
 
