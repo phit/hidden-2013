@@ -1,7 +1,7 @@
 //========= Hidden: Source =====================================================//
 //
 // Purpose: What Beta 4b's client mode did with game events: the marines' radio
-//			calls, round sounds and the material check. See docs/spec/client.md.
+//			calls, round sounds, the new round's clean-up and the material check. See docs/spec/client.md.
 //
 //=============================================================================//
 
@@ -12,6 +12,9 @@
 #include "hidden_shareddefs.h"
 #include "hidden_gamerules.h"
 #include "filesystem.h"
+#include "physpropclientside.h"
+#include "c_te_legacytempents.h"
+#include "c_soundscape.h"
 
 // memdbgon must be the last include file in a .cpp file!!!
 #include "tier0/memdbgon.h"
@@ -24,6 +27,7 @@ public:
 	virtual bool Init( void )
 	{
 		ListenForGameEvent( "iris_radio" );
+		ListenForGameEvent( "game_round_restart" );
 		ListenForGameEvent( "game_round_start" );
 		ListenForGameEvent( "game_round_end" );
 		ListenForGameEvent( "material_check" );
@@ -51,6 +55,18 @@ void CHiddenClientEvents::FireGameEvent( IGameEvent *event )
 		return;
 
 	const char *pszName = event->GetName();
+
+	// A new round starts clean: no decals, client-side props back where the map put them, no
+	// temporary effects and no sounds left over from the last round.
+	if ( FStrEq( pszName, "game_round_restart" ) )
+	{
+		engine->ClientCmd( "r_cleardecals\n" );
+		C_PhysPropClientside::RecreateAll();
+		tempents->Clear();
+		enginesound->StopAllSounds( true );
+		Soundscape_OnStopAllSounds();
+		return;
+	}
 
 	if ( FStrEq( pszName, "material_check" ) )
 	{
