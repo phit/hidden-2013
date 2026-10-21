@@ -619,7 +619,9 @@ int CHidden_Player::OnTakeDamage_Alive( const CTakeDamageInfo &inputInfo )
 		ApplyAbsVelocityImpulse( vecForce );
 	}
 
-	IGameEvent *event = gameeventmanager->CreateEvent( "player_hurt" );
+	// Forced: the hurt log line and the weighting below come with the event, which isn't created when
+	// nothing listens for it. Beta 4b's client did; ours doesn't.
+	IGameEvent *event = gameeventmanager->CreateEvent( "player_hurt", true );
 	if ( event )
 	{
 		event->SetInt( "userid", GetUserID() );
