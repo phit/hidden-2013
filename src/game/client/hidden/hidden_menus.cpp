@@ -523,16 +523,46 @@ private:
 };
 
 //-----------------------------------------------------------------------------
-// The marines' radio menu (+radiomenu, while held): click a call.
+// The radio menu (+radiomenu, while held): click a call. One layout for both teams, as in Beta 4b's
+// HDNRadioMenu: the marines' calls, or the Hidden's taunts with his own background. The buttons
+// send radio 0-7 either way.
 //-----------------------------------------------------------------------------
 class CHiddenRadioMenu : public CHiddenMenu
 {
 	DECLARE_CLASS_SIMPLE( CHiddenRadioMenu, CHiddenMenu );
 
 public:
-	CHiddenRadioMenu( IViewPort *pViewPort ) : CHiddenMenu( pViewPort, PANEL_HIDDEN_RADIO, "radio", "Resource/UI/Radiomenu_marine.res" ) {}
+	CHiddenRadioMenu( IViewPort *pViewPort ) : CHiddenMenu( pViewPort, PANEL_HIDDEN_RADIO, "radio", "Resource/UI/Radiomenu_marine.res" ), m_iTeam( TEAM_IRIS ) {}
 
 protected:
+	virtual void OnShow( void )
+	{
+		C_BasePlayer *pPlayer = C_BasePlayer::GetLocalPlayer();
+		const int iTeam = ( pPlayer && pPlayer->GetTeamNumber() == TEAM_IRIS ) ? TEAM_IRIS : TEAM_HIDDEN;
+		if ( iTeam == m_iTeam )
+			return;
+		m_iTeam = iTeam;
+
+		static const char *s_pszIRIS[] = { "&1 Agent Down", "&2 Hidden Spotted", "&3 Affirmative", "&4 Requesting Ammo",
+			"&5 Report In", "&6 One Ugly Mother", "&7 If It Bleeds", "&8 Bring It" };
+		static const char *s_pszHidden[] = { "&1 Behind You", "&2 I'm Here", "&3 I See You", "&4 Look Up",
+			"&5 Turn Around", "&6 Over Here", "&7 Fresh Meat", "&8 You're Next" };
+		const bool bIRIS = ( iTeam == TEAM_IRIS );
+
+		ImagePanel *pImage = dynamic_cast<ImagePanel *>( FindChildByName( "image01" ) );
+		if ( pImage )
+			pImage->SetImage( bIRIS ? "hud/hdn_irisradio" : "hud/hdn_hdnradio" );
+
+		for ( int i = 0; i < 8; i++ )
+		{
+			char szName[16];
+			Q_snprintf( szName, sizeof( szName ), "message%02d", i + 1 );
+			Button *pButton = dynamic_cast<Button *>( FindChildByName( szName ) );
+			if ( pButton )
+				pButton->SetText( bIRIS ? s_pszIRIS[i] : s_pszHidden[i] );
+		}
+	}
+
 	virtual void OnCommand( const char *command )
 	{
 		if ( !Q_strnicmp( command, "radio ", 6 ) )
@@ -544,6 +574,9 @@ protected:
 
 		BaseClass::OnCommand( command );
 	}
+
+private:
+	int m_iTeam;	// whose labels are up
 };
 
 //-----------------------------------------------------------------------------
@@ -578,7 +611,7 @@ CON_COMMAND( weaponmenu, "Shows the weapon selection menu" )
 static void RadioMenu( bool bShow )
 {
 	C_BasePlayer *pPlayer = C_BasePlayer::GetLocalPlayer();
-	if ( bShow && ( !pPlayer || !pPlayer->IsAlive() || pPlayer->GetTeamNumber() != TEAM_IRIS ) )
+	if ( bShow && ( !pPlayer || !pPlayer->IsAlive() ) )
 		return;
 
 	if ( gViewPortInterface )
