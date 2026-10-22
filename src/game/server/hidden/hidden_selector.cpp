@@ -10,7 +10,7 @@
 #include "hidden_cvars.h"
 
 // Deviation: Beta 4b showed the weighting only in the console.
-static ConVar hdn_weightreport( "hdn_weightreport", "0", FCVAR_NOTIFY, "Weighting in chat, with weighted selection (hdn_selectmethod 0): 1 tells each player their own weighting when the round ends, 2 shows everyone's chance in chat when the next Hidden is picked, 3 both. 0: only the console, as in Beta 4b" );
+static ConVar hdn_weightreport( "hdn_weightreport", "0", FCVAR_NOTIFY, "Weighting in chat, with weighted selection (hdn_selectmethod 0): 1 tells each marine their chance of being the next Hidden when the round ends (as the WeighteR plugin did), 2 shows everyone's chance in chat when the next Hidden is picked, 3 both. 0: only the console, as in Beta 4b" );
 
 // memdbgon must be the last include file in a .cpp file!!!
 #include "tier0/memdbgon.h"
@@ -239,20 +239,41 @@ void CHiddenSelector::ForfeitHidden( CHidden_Player *pPlayer )
 		ClearHidden();
 }
 
+// Paegus's WeighteR (hsm_weighter 1.0.3), which Beta 4b servers ran: each marine in the draw hears their
+// chance when the round ends, unless the Hidden stays on for another round.
 void CHiddenSelector::ReportWeighting( void )
 {
 	if ( !( hdn_weightreport.GetInt() & 1 ) || hdn_selectmethod.GetInt() != SELECT_WEIGHTED )
 		return;
 
+	// A Hidden who neither died nor lost on time keeps the place until hdn_hiddenrounds runs out.
+	CHidden_Player *pCurrent = m_hCurrentHidden.Get();
+	const int iHiddenRounds = hdn_hiddenrounds.GetInt();
+	if ( pCurrent && !pCurrent->GetNoHidden() && ( iHiddenRounds <= 0 || m_iHiddenRounds < iHiddenRounds ) )
+		return;
+
+	int iTotal = 0;
 	for ( int i = 1; i <= gpGlobals->maxClients; i++ )
 	{
 		CHidden_Player *pPlayer = ToHiddenPlayer( UTIL_PlayerByIndex( i ) );
-		if ( !pPlayer || pPlayer->IsBot() || ( pPlayer->GetTeamNumber() != TEAM_IRIS && pPlayer->GetTeamNumber() != TEAM_HIDDEN ) )
+		if ( pPlayer && pPlayer->GetTeamNumber() == TEAM_IRIS && !pPlayer->GetNoHidden() )
+			iTotal += MAX( 0, pPlayer->GetWeighting() );
+	}
+
+	for ( int i = 1; i <= gpGlobals->maxClients; i++ )
+	{
+		CHidden_Player *pPlayer = ToHiddenPlayer( UTIL_PlayerByIndex( i ) );
+		if ( !pPlayer || pPlayer->GetTeamNumber() != TEAM_IRIS || pPlayer->GetNoHidden() || pPlayer->GetWeighting() <= 0 )
 			continue;
 
-		char szMessage[64];
-		Q_snprintf( szMessage, sizeof( szMessage ), "Your weighting: %i\n", pPlayer->GetWeighting() );
+		char szMessage[128];
+		const int iChance = RoundFloatToInt( 100.0f * pPlayer->GetWeighting() / iTotal );
+		if ( iChance < 100 )
+			Q_snprintf( szMessage, sizeof( szMessage ), "[WeighteR] You have a %i in %i (%i%%) chance to be hidden, %s.\n", pPlayer->GetWeighting(), iTotal, iChance, pPlayer->GetPlayerName() );
+		else
+			Q_snprintf( szMessage, sizeof( szMessage ), "[WeighteR] You will be Hidden next round, %s.\n", pPlayer->GetPlayerName() );
 		ClientPrint( pPlayer, HUD_PRINTTALK, szMessage );
+		ClientPrint( pPlayer, HUD_PRINTCONSOLE, szMessage );
 	}
 }
 
