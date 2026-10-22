@@ -532,9 +532,51 @@ class CHiddenRadioMenu : public CHiddenMenu
 	DECLARE_CLASS_SIMPLE( CHiddenRadioMenu, CHiddenMenu );
 
 public:
-	CHiddenRadioMenu( IViewPort *pViewPort ) : CHiddenMenu( pViewPort, PANEL_HIDDEN_RADIO, "radio", "Resource/UI/Radiomenu_marine.res" ), m_iTeam( TEAM_IRIS ) {}
+	CHiddenRadioMenu( IViewPort *pViewPort ) : CHiddenMenu( pViewPort, PANEL_HIDDEN_RADIO, "radio", "Resource/UI/Radiomenu_marine.res" ), m_iTeam( TEAM_IRIS )
+	{
+		// Beta 4b's HDNRadioMenu set no scheme, so it had VGUI's default, Beta 4b's SourceScheme: white
+		// labels on dark grey, light grey under the mouse.
+		SetScheme( scheme()->LoadSchemeFromFile( "resource/SourceScheme.res", "SourceScheme" ) );
+
+		m_bCenter = true;
+	}
 
 protected:
+	// Only the background image and the buttons show: Beta 4b turned off the frame's border and
+	// background and the buttons' borders.
+	virtual void ApplySchemeSettings( IScheme *pScheme )
+	{
+		BaseClass::ApplySchemeSettings( pScheme );
+
+		SetPaintBorderEnabled( false );
+		SetPaintBackgroundEnabled( false );
+		for ( int i = 0; i < 8; i++ )
+		{
+			char szName[16];
+			Q_snprintf( szName, sizeof( szName ), "message%02d", i + 1 );
+			Button *pButton = dynamic_cast<Button *>( FindChildByName( szName ) );
+			if ( pButton )
+				pButton->SetPaintBorderEnabled( false );
+		}
+	}
+
+	// The buttons scale with the screen, but Beta 4b's labels kept the scheme's 16-pixel font. Set
+	// here because each button picks its (scaled) font after this menu's ApplySchemeSettings.
+	virtual void PerformLayout( void )
+	{
+		BaseClass::PerformLayout();
+
+		const HFont hFont = scheme()->GetIScheme( GetScheme() )->GetFont( "Default", false );
+		for ( int i = 0; i < 8; i++ )
+		{
+			char szName[16];
+			Q_snprintf( szName, sizeof( szName ), "message%02d", i + 1 );
+			Button *pButton = dynamic_cast<Button *>( FindChildByName( szName ) );
+			if ( pButton && pButton->GetFont() != hFont )
+				pButton->SetFont( hFont );
+		}
+	}
+
 	virtual void OnShow( void )
 	{
 		C_BasePlayer *pPlayer = C_BasePlayer::GetLocalPlayer();
