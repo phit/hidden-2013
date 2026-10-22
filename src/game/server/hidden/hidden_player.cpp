@@ -582,6 +582,16 @@ void CHidden_Player::Weapon_Drop( CBaseCombatWeapon *pWeapon, const Vector *pvec
 	BaseClass::Weapon_Drop( pWeapon, pvecTarget, pVelocity );
 }
 
+// Beta 4b's CBasePlayer::OnTakeDamage refused all damage once the round was over (GetSafe), whatever
+// its source: props, falls and the world as well as players.
+int CHidden_Player::OnTakeDamage( const CTakeDamageInfo &info )
+{
+	if ( GetSafe() )
+		return 0;
+
+	return BaseClass::OnTakeDamage( info );
+}
+
 // Beta 4b's player came straight from CBasePlayer, so this is its OnTakeDamage_Alive (without HL2's
 // drowning and burning sounds) plus Beta 4b's additions: the player_hurt event's damage and "hidden",
 // a hurt log line, the attacker's weighting and IRIS.Damage. The built-in plugins can change or drop

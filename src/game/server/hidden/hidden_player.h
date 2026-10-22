@@ -37,6 +37,7 @@ public:
 	virtual void PlayerDeathThink( void );
 	virtual void Event_Killed( const CTakeDamageInfo &info );
 	virtual void Weapon_Drop( CBaseCombatWeapon *pWeapon, const Vector *pvecTarget = NULL, const Vector *pVelocity = NULL );
+	virtual int OnTakeDamage( const CTakeDamageInfo &info );
 	virtual int OnTakeDamage_Alive( const CTakeDamageInfo &info );
 	virtual void DeathSound( const CTakeDamageInfo &info );
 	virtual void CreateRagdollEntity( void );
